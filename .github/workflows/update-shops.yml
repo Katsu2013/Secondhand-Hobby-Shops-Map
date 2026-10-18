@@ -1,0 +1,73 @@
+name: Scheduled Official Shop Data Update & Deploy
+
+on:
+  # 毎週月曜 03:00 JST (日曜 18:00 UTC) に各社公式サイト・APIから最新の店舗一覧を自動取得して更新
+  schedule:
+    - cron: "0 18 * * 0"
+  # GitHub の Actions タブから手動でいつでも即時実行可能
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  update_and_deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch latest official store data & rebuild shops.json
+        run: python scripts/update_all_official_data.py
+
+      - name: Commit and push updated store database if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/shops.json public/data/shops.json scripts/gsi_geocode_cache.json scripts/official_*.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(data): auto-update nationwide shop database from official sources"
+            git push origin HEAD:main
+          else
+            echo "No changes in official store data."
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production bundle (TypeScript + Vite)
+        run: npm run build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

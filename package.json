@@ -8,7 +8,8 @@
     "dev": "vite --port 8080",
     "build": "tsc -b && vite build",
     "preview": "vite preview --port 8080",
-    "docs": "typedoc"
+    "docs": "typedoc",
+    "update-data": "python scripts/update_all_official_data.py"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
