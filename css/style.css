@@ -31,14 +31,27 @@
   padding: 0;
 }
 
-html, body, #root {
+html, body {
+  position: fixed;
+  inset: 0;
   width: 100%;
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
+  overscroll-behavior: none;
   font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: var(--text-main);
   background: var(--bg-subtle);
   -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 /* ============================================================================
@@ -47,6 +60,9 @@ html, body, #root {
 .top-header,
 .app-header {
   height: var(--header-h);
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 100vw;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
   display: flex;
@@ -56,6 +72,7 @@ html, body, #root {
   gap: 10px;
   z-index: 1000;
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
 .header-left {
@@ -63,6 +80,7 @@ html, body, #root {
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 .primary-toggle,
@@ -255,7 +273,9 @@ html, body, #root {
 .main-container,
 .app-workspace {
   display: flex;
-  height: calc(100vh - var(--header-h));
+  flex: 1;
+  min-height: 0;
+  height: calc(100dvh - var(--header-h));
   width: 100%;
   position: relative;
   overflow: hidden;
@@ -1215,14 +1235,17 @@ html, body, #root {
   color: #facc15;
 }
 
-/* 14. 鑑定団 (黒背景 #000000 × 白文字 #ffffff) */
+/* 14. 鑑定団 (黒背景 #000000 × 白文字 #ffffff、千葉鑑定団・茨城鑑定団・静岡鑑定団など地域冠名対応) */
 .plate-kanteidan {
   background: #000000;
   color: #ffffff;
+  min-width: 74px;
+  width: auto;
+  padding: 1px 4px;
 }
 .plate-kanteidan .plate-main {
-  font-size: 11.5px;
-  letter-spacing: 0.05em;
+  font-size: 10px;
+  letter-spacing: 0.02em;
 }
 
 /* 出発地ピン */
@@ -1875,12 +1898,53 @@ html, body, #root {
 }
 
 @media (max-width: 768px) {
+  .top-header,
+  .app-header {
+    height: 48px;
+    padding: 0 8px;
+    gap: 6px;
+  }
+  .header-left {
+    flex: 1;
+    min-width: 0;
+    gap: 8px;
+  }
+  .brand-block {
+    min-width: 0;
+    overflow: hidden;
+    gap: 6px;
+  }
+  .brand-logo {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+  .app-title {
+    font-size: 0.88rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .app-subtitle,
+  .btn-label-desktop,
+  .engine-badge-wrap,
+  #api-btn-text,
   .header-center {
-    display: none;
+    display: none !important;
+  }
+  .header-right {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .icon-btn,
+  .action-btn {
+    padding: 6px 9px;
+    font-size: 0.8rem;
   }
   .main-container,
   .app-workspace {
-    height: calc(100vh - var(--header-h) - 50px);
+    flex: 1;
+    min-height: 0;
+    height: auto;
   }
   .left-panel,
   .right-panel {
@@ -1898,7 +1962,9 @@ html, body, #root {
     display: inline-block;
   }
   .mobile-bottom-nav {
-    height: 50px;
+    flex-shrink: 0;
+    height: calc(50px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     background: var(--bg-surface);
     border-top: 1px solid var(--border-color);
     display: grid;
@@ -1908,10 +1974,14 @@ html, body, #root {
   .mob-nav-btn {
     border: none;
     background: transparent;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 700;
     color: var(--text-sub);
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
   }
   .mob-nav-btn.active {
     color: var(--primary);

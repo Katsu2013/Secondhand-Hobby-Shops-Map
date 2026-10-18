@@ -1,0 +1,142 @@
+[
+  {
+    "id": "kanteidan_off_1",
+    "name": "千葉鑑定団 酒々井店",
+    "subBrand": "千葉鑑定団",
+    "address": "千葉県印旛郡酒々井町上本佐倉130-1",
+    "hours": "24時間営業"
+  },
+  {
+    "id": "kanteidan_off_2",
+    "name": "千葉鑑定団 八千代店",
+    "subBrand": "千葉鑑定団",
+    "address": "千葉県八千代市勝田台南1-18-1",
+    "hours": "24時間営業"
+  },
+  {
+    "id": "kanteidan_off_3",
+    "name": "千葉鑑定団 東金店",
+    "subBrand": "千葉鑑定団",
+    "address": "千葉県山武市成東745-1",
+    "hours": "9:00-24:00"
+  },
+  {
+    "id": "kanteidan_off_4",
+    "name": "千葉鑑定団 千葉中央店",
+    "subBrand": "千葉鑑定団",
+    "address": "千葉県千葉市中央区塩田町385-2",
+    "hours": "10:00-25:00"
+  },
+  {
+    "id": "kanteidan_off_5",
+    "name": "千葉鑑定団 船橋店",
+    "subBrand": "千葉鑑定団",
+    "address": "千葉県船橋市夏見台3-4-8",
+    "hours": "10:00-24:00"
+  },
+  {
+    "id": "kanteidan_off_6",
+    "name": "千葉鑑定団 松戸店",
+    "subBrand": "千葉鑑定団",
+    "address": "千葉県松戸市栄町西2-865",
+    "hours": "10:00-24:00"
+  },
+  {
+    "id": "kanteidan_off_7",
+    "name": "千葉鑑定団アウトレット まちの中古屋さん 八街店",
+    "subBrand": "千葉鑑定団",
+    "address": "千葉県八街市文違301-3616",
+    "hours": "10:00-20:00"
+  },
+  {
+    "id": "kanteidan_off_8",
+    "name": "茨城鑑定団 神栖店",
+    "subBrand": "茨城鑑定団",
+    "address": "茨城県神栖市大野原2-11-5",
+    "hours": "10:00-24:00"
+  },
+  {
+    "id": "kanteidan_off_9",
+    "name": "茨城鑑定団 佐原東店",
+    "subBrand": "茨城鑑定団",
+    "address": "茨城県稲敷市西代2868-1",
+    "hours": "9:00-24:00"
+  },
+  {
+    "id": "kanteidan_off_10",
+    "name": "水戸鑑定団 本店",
+    "subBrand": "水戸鑑定団",
+    "address": "茨城県水戸市大塚町1590",
+    "hours": "9:00-24:00"
+  },
+  {
+    "id": "kanteidan_off_11",
+    "name": "静岡鑑定団 八幡店",
+    "subBrand": "静岡鑑定団",
+    "address": "静岡県静岡市駿河区八幡5-8-3",
+    "hours": "10:00-24:00"
+  },
+  {
+    "id": "kanteidan_off_12",
+    "name": "新清水鑑定団",
+    "subBrand": "新清水鑑定団",
+    "address": "静岡県静岡市清水区永楽町7-8",
+    "hours": "10:00-24:00"
+  },
+  {
+    "id": "kanteidan_off_13",
+    "name": "藤枝鑑定団",
+    "subBrand": "藤枝鑑定団",
+    "address": "静岡県藤枝市八幡363-4",
+    "hours": "10:00-24:00"
+  },
+  {
+    "id": "kanteidan_off_14",
+    "name": "富士鑑定団",
+    "subBrand": "富士鑑定団",
+    "address": "静岡県富士市八代町4-17",
+    "hours": "10:00-24:00"
+  },
+  {
+    "id": "kanteidan_off_15",
+    "name": "浜松鑑定団",
+    "subBrand": "浜松鑑定団",
+    "address": "静岡県浜松市中央区安新町105",
+    "hours": "10:00-24:00"
+  },
+  {
+    "id": "kanteidan_off_16",
+    "name": "浜北鑑定団",
+    "subBrand": "浜北鑑定団",
+    "address": "静岡県浜松市中央区半田山5-36-1",
+    "hours": "10:00-24:00"
+  },
+  {
+    "id": "kanteidan_off_17",
+    "name": "ガラクタ鑑定団 小山総本店",
+    "subBrand": "ガラクタ鑑定団",
+    "address": "栃木県小山市犬塚50-65",
+    "hours": "10:00-24:00"
+  },
+  {
+    "id": "kanteidan_off_18",
+    "name": "ガラクタ鑑定団 白沢店",
+    "subBrand": "ガラクタ鑑定団",
+    "address": "栃木県宇都宮市下川俣町208-10",
+    "hours": "10:00-24:00"
+  },
+  {
+    "id": "kanteidan_off_19",
+    "name": "宇都宮鑑定団 江曽島店",
+    "subBrand": "宇都宮鑑定団",
+    "address": "栃木県宇都宮市江曽島町1417-1",
+    "hours": "10:00-24:00"
+  },
+  {
+    "id": "kanteidan_off_20",
+    "name": "ガラクタ鑑定団 スーパーモールカンケンプラザ店",
+    "subBrand": "ガラクタ鑑定団",
+    "address": "群馬県太田市植木野町253-1",
+    "hours": "10:00-27:00"
+  }
+]

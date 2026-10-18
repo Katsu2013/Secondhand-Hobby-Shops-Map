@@ -122,15 +122,27 @@ export const CHAIN_GROUPS: readonly ChainGroup[] = [
   },
   {
     id: 'kanteidan',
-    name: '鑑定団 (千葉・茨城・静岡・酒々井等)',
+    name: '鑑定団グループ (千葉・茨城・静岡・ガラクタ等)',
     shortName: '鑑定団',
     color: '#111111',
     bgLight: '#f1f5f9',
     icon: '💎',
     badgeText: '鑑',
-    subBrands: ['鑑定団'],
+    subBrands: [
+      '千葉鑑定団',
+      '茨城鑑定団',
+      '水戸鑑定団',
+      '静岡鑑定団',
+      '富士鑑定団',
+      '浜松鑑定団',
+      '浜北鑑定団',
+      '新清水鑑定団',
+      '藤枝鑑定団',
+      'ガラクタ鑑定団',
+      '宇都宮鑑定団',
+    ],
     defaultCategories: ['retro_game', 'figure_hobby', 'tcg', 'book_media', 'pc_junk', 'audio_inst'],
-    keywords: ['鑑定団'],
+    keywords: ['鑑定団', '千葉鑑定団', '茨城鑑定団', '静岡鑑定団', 'ガラクタ鑑定団'],
   },
 ];
 
@@ -718,11 +730,12 @@ export function classifyShopByName(name: string): ShopClassification {
     }
   }
 
-  // 8. 鑑定団の判定
+  // 8. 鑑定団の判定（千葉鑑定団・茨城鑑定団・静岡鑑定団など地域冠名を保持）
   if (/鑑定団/.test(normalizedName)) {
     matchedChains.push('kanteidan');
     brands.push('kanteidan');
-    subBrand = '鑑定団';
+    const kanteiMatch = normalizedName.match(/([一-龠ぁ-んァ-ヶー]{1,6}鑑定団)/);
+    subBrand = kanteiMatch ? kanteiMatch[1] : '鑑定団';
     (['retro_game', 'figure_hobby', 'tcg', 'book_media', 'pc_junk', 'audio_inst'] as const).forEach(
       (c) => categories.add(c)
     );
@@ -761,6 +774,26 @@ export function classifyShopByName(name: string): ShopClassification {
 }
 
 /**
+ * 鑑定団グループ店舗の名称またはサブブランド名から、黒背景・白文字の看板プレートに表示する
+ * 地域冠名付きタイトル（例：`千葉鑑定団`、`茨城鑑定団`、`静岡鑑定団` 等）を抽出します。
+ *
+ * 【なぜこの処理が必要か】
+ * 鑑定団グループは「千葉鑑定団」「茨城鑑定団」「静岡鑑定団」「富士鑑定団」「浜松鑑定団」「ガラクタ鑑定団」のように
+ * 先頭に県名や地域名が付くのが特徴であるため、バルーン看板上でもその地域冠名を正確に表示するためです。
+ *
+ * @param shop - 対象の店舗オブジェクト
+ * @returns 看板プレートに表示する文字列（地域冠名がない場合は `'鑑 定 団'`）
+ */
+export function extractKanteidanPlateTitle(shop: Shop): string {
+  const source = `${shop.subBrand || ''} ${shop.name || ''}`.normalize('NFKC');
+  const match = source.match(/([一-龠ぁ-んァ-ヶー]{1,6}鑑定団)/);
+  if (match && match[1] !== '鑑定団') {
+    return match[1];
+  }
+  return '鑑 定 団';
+}
+
+/**
  * 店舗オブジェクトと現在ONになっているチェーン集合から、吹き出しバルーン内に縦積み表示する看板プレート配列を返します。
  *
  * 【なぜこの処理が必要か】
@@ -789,7 +822,15 @@ export function getShopActivePlates(
     const spec = BRAND_PLATES[brandId];
     // 看板定義が存在し、かつそのチェーンが現在ONになっている場合のみ追加する
     if (spec && (!enabledChainsSet || enabledChainsSet.has(spec.chainId))) {
-      activePlates.push(spec);
+      if (brandId === 'kanteidan') {
+        const kanteiTitle = extractKanteidanPlateTitle(shop);
+        activePlates.push({
+          ...spec,
+          html: `<span class="plate-main">${escapeHtml(kanteiTitle)}</span>`,
+        });
+      } else {
+        activePlates.push(spec);
+      }
     }
   }
 

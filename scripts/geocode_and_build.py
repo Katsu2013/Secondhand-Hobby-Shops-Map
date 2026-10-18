@@ -150,6 +150,8 @@ def build_master_database():
         ota_official = json.load(f)
     with open("scripts/official_lashinbang.json", "r", encoding="utf-8") as f:
         lash_official = json.load(f)
+    with open("scripts/official_kanteidan.json", "r", encoding="utf-8") as f:
+        kanteidan_official = json.load(f)
 
     # 1. Group Hard Off official stores by core address key
     ho_grouped = {}
@@ -179,7 +181,7 @@ def build_master_database():
                     g["categories"].append(c)
 
     all_addresses = set()
-    for s in su_real + su_friendly + furu_official + ota_official + lash_official + geo_official:
+    for s in su_real + su_friendly + furu_official + ota_official + lash_official + geo_official + kanteidan_official:
         all_addresses.add(s["address"])
     for b in bo_official:
         sc = b.get("store_category", "")
@@ -392,21 +394,43 @@ def build_master_database():
             "verified": True
         })
 
-    # Add remaining chains from OSM (Animate, Melonbooks, Mandarake, Mandai, Mangasouko, Kanteidan)
-    # Note: Bookoff, HardOff, Surugaya, Lashinbang, Furuichi, Otakarasouko are 100% official now!
-    # For GEO, we only add OSM GEO stores if they are NOT within 1.5km of any official GEO store and not marked closed.
+    # Add Official Kanteidan Group (20 active stores across Chiba, Ibaraki, Shizuoka, Tochigi, Gunma)
+    kantei_added = 0
+    for idx, s in enumerate(kanteidan_official):
+        coords = geocode_gsi(s["address"])
+        if not coords:
+            continue
+        final_shops.append({
+            "id": s.get("id", f"kanteidan_off_{idx+1}"),
+            "name": s["name"],
+            "chain": "kanteidan",
+            "chains": ["kanteidan"],
+            "brands": ["kanteidan"],
+            "subBrand": s.get("subBrand", "鑑定団"),
+            "categories": ["retro_game", "figure_hobby", "tcg", "book_media", "pc_junk", "audio_inst"],
+            "lat": coords["lat"],
+            "lng": coords["lng"],
+            "address": clean_address_for_geocode(s["address"]),
+            "hours": s.get("hours", ""),
+            "verified": True
+        })
+        kantei_added += 1
+    print(f"Added {kantei_added} official Kanteidan Group stores.")
+
+    # Add remaining chains from OSM (Animate, Melonbooks, Mandarake, Mandai, Mangasouko)
+    # Note: Bookoff, HardOff, Surugaya, Lashinbang, Furuichi, Otakarasouko, GEO, Kanteidan are 100% official now!
     with open("scripts/raw_overpass.json", "r", encoding="utf-8") as f:
         raw_osm = json.load(f).get("elements", [])
 
     OTHER_REGEX = re.compile(
         r"(まんだらけ|MANDARAKE|"
         r"メロンブックス|アニメイト|animate|"
-        r"万代|マンガ倉庫|鑑定団)",
+        r"万代|マンガ倉庫)",
         re.IGNORECASE
     )
     EXCLUDE_REGEX = re.compile(
         r"(ハードオフ|HARD\s*OFF|オフハウス|OFF\s*HOUSE|ホビーオフ|HOBBY\s*OFF|モードオフ|ガレージオフ|リカーオフ|"
-        r"ブックオフ|BOOK\s*OFF|BOOKOFF|ゲオ|GEO|"
+        r"ブックオフ|BOOK\s*OFF|BOOKOFF|ゲオ|GEO|鑑定団|"
         r"駿河屋|SURUGAYA|らしんばん|古本市場|ふるいち|お宝創庫|"
         r"バンダイナムコ|BANDAI\s*NAMCO|スタジオジブリ|アニメイトカフェ|万代シティ|万代シテイ|万代橋|万代島|万代町|スーパーマーケット万代)",
         re.IGNORECASE

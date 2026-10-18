@@ -235,7 +235,9 @@ export const App: React.FC = () => {
     [showToast]
   );
 
-  // 初回マウント時に全国店舗データベース（data/shops.json）を読み込み、APIキーがあればGoogle Mapsを起動する
+  // 初回マウント時に全国店舗データベース（data/shops.json）を読み込み、APIキーがあればGoogle Mapsを起動する。
+  // あわせて初回オープン時に現在地（GPS）の取得を自動的に試み、許可されれば現在地を出発地・地図中心に設定し、
+  // 拒否・非対応・タイムアウトの場合は現在の初期位置（東京・秋葉原駅周辺など）をそのまま維持する。
   useEffect(() => {
     let isMounted = true;
     fetchAndMergeShopsDatabase().then((shops) => {
@@ -245,6 +247,28 @@ export const App: React.FC = () => {
     });
     if (googleApiKey) {
       activateGoogleMapsEngine(googleApiKey);
+    }
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (!isMounted) return;
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setOrigin({ lat, lng, name: '現在地 (GPS)' });
+          setCenter({ lat, lng });
+          setCameraTarget((prev) => ({
+            lat,
+            lng,
+            zoom: 12,
+            seq: prev.seq + 1,
+          }));
+          showToast('現在地(GPS)を出発地に設定しました！');
+        },
+        () => {
+          // 位置情報が拒否または取得不可の場合は現在の初期位置をそのまま利用する
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+      );
     }
     return () => {
       isMounted = false;
