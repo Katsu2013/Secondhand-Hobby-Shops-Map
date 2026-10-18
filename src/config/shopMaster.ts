@@ -122,7 +122,7 @@ export const CHAIN_GROUPS: readonly ChainGroup[] = [
   },
   {
     id: 'kanteidan',
-    name: '鑑定団グループ (千葉・茨城・静岡・ガラクタ等)',
+    name: '鑑定団グループ (千葉・茨城・静岡・宇都宮・ガラクタ等)',
     shortName: '鑑定団',
     color: '#111111',
     bgLight: '#f1f5f9',
@@ -138,11 +138,13 @@ export const CHAIN_GROUPS: readonly ChainGroup[] = [
       '浜北鑑定団',
       '新清水鑑定団',
       '藤枝鑑定団',
-      'ガラクタ鑑定団',
       '宇都宮鑑定団',
+      'ガラクタ鑑定団',
+      '高根沢鑑定団',
+      '今市鑑定団',
     ],
     defaultCategories: ['retro_game', 'figure_hobby', 'tcg', 'book_media', 'pc_junk', 'audio_inst'],
-    keywords: ['鑑定団', '千葉鑑定団', '茨城鑑定団', '静岡鑑定団', 'ガラクタ鑑定団'],
+    keywords: ['鑑定団', '千葉鑑定団', '茨城鑑定団', '静岡鑑定団', '宇都宮鑑定団', 'ガラクタ鑑定団'],
   },
 ];
 
@@ -785,8 +787,14 @@ export function classifyShopByName(name: string): ShopClassification {
  * @returns 看板プレートに表示する文字列（地域冠名がない場合は `'鑑 定 団'`）
  */
 export function extractKanteidanPlateTitle(shop: Shop): string {
-  const source = `${shop.subBrand || ''} ${shop.name || ''}`.normalize('NFKC');
-  const match = source.match(/([一-龠ぁ-んァ-ヶー]{1,6}鑑定団)/);
+  const explicitSub = (shop.subBrand || '').trim().normalize('NFKC');
+  if (explicitSub && explicitSub.endsWith('鑑定団') && explicitSub !== '鑑定団') {
+    return explicitSub;
+  }
+  const source = (shop.name || '').normalize('NFKC');
+  const match = source.match(
+    /(千葉鑑定団|茨城鑑定団|水戸鑑定団|静岡鑑定団|新清水鑑定団|藤枝鑑定団|富士鑑定団|浜松鑑定団|浜北鑑定団|宇都宮鑑定団|ガラクタ鑑定団|高根沢鑑定団|今市鑑定団|[一-龠ぁ-んァ-ヶー]{1,6}鑑定団)/
+  );
   if (match && match[1] !== '鑑定団') {
     return match[1];
   }
