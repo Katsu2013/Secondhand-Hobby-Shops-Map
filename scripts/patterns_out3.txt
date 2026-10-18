@@ -1,0 +1,86 @@
+=== lashinbang around store.url ===
+  </div>
+        <div class="loading api" :class="{ ready: !loading }">
+      <div class="storeAnker">
+        <h2 class="ttl2"><svg><use xlink:href="#icon_search"></use></svg>店舗を探す</h2>
+        <ul class="storeAnker_list">
+          <li v-for="(area, key) in areas">
+            <a :href="'#area' + key">{{ area }}<svg><use xlink:href="#icon_down"></use></svg></a>
+          </li>
+        </ul>
+      </div>
+      <section class="storeArea" v-if="key in stores" v-for="(area, key) in areas">
+        <div :id="'area' + key" class="anker"></div>
+        <h2 class="ttl2"><svg><use xlink:href="#icon_compass"></use></svg>{{ area }}</h2>
+        <ul class="storeArchive">
+          <li v-for="store in stores[key]">
+            <div class="box">
+              <div class="storeArchive_image"><a :href="store.url"><img :src="store.img" alt=""></a></div>
+              <h4 class="storeArchive_name"><a :href="store.url">{{ store.name }}</a></h4>
+              <div class="storeArchive_address">
+                {{ store.postalCode ? '〒' + store.postalCode + ' ' : '' }}
+                {{ store.address }}
+              </div>
+              <div class="storeArchive_tel" v-if="store.tel">
+                <svg><use xlink:href="#icon_tel"></use></svg>
+                <span v-html="nl2br(store.tel)"></span>
+              </div>
+              <div class="storeArchive_openingHour" v-if="store.openingHour">
+                <svg><use xlink:href="#icon_clock"></use></svg>
+                <span v-html="nl2br(store.openingHour)"></span>
+              </div>
+              <ul class="storeArchive_sns" v-if="store.twitterId || store.facebookId">
+                <li v-if="store.twitterId"><a :href="'https://x.com/' + store.twitterId" target="_blank"><img src="https://www.lashinbang.com/wp-content/themes/lashinbang/img/x_icon.svg" alt="X"></a></li>
+                <li v-if="store.facebookId"><a :href="'https://www.facebook.com/' + store.facebookId + '/'" target="_blank"><img src="https://www.lashinbang.com/wp-content/themes/lashinbang/img/fb_icon.svg" alt="Facebook"></a></li>
+              </ul>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </div>
+    <div class="navidialBanner">
+      <img class="sp_none" src="https://www.lashinbang.com/wp-content/themes/lashinbang/img/nab
+=== melonbooks wider ===
+メロンブックス秋葉原1号店</a></p>
+
+                                                                                                                            <p class="shopUnit__map">
+
+                                                <a href="https://maps.google.co.jp/maps?f=d&amp;source=embed&amp;saddr=%E6%9D%B1%E4%BA%AC%E9%83%BD%E7%A7%8B%E8%91%89%E5%8E%9F%E9%A7%85&amp;daddr=35.6985025,139.7729757+to:35.6986155,139.7723966+to:%E6%8C%87%E5%AE%9A%E3%81%AE%E5%9C%B0%E7%82%B9&amp;geocode=Ffu3IAIdC8lUCCmXvw3ep44YYDFvq96qjfxEAg%3BFUa3IAIdL8RUCCnN9B34p44YYDGiLP-CqS3BKA%3BFbe3IAId7MFUCCnVlHFcHYwYYDGXHIT1Vxk20g%3BFSu5IAIdGb1UCA&amp;aq=0&amp;oq=%E7%A7%8B&amp;sll=35.698473,139.773138&amp;sspn=0.002124,0.003093&amp;gl=jp&amp;hl=ja&amp;dirflg=w&amp;brcurrent=3,0x60188c1d19d478ff:0x8738b18b0465d817,0&amp;mra=dpe&amp;mrsp=1&amp;sz=19&amp;via=1,2&amp;ie=UTF8&amp;t=m&amp;ll=35.698998,139.77253&amp;spn=0.002614,0.003744&amp;z=17"><i class="fa fa-location-dot" aria-hidden="true"></i></a>
+
+                                            </p>
+
+                                                                                                                            <p class="shopUnit__twitter">
+
+                                                <a href="https://twitter.com/@melon_akiba"><i class="fa-brands fa-square-x-twitter"></i></a>
+
+                                            </p>
+
+                                                                                                                            <p class="shopUnit__taxfree">
+
+                                                <a href="https://www.melonbooks.co.jp/special/service/Inbound/" target="_blank">
+
+                                                    <img src="//melonbooks.akamaized.net/user_data/packages/responsive/img/icn_taxfree.png">
+
+                                                </a>
+
+                                            </p>
+
+                                                                            </div>
+
+                                    <div class="shopUnit__infoWrapper">
+
+                                        <div class="shopUnit__info">
+
+                                            <p class="shopUnit__titleText">営業時間</p>
+
+                                            <p>【全日】<br />
+
+10:00～21:00</p>
+
+                                            <p class="shopUnit__titleText">定休日</p>
+
+                                            <p></p>
+
+                                        </div>
+
+                          

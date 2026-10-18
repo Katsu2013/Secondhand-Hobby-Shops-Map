@@ -1,0 +1,125 @@
+=== furuichi.html (len=1097201) ===
+a>
+    </li>    <li class="shop__display__anchor__list">
+        <a href="#prefecture-11" class="shop__display__anchor__list__link">
+          埼玉県
+        </a>
+    </li>    <li class="shop__display__anchor__list">
+        <a href="#prefecture-12" class="shop__display__anchor__list__link">
+          千葉県
+        </a>
+    </li>    <li class="shop__display__anchor__list">
+        <a href="#prefecture-13" class="shop__display__anchor__list__link">
+          東京都
+        </a>
+    </li>    <li class="shop__display__anchor__list">
+        <a href="#prefecture-14" class="shop__display__anchor__list__link">
+          神奈川県
+        </a>
+    </li>
+    </ul>    <div class="shop__display__prefecture blue" id="prefecture-8">
+      <p class="shop__display__prefecture__line"></p>
+      <h4 class="shop__display__prefecture__title">茨城県</h4>
+    </div>    <div class="shop__display__content space">
+    <div cl
+---
+text">
+                無料デュエルスペース　最大16席完備
+            </p>
+            </dd>
+        </dl>
+        </div>
+    </div>
+    </div>    <div class="shop__display__prefecture blue" id="prefecture-12">
+      <p class="shop__display__prefecture__line"></p>
+      <h4 class="shop__display__prefecture__title">千葉県</h4>
+    </div>    <div class="shop__display__content space">
+    <div class="shop__display__content__title">
+        <h5 class="shop__display__content__title__name">
+        <span class="shop__display__content__title__name__text">古本市場松戸店</span>
+        <span style='margin-right:10px;' class='shop__display__content__title__name__category furuhonitiba'></span><span style='margin-right:10px;' class='shop__display__content__title__name__category torekapark'></span>
+        </h5>
+        <a href="/shop/shop0059.html" class="shop__display__content__title__btn">
+        詳細はこちら
+        </a>
+    <
+---
+=== otakarasouko.html (len=410356) ===
+                    <a href="https://www.otakarasouko.com/store/otakarasouko_minato/">
+
+                                <figure class="img">
+
+                                                                      <img src="https://www.otakarasouko.com/images/stores/otakarasouko_minato.jpg" alt="お宝創庫 名古屋みなと店">
+
+                                                                  </figure>
+
+                                <div class="info">
+
+                                  <p class="name">お宝創庫 名古屋みなと店</p>
+
+                                  <p class="address">愛知県名古屋市港区当知３丁目１２０３</p>
+
+                                </div>
+
+                              </a>
+
+                            </div>
+
+                                                      <div class="item fadeup">
+
+                              <a href="https://www.otakarasouko.com/store/otakarasouko_nakagawa/">
+
+                      
+---
+                 <img src="https://www.otakarasouko.com/images/stores/otakarasouko_minato.jpg" alt="お宝創庫 名古屋みなと店">
+
+                                                                  </figure>
+
+                                <div class="info">
+
+                                  <p class="name">お宝創庫 名古屋みなと店</p>
+
+                                  <p class="address">愛知県名古屋市港区当知３丁目１２０３</p>
+
+                                </div>
+
+                              </a>
+
+                            </div>
+
+                                                      <div class="item fadeup">
+
+                              <a href="https://www.otakarasouko.com/store/otakarasouko_nakagawa/">
+
+                                <figure class="img">
+
+                                                                      <img src="https://www.otakarasouko.com/images/stores/otakarasouko_nakagawa.jpg" alt="お宝創庫 中川店
+---
+=== melonbooks.html (len=286908) ===
+                                                <div class="shopUnit">
+
+                                    <div class="shopUnit__titleWrapper">
+
+                                                                                    <p class="shopUnit__shopName"><a href="/shop/shop.php?wp_id=4">メロンブックス秋葉原1号店</a></p>
+
+                                                                                                                            <p class="shopUnit__map">
+
+                                                <a href="https://maps.google.co.jp/maps?f=d&amp;source=embed&amp;saddr=%E6%9D%B1%E4%BA%AC%E9%83%BD%E7%A7%8B%E8%91%89%E5%8E%9F%E9%A7%85&amp;daddr=35.6985025,139.7729757+to:35.6986155,139.7723966+to:%E6%8C%87%E5%AE%9A%E3%81%AE%E5%9C%B0%E7%82%B9&amp;geocode=Ffu3IAIdC8lUCCmXvw3ep44YYDFvq96qjfxEAg%3BFUa3IAIdL8RUCCnN9B34p44YYDGiLP-CqS3BKA%3BFbe3IAId7MFUCCnVlHFcHYwYYDGXHIT1Vxk20g%3BFSu5IAI
+---
+                                               <div class="shopUnit">
+
+                                    <div class="shopUnit__titleWrapper">
+
+                                                                                    <p class="shopUnit__shopName"><a href="/shop/shop.php?wp_id=58">メロンブックス秋葉原店舗受取館</a></p>
+
+                                                                                                                            <p class="shopUnit__map">
+
+                                                <a href="https://maps.app.goo.gl/NcY9kUxnE2nzg9bF9"><i class="fa fa-location-dot" aria-hidden="true"></i></a>
+
+                                            </p>
+
+                                                                                                                            <p class="shopUnit__twitter">
+
+                                                <a href="https://tw
+---
+=== lashinbang.html (len=34238) ===

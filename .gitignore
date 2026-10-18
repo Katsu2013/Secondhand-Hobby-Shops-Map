@@ -1,0 +1,23 @@
+# Node.js / Vite / TypeScript
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Raw intermediate scraping cache (large 15MB+ raw files; final data/shops.json is committed)
+scripts/raw_overpass.json
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Environment & Secret files (API keys must never be committed)
+.env
+.env.local
+.env.*.local
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

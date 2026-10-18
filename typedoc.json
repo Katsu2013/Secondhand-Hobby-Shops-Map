@@ -1,0 +1,23 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["./src"],
+  "entryPointStrategy": "expand",
+  "out": "docs/typedoc",
+  "name": "中古＆ホビーショップ巡りマップ 設計・API仕様書",
+  "includeVersion": true,
+  "readme": "SPECIFICATION.md",
+  "blockTags": [
+    "@defaultValue",
+    "@deprecated",
+    "@example",
+    "@param",
+    "@privateRemarks",
+    "@remarks",
+    "@returns",
+    "@see",
+    "@throws",
+    "@typeParam",
+    "@file",
+    "@description"
+  ]
+}
