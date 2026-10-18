@@ -15,6 +15,7 @@ import type {
   CategoryInfo,
   ChainGroup,
   ChainId,
+  ClosingStatusInfo,
   Shop,
   ShopClassification,
   TravelEstimate,
@@ -871,7 +872,167 @@ export function escapeHtml(str: string | undefined | null): string {
 }
 
 /**
- * 地図上の店舗バルーンマーカー（ハードオフ公式アプリ風の縦積み看板プレート＋所要時間ピルバッジ）のHTMLを生成します。
+ * 0時からの経過分数（例：`1110`）を `"18:30"` 形式の時刻文字列にフォーマットします。
+ * 24時を超える深夜営業時刻（例：`1500` ＝ 25:00）も `"25:00 (翌1:00)"` または `"01:00"` として分かりやすく変換します。
+ *
+ * @param totalMinutes - 0:00からの経過分数
+ * @param keepOver24 - 24時以降を `25:00` 形式で表記するかどうか（閉店時刻表示時は `true`、到着時刻表示時は `false`）
+ * @returns `"HH:MM"` 形式の時刻文字列
+ */
+export function formatClockTimeFromMinutes(totalMinutes: number, keepOver24 = false): string {
+  const normalized = keepOver24
+    ? totalMinutes
+    : ((totalMinutes % 1440) + 1440) % 1440;
+  const h = Math.floor(normalized / 60);
+  const m = normalized % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/**
+ * 店舗の営業時間文字列（`hours`）、出発時刻（0:00からの経過分数）、および移動所要時間（分）から、
+ * 到着予定時刻に店舗が開いているか・閉店まで何分の余裕があるか（間に合う / ギリギリ / 間に合わない）を判定します。
+ *
+ * 【なぜこの処理が必要か】
+ * ハードオフ（多くが20:00閉店）、ブックオフ・駿河屋・アニメイト（21:00〜22:00閉店）、
+ * ゲオ・お宝創庫・鑑定団（23:00〜24:00または24時間営業）など、チェーンや店舗によって閉店時間が異なるため、
+ * 夕方〜夜間にショップ巡りをする際「今から向かって閉店までに間に合うか」をひと目で判断できるようにするためです。
+ *
+ * @param hoursStr - 店舗の営業時間文字列（例：`"10:00～20:00"`, `"24時間営業"`, `"10:00-25:00"`）
+ * @param travelMinutes - 出発地からの移動所要時間（分）
+ * @param departureMinutesOfDay - 出発時刻の0:00からの経過分数（例：18:30なら `1110`）
+ * @returns 閉店時間に対する間に合う・間に合わない判定結果オブジェクト（`ClosingStatusInfo`）
+ */
+export function evaluateClosingFeasibility(
+  hoursStr: string | undefined,
+  travelMinutes: number,
+  departureMinutesOfDay: number
+): ClosingStatusInfo {
+  const arrivalMinutesRaw = departureMinutesOfDay + Math.max(0, Math.round(travelMinutes));
+  const arrivalTimeText = `${formatClockTimeFromMinutes(arrivalMinutesRaw, false)}着`;
+  const raw = (hoursStr || '').normalize('NFKC').trim();
+
+  // 1. 営業時間データが空の場合
+  if (!raw) {
+    return {
+      status: 'unknown',
+      canMakeIt: true,
+      arrivalTimeText,
+      closingTimeText: '営業時間情報なし',
+      remainingMinutes: null,
+      badgeLabel: `🕒 ${arrivalTimeText}`,
+      shortPinLabel: '',
+    };
+  }
+
+  // 2. 24時間営業の場合
+  if (/24時間|24\s*h|24\/7|年中無休\s*24/i.test(raw)) {
+    return {
+      status: 'open_24h',
+      canMakeIt: true,
+      arrivalTimeText,
+      closingTimeText: '24時間営業',
+      remainingMinutes: null,
+      badgeLabel: `🟢 間に合う (${arrivalTimeText} / 24時間営業)`,
+      shortPinLabel: '🟢24H',
+    };
+  }
+
+  // 3. 「買取受付 10:00～18:00」などのサブ時間帯を誤って拾わないよう、先頭の営業開始〜終了時刻ペアを抽出
+  // 対応フォーマット例: "10:00～20:00", "10:00 - 24:00", "9:00~翌1:00", "10:00～0:00"
+  const timeMatch = raw.match(
+    /(\d{1,2})\s*:\s*(\d{2})\s*[～〜~\-−ー]\s*(?:翌\s*)?(\d{1,2})\s*:\s*(\d{2})/
+  );
+  if (!timeMatch) {
+    return {
+      status: 'unknown',
+      canMakeIt: true,
+      arrivalTimeText,
+      closingTimeText: raw.slice(0, 18),
+      remainingMinutes: null,
+      badgeLabel: `🕒 ${arrivalTimeText} (${raw.slice(0, 16)})`,
+      shortPinLabel: '',
+    };
+  }
+
+  const openH = parseInt(timeMatch[1], 10);
+  const openM = parseInt(timeMatch[2], 10);
+  let closeH = parseInt(timeMatch[3], 10);
+  const closeM = parseInt(timeMatch[4], 10);
+
+  // 閉店時刻が 0:00〜4:00 などの深夜表記、または「翌」表記の場合は +24時間として扱う
+  if (closeH < openH || /翌/.test(timeMatch[0])) {
+    closeH += 24;
+  }
+
+  const openMinutes = openH * 60 + openM;
+  const closeMinutes = closeH * 60 + closeM;
+  const closingTimeText = `${formatClockTimeFromMinutes(closeMinutes, true)}閉店`;
+  const openingTimeText = `${formatClockTimeFromMinutes(openMinutes, false)}開店`;
+
+  // 深夜0:00〜3:59に出発し、かつ前日営業が24時超え（例: 25:00閉店）の店舗へ向かう場合の補正
+  let effectiveArrival = arrivalMinutesRaw;
+  if (departureMinutesOfDay < 240 && closeMinutes > 1440 && arrivalMinutesRaw + 1440 <= closeMinutes + 120) {
+    effectiveArrival = arrivalMinutesRaw + 1440;
+  }
+
+  // 開店前到着の判定（朝に出発して開店時刻より前に着く場合）
+  if (effectiveArrival < openMinutes) {
+    const waitMins = openMinutes - effectiveArrival;
+    return {
+      status: 'before_open',
+      canMakeIt: true,
+      arrivalTimeText,
+      closingTimeText: `${openingTimeText}〜${closingTimeText}`,
+      remainingMinutes: closeMinutes - openMinutes,
+      badgeLabel: `🔵 開店前着 (${arrivalTimeText} / ${openingTimeText}まで待${formatDurationMinutes(waitMins)})`,
+      shortPinLabel: '🔵開店前',
+    };
+  }
+
+  // 到着予定時刻から閉店時刻までの残り分数
+  const remainingMinutes = closeMinutes - effectiveArrival;
+
+  // 到着時点で閉店時刻を過ぎている場合（「間に合わない」）
+  if (remainingMinutes <= 0) {
+    const overMins = Math.abs(remainingMinutes);
+    return {
+      status: 'closed_on_arrival',
+      canMakeIt: false,
+      arrivalTimeText,
+      closingTimeText,
+      remainingMinutes,
+      badgeLabel: `🔴 間に合わない (${arrivalTimeText} / ${closingTimeText}・終了${overMins}分後)`,
+      shortPinLabel: '🔴閉店',
+    };
+  }
+
+  // 閉店まで残り30分未満の場合（「ギリギリ・閉店間際」）
+  if (remainingMinutes < 30) {
+    return {
+      status: 'closing_soon',
+      canMakeIt: true,
+      arrivalTimeText,
+      closingTimeText,
+      remainingMinutes,
+      badgeLabel: `🟠 ギリギリ (${arrivalTimeText} / ${closingTimeText}・残${remainingMinutes}分)`,
+      shortPinLabel: `🟠残${remainingMinutes}分`,
+    };
+  }
+
+  // 閉店まで30分以上の十分な滞在時間がある場合（「間に合う」）
+  return {
+    status: 'open_ok',
+    canMakeIt: true,
+    arrivalTimeText,
+    closingTimeText,
+    remainingMinutes,
+    badgeLabel: `🟢 間に合う (${arrivalTimeText} / ${closingTimeText}・残${formatDurationMinutes(remainingMinutes)})`,
+    shortPinLabel: '🟢',
+  };
+}
+
+/**
+ * 地図上の店舗バルーンマーカー（ハードオフ公式アプリ風の縦積み看板プレート＋所要時間・閉店判定ピルバッジ）のHTMLを生成します。
  *
  * @param shop - 描画対象の店舗オブジェクト
  * @param isSelected - 現在選択中（ルート表示中）の店舗かどうか
@@ -891,12 +1052,22 @@ export function buildShopBalloonHtml(
   const plates = getShopActivePlates(shop, enabledChains);
   /** 現在の移動手段アイコン */
   const modeIcon = TRAVEL_MODE_MAP[travelMode]?.icon || '🚗';
+  /** 閉店時間の間に合う・間に合わない判定情報 */
+  const closingInfo = shop._travel?.closingInfo;
+  /** 閉店ステータスに応じたピル・ラッパー用クラス名 */
+  const closingStatusCls = closingInfo ? `closing-${closingInfo.status}` : '';
+  /** ピル内に表示する閉店判定ショートラベル（🟢 / 🟠残XX分 / 🔴閉店） */
+  const closingPinBadgeHtml =
+    closingInfo && closingInfo.shortPinLabel
+      ? `<span class="pin-closing-tag">${escapeHtml(closingInfo.shortPinLabel)}</span>`
+      : '';
 
-  /** バルーン上部に表示する所要時間ピルバッジのHTML（非表示設定時は空文字） */
+  /** バルーン上部に表示する所要時間＋閉店判定ピルバッジのHTML（非表示設定時は空文字） */
   const timePillHtml = showPinTime
-    ? `<div class="balloon-time-pill ${shop._travel?.isExact ? 'exact' : ''}">
+    ? `<div class="balloon-time-pill ${shop._travel?.isExact ? 'exact' : ''} ${closingStatusCls}">
         <span>${modeIcon}</span>
         <span>${shop._travel?.isExact ? '✓' : '約'}${shop._travel?.formattedTime || '--分'}</span>
+        ${closingPinBadgeHtml}
        </div>`
     : '';
 
@@ -905,8 +1076,13 @@ export function buildShopBalloonHtml(
     .map((p) => `<div class="brand-plate ${p.cls}">${p.html}</div>`)
     .join('');
 
+  /** ツールチップ用タイトル（店名＋到着・閉店判定） */
+  const tooltipText = closingInfo
+    ? `${shop.name} 【${closingInfo.badgeLabel}】`
+    : shop.name;
+
   return `
-    <div class="shop-balloon-wrapper ${isSelected ? 'selected' : ''}" title="${escapeHtml(shop.name)}">
+    <div class="shop-balloon-wrapper ${isSelected ? 'selected' : ''} ${closingStatusCls}" title="${escapeHtml(tooltipText)}">
       ${timePillHtml}
       <div class="shop-balloon-box">
         ${platesHtml}

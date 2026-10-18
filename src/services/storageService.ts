@@ -47,6 +47,7 @@ export function getDefaultUserPreferences(): UserPreferences {
     enabledChains: CHAIN_GROUPS.map((c) => c.id),
     enabledCategories: CATEGORIES.map((c) => c.id),
     categoryMatchMode: 'OR',
+    hideClosedOnArrival: false,
   };
 }
 
@@ -114,6 +115,11 @@ export function loadUserPreferencesFromStorage(): UserPreferences {
     // カテゴリ一致モード（OR / AND）の復元
     if (parsed.categoryMatchMode === 'OR' || parsed.categoryMatchMode === 'AND') {
       defaults.categoryMatchMode = parsed.categoryMatchMode;
+    }
+
+    // 閉店に間に合わない店舗の非表示フラグの復元
+    if (typeof parsed.hideClosedOnArrival === 'boolean') {
+      defaults.hideClosedOnArrival = parsed.hideClosedOnArrival;
     }
   } catch (err) {
     console.warn('ユーザー設定の復元に失敗したため初期値を使用します:', err);

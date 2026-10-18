@@ -53,6 +53,20 @@ export interface OptionsPanelProps {
   showTimeCircles: boolean;
   /** 到達目安サークル表示設定を切り替えるコールバック */
   onChangeShowTimeCircles: (show: boolean) => void;
+  /** 出発時刻モード（`'now'`: 現在時刻リアルタイム / `'custom'`: 任意時刻指定） */
+  departureTimeMode: 'now' | 'custom';
+  /** 出発時刻モードを切り替えるコールバック */
+  onChangeDepartureTimeMode: (mode: 'now' | 'custom') => void;
+  /** 任意指定された出発時刻文字列（`"HH:MM"` 形式） */
+  customDepartureTime: string;
+  /** 任意指定の出発時刻を変更するコールバック */
+  onChangeCustomDepartureTime: (timeStr: string) => void;
+  /** 現在のリアルタイム時刻文字列（`"HH:MM"` 形式） */
+  currentClockText: string;
+  /** 閉店に間に合わない店舗（到着時営業終了）を非表示にするかどうか */
+  hideClosedOnArrival: boolean;
+  /** 閉店に間に合わない店舗の非表示設定を切り替えるコールバック */
+  onChangeHideClosedOnArrival: (hide: boolean) => void;
   /** 現在ONになっているチェーンIDのSet */
   enabledChains: ReadonlySet<ChainId>;
   /** 個別チェーンのON/OFFを切り替えるコールバック */
@@ -102,6 +116,13 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
   onChangeShowPinTime,
   showTimeCircles,
   onChangeShowTimeCircles,
+  departureTimeMode,
+  onChangeDepartureTimeMode,
+  customDepartureTime,
+  onChangeCustomDepartureTime,
+  currentClockText,
+  hideClosedOnArrival,
+  onChangeHideClosedOnArrival,
   enabledChains,
   onToggleChain,
   onSetAllChains,
@@ -309,6 +330,56 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
             </div>
           </div>
 
+          <div className="closing-eval-box">
+            <div className="time-limit-header">
+              <span>🕒 出発時刻（閉店に間に合うか判定）</span>
+              <strong className="highlight-val">
+                {departureTimeMode === 'now'
+                  ? `現在時刻 (${currentClockText}) 発`
+                  : `指定時刻 (${customDepartureTime}) 発`}
+              </strong>
+            </div>
+
+            <div className="dep-time-mode-row">
+              <button
+                type="button"
+                className={`opt-btn-sm ${departureTimeMode === 'now' ? 'active' : ''}`}
+                onClick={() => onChangeDepartureTimeMode('now')}
+              >
+                現在時刻で判定
+              </button>
+              <button
+                type="button"
+                className={`opt-btn-sm ${departureTimeMode === 'custom' ? 'active' : ''}`}
+                onClick={() => onChangeDepartureTimeMode('custom')}
+              >
+                時刻を指定
+              </button>
+              {departureTimeMode === 'custom' && (
+                <input
+                  type="time"
+                  id="input-departure-time"
+                  className="dep-time-input"
+                  aria-label="出発時刻を指定"
+                  value={customDepartureTime}
+                  onChange={(e) => onChangeCustomDepartureTime(e.target.value || '18:00')}
+                />
+              )}
+            </div>
+
+            <label className="checkbox-row" style={{ marginTop: '6px' }}>
+              <input
+                type="checkbox"
+                id="chk-hide-closed-arrival"
+                checked={hideClosedOnArrival}
+                onChange={(e) => onChangeHideClosedOnArrival(e.target.checked)}
+              />
+              <span>
+                🔴 <strong>閉店に間に合わない店舗</strong>（到着時営業終了）を非表示にする
+              </span>
+            </label>
+          </div>
+
           <label className="checkbox-row">
             <input
               type="checkbox"
@@ -316,7 +387,7 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
               checked={showPinTime}
               onChange={(e) => onChangeShowPinTime(e.target.checked)}
             />
-            <span>地図ピン上に「所要時間バッジ」を常時表示する</span>
+            <span>地図ピン上に「所要時間・閉店判定バッジ」を常時表示する</span>
           </label>
           <label className="checkbox-row">
             <input

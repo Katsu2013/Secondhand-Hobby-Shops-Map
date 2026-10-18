@@ -200,7 +200,49 @@ export interface AreaPreset {
 }
 
 /**
- * 出発地から各店舗への移動所要時間・距離の計算結果インターフェース。
+ * 店舗の閉店時間に対する「間に合う・間に合わない」判定ステータス型。
+ * - `'open_ok'`: 閉店まで30分以上の余裕をもって到着でき「間に合う」状態
+ * - `'closing_soon'`: 閉店前には到着できるが、閉店まで残り30分未満で「ギリギリ（閉店間際）」の状態
+ * - `'closed_on_arrival'`: 到着予定時刻にはすでに営業終了しており「間に合わない（到着時閉店）」状態
+ * - `'open_24h'`: 24時間営業のため常時「間に合う」状態
+ * - `'before_open'`: 到着予定時刻が開店時刻より前（開店前到着）の状態
+ * - `'unknown'`: 営業時間情報から時刻を抽出できず判定対象外の状態
+ */
+export type ClosingStatusType =
+  | 'open_ok'
+  | 'closing_soon'
+  | 'closed_on_arrival'
+  | 'open_24h'
+  | 'before_open'
+  | 'unknown';
+
+/**
+ * 出発時刻と移動所要時間から算出した、対象店舗の閉店時間に間に合うかどうかの判定結果インターフェース。
+ *
+ * 【なぜこの判定情報が必要か】
+ * 中古＆ホビーショップは20:00閉店（ハードオフ等）から24:00閉店（お宝創庫・鑑定団等）まで店舗ごとに閉店時間が大きく異なります。
+ * 移動所要時間だけでなく「今から（または指定時刻に）出発して閉店までに到着・買い物できるか」を
+ * 地図ピンや店舗リスト上で即座に判別できるようにするためです。
+ */
+export interface ClosingStatusInfo {
+  /** 閉店時間に対する到着判定ステータス */
+  status: ClosingStatusType;
+  /** 閉店までに到着可能かどうか（`closed_on_arrival` のみ `false`） */
+  canMakeIt: boolean;
+  /** 到着予定時刻の表示文字列（例: `"18:42着"`） */
+  arrivalTimeText: string;
+  /** 閉店時刻の表示文字列（例: `"20:00閉店"`, `"24:00閉店"`, `"24時間営業"`） */
+  closingTimeText: string;
+  /** 到着予定時刻から閉店時刻までの残り分数（24時間営業や不明時は `null`、閉店後到着時は負数） */
+  remainingMinutes: number | null;
+  /** 店舗リストやルートカードに表示する詳細判定ラベル（例: `"🟢 間に合う (18:42着 / 20:00閉店・残1時間18分)"`） */
+  badgeLabel: string;
+  /** 地図バルーン上のピルに表示する短縮判定ラベル（例: `"🟢間に合う"`, `"🟠残18分"`, `"🔴閉店後"`） */
+  shortPinLabel: string;
+}
+
+/**
+ * 出発地から各店舗への移動所要時間・距離・閉店判定の計算結果インターフェース。
  */
 export interface TravelEstimate {
   /** 出発地からの直線距離（km） */
@@ -215,6 +257,8 @@ export interface TravelEstimate {
   formattedDist: string;
   /** ルート検索API（Google Directions / OSRM）による実測値かどうか */
   isExact: boolean;
+  /** 出発時刻と所要時間から算出した閉店時間に対する間に合う・間に合わない判定情報 */
+  closingInfo?: ClosingStatusInfo;
 }
 
 /**
@@ -332,4 +376,6 @@ export interface UserPreferences {
   enabledCategories: CategoryId[];
   /** カテゴリ絞り込みのOR/ANDモード */
   categoryMatchMode: CategoryMatchMode;
+  /** 到着時に閉店している（間に合わない）店舗を地図・リストから除外するかどうか */
+  hideClosedOnArrival?: boolean;
 }

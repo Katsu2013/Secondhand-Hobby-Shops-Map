@@ -212,6 +212,12 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
                   </div>
                 </div>
 
+                {travel?.closingInfo && (
+                  <div className={`shop-closing-badge status-${travel.closingInfo.status}`}>
+                    {travel.closingInfo.badgeLabel}
+                  </div>
+                )}
+
                 <div className="shop-cat-tags">
                   {(shop.categories || []).map((catId) => {
                     const cat = CATEGORY_MAP[catId];
@@ -227,7 +233,7 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
                 {(shop.address || shop.hours) && (
                   <div className="shop-meta-text">
                     {shop.address && <span>📍 {shop.address}</span>}
-                    {shop.hours && <span>🕒 {shop.hours}</span>}
+                    {shop.hours && <span>🕒 営業: {shop.hours}</span>}
                   </div>
                 )}
 

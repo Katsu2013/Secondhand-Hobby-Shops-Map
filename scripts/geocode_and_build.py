@@ -153,11 +153,28 @@ def build_master_database():
     with open("scripts/official_kanteidan.json", "r", encoding="utf-8") as f:
         kanteidan_official = json.load(f)
 
+    # Extract official Furuichi hours from scripts/furuichi.html
+    furu_hours_map = {}
+    if os.path.exists("scripts/furuichi.html"):
+        with open("scripts/furuichi.html", "r", encoding="utf-8") as f:
+            furu_html = f.read()
+        for blk in furu_html.split('shop__display__content__title__name__text">')[1:]:
+            fname = blk.split("</span>")[0].strip()
+            m_det = re.search(r'accordion-time-content__list__detail">\s*([^<]+?)\s*</p>', blk)
+            m_end = re.search(r'営業終了\s*(\d{1,2}:\d{2})', blk)
+            if m_det:
+                furu_hours_map[fname] = m_det.group(1).strip().replace("~", "～")
+            elif m_end:
+                furu_hours_map[fname] = f"10:00～{m_end.group(1)}"
+
     # 1. Group Hard Off official stores by core address key
     ho_grouped = {}
     for item in ho_official:
         key = extract_core_address_key(item["address"])
         chain_id, brand_id, cats = HO_LOGO_MAP.get(item["logo_type"], ("hardoff", "hardoff", ["pc_junk", "retro_game"]))
+        park_str = item.get("parking", "").strip()
+        base_ho_hours = "11:00～20:00" if ("秋葉原" in item["name"] or "上野" in item["name"]) else "10:00～20:00"
+        ho_hours = f"{base_ho_hours} ({park_str})" if park_str else base_ho_hours
         if key not in ho_grouped:
             ho_grouped[key] = {
                 "id": item["id"],
@@ -166,7 +183,7 @@ def build_master_database():
                 "brands": [brand_id],
                 "categories": list(cats),
                 "address": clean_address_for_geocode(item["address"]),
-                "hours": item.get("parking", "")
+                "hours": ho_hours
             }
         else:
             g = ho_grouped[key]
@@ -221,6 +238,7 @@ def build_master_database():
         elif "乙女" in name or "キャラ" in name:
             cats = ["figure_hobby", "book_media"]
 
+        su_hours = (s.get("hours") or "").strip() or "10:00～21:00"
         final_shops.append({
             "id": f"surugaya_off_{idx+1}",
             "name": name,
@@ -231,7 +249,7 @@ def build_master_database():
             "lat": coords["lat"],
             "lng": coords["lng"],
             "address": clean_address_for_geocode(s["address"]),
-            "hours": s.get("hours", ""),
+            "hours": su_hours,
             "verified": True
         })
 
@@ -361,6 +379,7 @@ def build_master_database():
         coords = geocode_gsi(s["address"])
         if not coords:
             continue
+        f_hours = (s.get("hours") or "").strip() or furu_hours_map.get(s["name"], "10:00～22:00")
         final_shops.append({
             "id": f"furu_off_{idx+1}",
             "name": s["name"],
@@ -371,7 +390,7 @@ def build_master_database():
             "lat": coords["lat"],
             "lng": coords["lng"],
             "address": clean_address_for_geocode(s["address"]),
-            "hours": s.get("hours", ""),
+            "hours": f_hours,
             "verified": True
         })
 
@@ -380,6 +399,9 @@ def build_master_database():
         coords = geocode_gsi(s["address"])
         if not coords:
             continue
+        ota_h = (s.get("hours") or "").strip()
+        if not ota_h:
+            ota_h = "10:00～21:00" if ("イオン" in s["name"] or "アピタ" in s["name"] or "ららぽーと" in s["name"]) else "10:00～24:00"
         final_shops.append({
             "id": f"ota_off_{idx+1}",
             "name": s["name"],
@@ -390,11 +412,11 @@ def build_master_database():
             "lat": coords["lat"],
             "lng": coords["lng"],
             "address": clean_address_for_geocode(s["address"]),
-            "hours": s.get("hours", ""),
+            "hours": ota_h,
             "verified": True
         })
 
-    # Add Official Kanteidan Group (20 active stores across Chiba, Ibaraki, Shizuoka, Tochigi, Gunma)
+    # Add Official Kanteidan Group (22 active stores across Chiba, Ibaraki, Shizuoka, Tochigi, Gunma)
     kantei_added = 0
     for idx, s in enumerate(kanteidan_official):
         coords = geocode_gsi(s["address"])
@@ -411,7 +433,7 @@ def build_master_database():
             "lat": coords["lat"],
             "lng": coords["lng"],
             "address": clean_address_for_geocode(s["address"]),
-            "hours": s.get("hours", ""),
+            "hours": s.get("hours", "10:00～24:00"),
             "verified": True
         })
         kantei_added += 1
@@ -467,7 +489,20 @@ def build_master_database():
         suburb = tags.get("addr:suburb") or tags.get("addr:quarter") or ""
         block = tags.get("addr:block_number") or tags.get("addr:housenumber") or ""
         full_addr = tags.get("addr:full") or f"{pref}{city}{suburb}{block}".strip()
-        hours = tags.get("opening_hours") or ""
+        hours = (tags.get("opening_hours") or "").strip()
+        if hours == "24/7":
+            hours = "24時間営業"
+        elif not hours:
+            if "mandarake" in info["brands"]:
+                hours = "12:00～20:00"
+            elif "melonbooks" in info["brands"]:
+                hours = "11:00～20:00"
+            elif "animate" in info["brands"]:
+                hours = "10:00～21:00"
+            elif "mandai" in info["brands"] or "mangasouko" in info["brands"]:
+                hours = "10:00～24:00"
+            else:
+                hours = "10:00～21:00"
 
         final_shops.append({
             "id": f"osm_{el.get('type','n')[0]}_{el.get('id')}",

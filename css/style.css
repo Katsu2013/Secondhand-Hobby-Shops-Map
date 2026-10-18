@@ -582,6 +582,39 @@ html, body {
   margin-top: 2px;
 }
 
+/* 出発時刻と閉店時間判定ボックス */
+.closing-eval-box {
+  background: var(--bg-subtle);
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  margin-bottom: 8px;
+}
+
+.dep-time-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+
+.opt-btn-sm.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+.dep-time-input {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-main);
+  background: var(--bg-surface);
+}
+
 .toggle-row {
   margin-top: 6px;
 }
@@ -896,6 +929,27 @@ html, body {
 
 .balloon-time-pill.exact {
   background: #047857;
+}
+
+.balloon-time-pill.closing-closing_soon {
+  background: #b45309;
+  border-color: #fde68a;
+}
+
+.balloon-time-pill.closing-closed_on_arrival {
+  background: #991b1b;
+  border-color: #fecaca;
+}
+
+.pin-closing-tag {
+  font-size: 0.62rem;
+  font-weight: 800;
+  margin-left: 2px;
+}
+
+.shop-balloon-wrapper.closing-closed_on_arrival {
+  opacity: 0.62;
+  filter: grayscale(35%);
 }
 
 .shop-balloon-wrapper.selected .balloon-time-pill {
@@ -1599,6 +1653,51 @@ html, body {
   font-size: 0.66rem;
   color: var(--text-muted);
   font-weight: 600;
+}
+
+/* 閉店時間の間に合う・間に合わない判定バッジ */
+.shop-closing-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 5px;
+  margin-bottom: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.25;
+  width: 100%;
+}
+
+.shop-closing-badge.status-open_ok,
+.shop-closing-badge.status-open_24h {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.shop-closing-badge.status-closing_soon {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.shop-closing-badge.status-closed_on_arrival {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.shop-closing-badge.status-before_open {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.shop-closing-badge.status-unknown {
+  background: var(--bg-muted);
+  color: var(--text-sub);
+  border: 1px solid var(--border-color);
 }
 
 /* 取扱カテゴリタグ */

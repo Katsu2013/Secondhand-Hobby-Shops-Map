@@ -16,6 +16,8 @@ import {
   CHAIN_MAP,
   classifyShopByName,
   estimateTravelInfo,
+  evaluateClosingFeasibility,
+  formatClockTimeFromMinutes,
   formatDurationMinutes,
   TRAVEL_MODE_MAP,
   TRAVEL_MODES,
@@ -124,6 +126,23 @@ export const App: React.FC = () => {
   const [showPinTime, setShowPinTime] = useState<boolean>(initialPrefs.showPinTime);
   /** 出発地からの到達目安サークルを表示するかどうか */
   const [showTimeCircles, setShowTimeCircles] = useState<boolean>(initialPrefs.showTimeCircles);
+  /** 閉店に間に合わない店舗（到着時営業終了）を非表示にするかどうか */
+  const [hideClosedOnArrival, setHideClosedOnArrival] = useState<boolean>(
+    Boolean(initialPrefs.hideClosedOnArrival)
+  );
+  /** 出発時刻の基準モード（`'now'`: 現在時刻でリアルタイム判定 / `'custom'`: 任意時刻指定） */
+  const [departureTimeMode, setDepartureTimeMode] = useState<'now' | 'custom'>('now');
+  /** 任意指定の出発時刻文字列（`"HH:MM"` 形式） */
+  const [customDepartureTime, setCustomDepartureTime] = useState<string>(() => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  });
+  /** 現在時刻の0:00からの経過分数（1分ごとに自動更新） */
+  const [nowMinutesOfDay, setNowMinutesOfDay] = useState<number>(() => {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  });
+
   /** ONになっているチェーンIDのSet */
   const [enabledChains, setEnabledChains] = useState<Set<ChainId>>(
     () => new Set(initialPrefs.enabledChains)
@@ -178,6 +197,28 @@ export const App: React.FC = () => {
   /** トースト通知の配列状態 */
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
+  // 現在時刻の分数（nowMinutesOfDay）を30秒ごとに自動更新し、リアルタイム閉店判定を最新に保つ
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const d = new Date();
+      setNowMinutesOfDay(d.getHours() * 60 + d.getMinutes());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  /**
+   * 閉店判定の基準となる出発時刻（0:00からの経過分数）。
+   */
+  const effectiveDepartureMinutes = useMemo<number>(() => {
+    if (departureTimeMode === 'custom') {
+      const m = customDepartureTime.match(/^(\d{1,2}):(\d{2})$/);
+      if (m) {
+        return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+      }
+    }
+    return nowMinutesOfDay;
+  }, [departureTimeMode, customDepartureTime, nowMinutesOfDay]);
+
   /**
    * 画面右下にトースト通知を3.4秒間表示します。
    *
@@ -202,6 +243,7 @@ export const App: React.FC = () => {
       enabledChains: Array.from(enabledChains),
       enabledCategories: Array.from(enabledCategories),
       categoryMatchMode,
+      hideClosedOnArrival,
     });
   }, [
     origin,
@@ -212,6 +254,7 @@ export const App: React.FC = () => {
     enabledChains,
     enabledCategories,
     categoryMatchMode,
+    hideClosedOnArrival,
   ]);
 
   /**
@@ -277,11 +320,11 @@ export const App: React.FC = () => {
   }, []);
 
   /**
-   * チェーンフィルタ・カテゴリフィルタ・所要時間計算・所要時間上限フィルタを適用した全国の該当店舗リスト。
+   * チェーンフィルタ・カテゴリフィルタ・所要時間計算・閉店時間（間に合うか）判定・所要時間上限フィルタを適用した全国の該当店舗リスト。
    *
-   * 【なぜここで所要時間を付与するか】
-   * 出発地やアクセス手段が変更された瞬間に、全国すべての対象店舗の `_travel` プロパティ（推定または実測の所要時間）を
-   * 一括更新し、地図ピンと右リストの双方に即座に反映させるためです。
+   * 【なぜここで所要時間と閉店判定を付与するか】
+   * 出発地やアクセス手段・出発時刻が変更された瞬間に、全国すべての対象店舗の `_travel` プロパティ
+   * （推定または実測の所要時間＋閉店時間に間に合うかの判定情報）を一括更新し、地図ピンと右リストの双方に即座に反映させるためです。
    */
   const filteredShops = useMemo<Shop[]>(() => {
     const { lat: oLat, lng: oLng } = origin;
@@ -309,7 +352,7 @@ export const App: React.FC = () => {
       const exact = exactRouteCache.get(cacheKey);
       const est = estimateTravelInfo(oLat, oLng, shop.lat, shop.lng, travelMode);
 
-      const travelInfo = exact
+      const baseTravel = exact
         ? {
             estMinutes: exact.minutes,
             estRoadKm: exact.distanceKm,
@@ -323,13 +366,28 @@ export const App: React.FC = () => {
         : est;
 
       // 4. 所要時間上限フィルタ（150未満のとき）
-      if (maxMinutes < 150 && travelInfo.estMinutes > maxMinutes) {
+      if (maxMinutes < 150 && baseTravel.estMinutes > maxMinutes) {
+        return acc;
+      }
+
+      // 5. 閉店時間に対する間に合う・間に合わない判定
+      const closingInfo = evaluateClosingFeasibility(
+        shop.hours,
+        baseTravel.estMinutes,
+        effectiveDepartureMinutes
+      );
+
+      // 「閉店に間に合わない店舗を非表示にする」がONの場合は到着時閉店店舗を除外
+      if (hideClosedOnArrival && !closingInfo.canMakeIt) {
         return acc;
       }
 
       acc.push({
         ...shop,
-        _travel: travelInfo,
+        _travel: {
+          ...baseTravel,
+          closingInfo,
+        },
       });
       return acc;
     }, []);
@@ -342,6 +400,8 @@ export const App: React.FC = () => {
     enabledCategories,
     categoryMatchMode,
     exactRouteCache,
+    effectiveDepartureMinutes,
+    hideClosedOnArrival,
   ]);
 
   /**
@@ -418,12 +478,17 @@ export const App: React.FC = () => {
       const navUrl = `https://www.google.com/maps/dir/?api=1&origin=${currentOrigin.lat},${currentOrigin.lng}&destination=${shop.lat},${shop.lng}&travelmode=${gmapsMode}${dirFlg}`;
 
       // まずは概算値でルート案内カードを即座に開く
+      const initClosing = evaluateClosingFeasibility(
+        shop.hours,
+        shop._travel?.estMinutes ?? 20,
+        effectiveDepartureMinutes
+      );
       setActiveRouteInfo({
         modeBadge: `${mode.icon} ${mode.name}`,
         title: `${currentOrigin.name} ➔ ${shop.name}`,
         durationText: `約${shop._travel?.formattedTime || '--'}`,
         distanceText: shop._travel?.formattedDist || '--',
-        engineText: 'ルート検索中...',
+        engineText: `${initClosing.badgeLabel} (ルート検索中...)`,
         googleMapsNavUrl: navUrl,
         waypoints: [],
       });
@@ -454,12 +519,17 @@ export const App: React.FC = () => {
               return next;
             });
 
+            const exactClosing = evaluateClosingFeasibility(
+              shop.hours,
+              mins,
+              effectiveDepartureMinutes
+            );
             setActiveRouteInfo({
               modeBadge: `${mode.icon} ${mode.name}`,
               title: `${currentOrigin.name} ➔ ${shop.name}`,
               durationText: formatDurationMinutes(mins),
               distanceText: `${distKm.toFixed(1)}km`,
-              engineText: 'Google Directions 実測',
+              engineText: `${exactClosing.badgeLabel}`,
               googleMapsNavUrl: navUrl,
               waypoints: [],
             });
@@ -474,12 +544,17 @@ export const App: React.FC = () => {
                 return next;
               });
             }
+            const osrmClosing = evaluateClosingFeasibility(
+              shop.hours,
+              osrmRes.minutes,
+              effectiveDepartureMinutes
+            );
             setActiveRouteInfo({
               modeBadge: `${mode.icon} ${mode.name}`,
               title: `${currentOrigin.name} ➔ ${shop.name}`,
               durationText: formatDurationMinutes(osrmRes.minutes),
               distanceText: `${osrmRes.distanceKm.toFixed(1)}km`,
-              engineText: osrmRes.isRoadRoute ? '実道路ルート計算済' : '概算ルート',
+              engineText: `${osrmClosing.badgeLabel}`,
               googleMapsNavUrl: navUrl,
               waypoints: [],
             });
@@ -498,17 +573,22 @@ export const App: React.FC = () => {
           return next;
         });
       }
+      const osrmClosing = evaluateClosingFeasibility(
+        shop.hours,
+        osrmRes.minutes,
+        effectiveDepartureMinutes
+      );
       setActiveRouteInfo({
         modeBadge: `${mode.icon} ${mode.name}`,
         title: `${currentOrigin.name} ➔ ${shop.name}`,
         durationText: formatDurationMinutes(osrmRes.minutes),
         distanceText: `${osrmRes.distanceKm.toFixed(1)}km`,
-        engineText: osrmRes.isRoadRoute ? '実道路ルート計算済' : '概算ルート',
+        engineText: `${osrmClosing.badgeLabel}`,
         googleMapsNavUrl: navUrl,
         waypoints: [],
       });
     },
-    [mapEngine]
+    [mapEngine, effectiveDepartureMinutes]
   );
 
   /**
@@ -925,6 +1005,13 @@ export const App: React.FC = () => {
           onChangeShowPinTime={setShowPinTime}
           showTimeCircles={showTimeCircles}
           onChangeShowTimeCircles={setShowTimeCircles}
+          departureTimeMode={departureTimeMode}
+          onChangeDepartureTimeMode={setDepartureTimeMode}
+          customDepartureTime={customDepartureTime}
+          onChangeCustomDepartureTime={setCustomDepartureTime}
+          currentClockText={formatClockTimeFromMinutes(nowMinutesOfDay)}
+          hideClosedOnArrival={hideClosedOnArrival}
+          onChangeHideClosedOnArrival={setHideClosedOnArrival}
           enabledChains={enabledChains}
           onToggleChain={(chainId, enabled) => {
             setEnabledChains((prev) => {
