@@ -8,8 +8,15 @@
  * データの整合性を保ち、将来バックエンドAPIやIndexedDBへ移行する際も変更箇所を局所化できるためです。
  */
 
-import { CATEGORIES, CHAIN_GROUPS, TRAVEL_MODE_MAP } from '../config/shopMaster';
-import type { CategoryId, ChainId, Shop, UserPreferences } from '../types/shop';
+import {
+  CATEGORIES,
+  CATEGORY_MAP,
+  CHAIN_GROUPS,
+  getEffectiveShopSubCategories,
+  SUB_CATEGORIES,
+  TRAVEL_MODE_MAP,
+} from '../config/shopMaster';
+import type { CategoryId, ChainId, Shop, SubCategoryId, UserPreferences } from '../types/shop';
 
 /**
  * `localStorage` で使用するキー文字列の定数オブジェクト。
@@ -46,6 +53,7 @@ export function getDefaultUserPreferences(): UserPreferences {
     showTimeCircles: true,
     enabledChains: CHAIN_GROUPS.map((c) => c.id),
     enabledCategories: CATEGORIES.map((c) => c.id),
+    enabledSubCategories: SUB_CATEGORIES.map((s) => s.id),
     categoryMatchMode: 'OR',
     hideClosedOnArrival: false,
   };
@@ -107,9 +115,27 @@ export function loadUserPreferencesFromStorage(): UserPreferences {
       defaults.enabledChains = parsed.enabledChains as ChainId[];
     }
 
-    // 有効カテゴリリストの復元
-    if (Array.isArray(parsed.enabledCategories)) {
-      defaults.enabledCategories = parsed.enabledCategories as CategoryId[];
+    // 有効カテゴリ・詳細サブジャンルリストの復元（旧バージョン設定からの自動マイグレーション対応）
+    if (Array.isArray(parsed.enabledSubCategories)) {
+      defaults.enabledSubCategories = parsed.enabledSubCategories as SubCategoryId[];
+      if (Array.isArray(parsed.enabledCategories)) {
+        defaults.enabledCategories = parsed.enabledCategories as CategoryId[];
+      }
+    } else if (Array.isArray(parsed.enabledCategories)) {
+      const legacyCats = new Set<CategoryId>(parsed.enabledCategories as CategoryId[]);
+      // 旧6分類時代に全ONだった場合は新しく追加された apparel_life も含めて全ONにマイグレーションする
+      if (legacyCats.size >= 6) {
+        legacyCats.add('apparel_life');
+      }
+      defaults.enabledCategories = Array.from(legacyCats);
+      const migratedSubs = new Set<SubCategoryId>();
+      for (const cid of legacyCats) {
+        const catInfo = CATEGORY_MAP[cid];
+        if (catInfo) {
+          catInfo.subCategories.forEach((s) => migratedSubs.add(s));
+        }
+      }
+      defaults.enabledSubCategories = Array.from(migratedSubs);
     }
 
     // カテゴリ一致モード（OR / AND）の復元
@@ -246,6 +272,7 @@ export async function fetchAndMergeShopsDatabase(): Promise<Shop[]> {
     if (!Array.isArray(finalShop.chains) || finalShop.chains.length === 0) {
       finalShop.chains = [finalShop.chain];
     }
+    finalShop.subCategories = getEffectiveShopSubCategories(finalShop);
     merged.push(finalShop);
     seenIds.add(finalShop.id);
   }
@@ -259,6 +286,7 @@ export async function fetchAndMergeShopsDatabase(): Promise<Shop[]> {
     if (!Array.isArray(finalShop.chains) || finalShop.chains.length === 0) {
       finalShop.chains = [finalShop.chain];
     }
+    finalShop.subCategories = getEffectiveShopSubCategories(finalShop);
     merged.push(finalShop);
     seenIds.add(finalShop.id);
   }

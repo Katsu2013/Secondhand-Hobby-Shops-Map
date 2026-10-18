@@ -5,8 +5,15 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { CATEGORIES, CHAIN_GROUPS, classifyShopByName } from '../config/shopMaster';
-import type { CategoryId, ChainId, Shop } from '../types/shop';
+import {
+  CATEGORIES,
+  CHAIN_GROUPS,
+  classifyShopByName,
+  deriveParentCategoriesFromSubCategories,
+  getEffectiveShopSubCategories,
+  SUB_CATEGORY_MAP,
+} from '../config/shopMaster';
+import type { CategoryId, ChainId, Shop, SubCategoryId } from '../types/shop';
 
 /**
  * `ApiKeyModal` コンポーネントのPropsインターフェース。
@@ -66,7 +73,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
         </div>
         <div className="modal-body">
           <p className="modal-lead">
-            本アプリは<strong>APIキーなしでも全国約2,043店舗の内蔵マップ＋道路ルート計算</strong>がそのまま使えますが、ご自身の{' '}
+            本アプリは<strong>APIキーなしでも全国約2,514店舗の内蔵マップ＋道路ルート計算</strong>がそのまま使えますが、ご自身の{' '}
             <strong>Google Maps JavaScript API キー</strong> を入力すると、以下の機能がフル解放されます：
           </p>
           <ul className="feature-list">
@@ -131,8 +138,10 @@ export interface ShopFormSubmitData {
   name: string;
   /** 代表チェーンID */
   chain: ChainId;
-  /** 取扱カテゴリIDの配列 */
+  /** 取扱親カテゴリIDの配列 */
   categories: CategoryId[];
+  /** 取扱詳細サブジャンルIDの配列 */
+  subCategories: SubCategoryId[];
   /** 緯度 */
   lat: number;
   /** 経度 */
@@ -162,7 +171,7 @@ export interface ShopEditModalProps {
 }
 
 /**
- * 店舗の新規手動追加および既存店舗の取扱カテゴリ・住所・座標編集を行うモーダルコンポーネント。
+ * 店舗の新規手動追加および既存店舗の取扱カテゴリ・詳細サブジャンル・住所・座標編集を行うモーダルコンポーネント。
  *
  * @param props - `ShopEditModalProps` オブジェクト
  * @returns 店舗編集モーダルのJSX要素
@@ -187,9 +196,9 @@ export const ShopEditModal: React.FC<ShopEditModalProps> = ({
   const [lngStr, setLngStr] = useState<string>('');
   /** フォーム：住所 */
   const [address, setAddress] = useState<string>('');
-  /** フォーム：選択中の取扱カテゴリID集合 */
-  const [selectedCats, setSelectedCats] = useState<Set<CategoryId>>(
-    new Set(['retro_game', 'pc_junk'])
+  /** フォーム：選択中の詳細サブジャンルID集合 */
+  const [selectedSubCats, setSelectedSubCats] = useState<Set<SubCategoryId>>(
+    () => new Set<SubCategoryId>(['sub_retro_game', 'sub_modern_game', 'sub_pc_junk'])
   );
 
   // モーダルが開かれた際、編集対象店舗があればその値を、なければ初期値をフォームにセットする
@@ -202,7 +211,7 @@ export const ShopEditModal: React.FC<ShopEditModalProps> = ({
       setLatStr(String(editingShop.lat));
       setLngStr(String(editingShop.lng));
       setAddress(editingShop.address || '');
-      setSelectedCats(new Set(editingShop.categories || []));
+      setSelectedSubCats(new Set(getEffectiveShopSubCategories(editingShop)));
     } else {
       setName('');
       setChain('hardoff');
@@ -210,33 +219,53 @@ export const ShopEditModal: React.FC<ShopEditModalProps> = ({
       setLatStr(defaultCenter.lat.toFixed(6));
       setLngStr(defaultCenter.lng.toFixed(6));
       setAddress('');
-      setSelectedCats(new Set(['retro_game', 'pc_junk']));
+      setSelectedSubCats(new Set(['sub_retro_game', 'sub_modern_game', 'sub_pc_junk']));
     }
   }, [isOpen, editingShop, defaultCenter.lat, defaultCenter.lng]);
 
   /**
-   * 新規登録時に店舗名入力欄からフォーカスが外れた際、店名からチェーンと取扱カテゴリを自動推論して補助します。
+   * 新規登録時に店舗名入力欄からフォーカスが外れた際、店名からチェーンと詳細サブジャンルを自動推論して補助します。
    */
   const handleNameBlur = (): void => {
     if (editingShop || !name.trim()) return;
     const inferred = classifyShopByName(name);
     setChain(inferred.chain);
-    setSelectedCats(new Set(inferred.categories));
+    setSelectedSubCats(new Set(inferred.subCategories));
   };
 
   /**
-   * 取扱カテゴリチェックボックスのON/OFFを切り替えます。
+   * 親カテゴリ単位で配下の詳細サブジャンルを一括ON/OFFします。
    *
-   * @param catId - 対象のカテゴリID
+   * @param subIds - 対象親カテゴリに属する詳細サブジャンルID配列
+   * @param checked - 一括設定するチェック状態
+   */
+  const handleToggleParentGroup = (subIds: readonly SubCategoryId[], checked: boolean): void => {
+    setSelectedSubCats((prev) => {
+      const next = new Set(prev);
+      for (const sid of subIds) {
+        if (checked) {
+          next.add(sid);
+        } else {
+          next.delete(sid);
+        }
+      }
+      return next;
+    });
+  };
+
+  /**
+   * 個別の詳細サブジャンルチェックボックスのON/OFFを切り替えます。
+   *
+   * @param subId - 対象の詳細サブジャンルID
    * @param checked - チェック状態
    */
-  const handleToggleCat = (catId: CategoryId, checked: boolean): void => {
-    setSelectedCats((prev) => {
+  const handleToggleSubCat = (subId: SubCategoryId, checked: boolean): void => {
+    setSelectedSubCats((prev) => {
       const next = new Set(prev);
       if (checked) {
-        next.add(catId);
+        next.add(subId);
       } else {
-        next.delete(catId);
+        next.delete(subId);
       }
       return next;
     });
@@ -248,11 +277,13 @@ export const ShopEditModal: React.FC<ShopEditModalProps> = ({
   const handleSave = (): void => {
     const lat = parseFloat(latStr);
     const lng = parseFloat(lngStr);
+    const subList = Array.from(selectedSubCats);
     onSaveShop({
       id: editingShop ? editingShop.id : '',
       name: name.trim(),
       chain,
-      categories: Array.from(selectedCats),
+      categories: deriveParentCategoriesFromSubCategories(subList),
+      subCategories: subList,
       lat,
       lng,
       address: address.trim(),
@@ -271,7 +302,7 @@ export const ShopEditModal: React.FC<ShopEditModalProps> = ({
       <div className="modal-dialog">
         <div className="modal-header">
           <h3 id="modal-shop-title">
-            {editingShop ? '✏️ 店舗情報・取扱カテゴリの編集' : '➕ 新しい中古ショップを追加'}
+            {editingShop ? '✏️ 店舗情報・取扱ジャンルの編集' : '➕ 新しい中古ショップを追加'}
           </h3>
           <button type="button" className="modal-close" onClick={onClose}>
             ✕
@@ -352,27 +383,56 @@ export const ShopEditModal: React.FC<ShopEditModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label>取り扱っているカテゴリ（複数選択可）</label>
-            <div id="edit-shop-categories" className="edit-cat-grid">
+            <label>取り扱っている詳細ジャンル（親分類一括・個別選択可）</label>
+            <div id="edit-shop-categories" className="edit-cat-tree">
               {CATEGORIES.map((cat) => {
-                const isChecked = selectedCats.has(cat.id);
+                const enabledCount = cat.subCategories.filter((sid) =>
+                  selectedSubCats.has(sid)
+                ).length;
+                const allChecked = enabledCount === cat.subCategories.length;
+                const anyChecked = enabledCount > 0;
                 return (
-                  <label
-                    key={cat.id}
-                    className={`filter-item ${isChecked ? 'checked' : 'unchecked'}`}
-                  >
-                    <div className="filter-item-left">
+                  <div key={cat.id} className="edit-cat-group">
+                    <label className="edit-cat-parent">
                       <input
                         type="checkbox"
-                        value={cat.id}
-                        className="edit-cat-chk"
-                        checked={isChecked}
-                        onChange={(e) => handleToggleCat(cat.id, e.target.checked)}
+                        checked={anyChecked}
+                        ref={(el) => {
+                          if (el) el.indeterminate = anyChecked && !allChecked;
+                        }}
+                        onChange={(e) =>
+                          handleToggleParentGroup(cat.subCategories, e.target.checked)
+                        }
                       />
                       <span>{cat.icon}</span>
-                      <span className="filter-name">{cat.shortName}</span>
+                      <strong>{cat.name}</strong>
+                    </label>
+                    <div className="edit-subcat-grid">
+                      {cat.subCategories.map((subId) => {
+                        const sub = SUB_CATEGORY_MAP[subId];
+                        if (!sub) return null;
+                        const isChecked = selectedSubCats.has(subId);
+                        return (
+                          <label
+                            key={subId}
+                            className={`filter-item ${isChecked ? 'checked' : 'unchecked'}`}
+                          >
+                            <div className="filter-item-left">
+                              <input
+                                type="checkbox"
+                                value={subId}
+                                className="edit-cat-chk"
+                                checked={isChecked}
+                                onChange={(e) => handleToggleSubCat(subId, e.target.checked)}
+                              />
+                              <span>{sub.icon}</span>
+                              <span className="filter-name">{sub.shortName}</span>
+                            </div>
+                          </label>
+                        );
+                      })}
                     </div>
-                  </label>
+                  </div>
                 );
               })}
             </div>

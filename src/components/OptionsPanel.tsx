@@ -7,13 +7,21 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { CATEGORIES, CHAIN_GROUPS, TRAVEL_MODES } from '../config/shopMaster';
+import {
+  CATEGORIES,
+  CHAIN_GROUPS,
+  getEffectiveShopSubCategories,
+  SUB_CATEGORIES,
+  SUB_CATEGORY_MAP,
+  TRAVEL_MODES,
+} from '../config/shopMaster';
 import type {
   CategoryId,
   CategoryMatchMode,
   ChainId,
   OriginLocation,
   Shop,
+  SubCategoryId,
   TravelModeId,
 } from '../types/shop';
 
@@ -73,11 +81,19 @@ export interface OptionsPanelProps {
   onToggleChain: (chainId: ChainId, enabled: boolean) => void;
   /** 全チェーンを一括ONまたは全OFFにするコールバック */
   onSetAllChains: (enableAll: boolean) => void;
-  /** 現在ONになっている取扱カテゴリIDのSet */
+  /** 現在ONになっている取扱親カテゴリIDのSet */
   enabledCategories: ReadonlySet<CategoryId>;
-  /** 個別カテゴリのON/OFFを切り替えるコールバック */
+  /** 現在ONになっている詳細サブジャンルIDのSet */
+  enabledSubCategories: ReadonlySet<SubCategoryId>;
+  /** 親カテゴリ（配下の詳細ジャンル一括）のON/OFFを切り替えるコールバック */
   onToggleCategory: (catId: CategoryId, enabled: boolean) => void;
-  /** 全カテゴリを一括ONまたは全OFFにするコールバック */
+  /** 個別の詳細サブジャンルのON/OFFを切り替えるコールバック */
+  onToggleSubCategory: (subCatId: SubCategoryId, enabled: boolean) => void;
+  /** 指定した親カテゴリ（配下の詳細ジャンル）のみを単独ONにするコールバック */
+  onSelectOnlyCategory: (catId: CategoryId) => void;
+  /** 指定した詳細サブジャンル1つのみを単独ONにするコールバック */
+  onSelectOnlySubCategory: (subCatId: SubCategoryId) => void;
+  /** 全カテゴリ・全詳細ジャンルを一括ONまたは全OFFにするコールバック */
   onSetAllCategories: (enableAll: boolean) => void;
   /** カテゴリ絞り込みの一致モード（`'OR'` または `'AND'`） */
   categoryMatchMode: CategoryMatchMode;
@@ -126,8 +142,12 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
   enabledChains,
   onToggleChain,
   onSetAllChains,
-  enabledCategories,
+  enabledCategories: _enabledCategories,
+  enabledSubCategories,
   onToggleCategory,
+  onToggleSubCategory,
+  onSelectOnlyCategory,
+  onSelectOnlySubCategory,
   onSetAllCategories,
   categoryMatchMode,
   onChangeCategoryMatchMode,
@@ -138,10 +158,44 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
 }) => {
   /** 出発地検索テキストボックスの入力状態 */
   const [originQuery, setOriginQuery] = useState<string>('');
+  /** 詳細サブジャンルツリーを展開表示している親カテゴリIDの集合（初期状態でホビー系を展開し階層構造を分かりやすく提示） */
+  const [expandedParentCats, setExpandedParentCats] = useState<Set<CategoryId>>(
+    () => new Set<CategoryId>(['figure_hobby'])
+  );
+
+  /**
+   * 親カテゴリの詳細ツリー展開・折りたたみを切り替えます。
+   *
+   * @param catId - 対象の親カテゴリID
+   */
+  const handleToggleExpandParent = (catId: CategoryId): void => {
+    setExpandedParentCats((prev) => {
+      const next = new Set(prev);
+      if (next.has(catId)) {
+        next.delete(catId);
+      } else {
+        next.add(catId);
+      }
+      return next;
+    });
+  };
+
+  /**
+   * 全親カテゴリの詳細ツリーを一括展開または一括折りたたみします。
+   *
+   * @param expandAll - `true` なら全展開、`false` なら全折りたたみ
+   */
+  const handleExpandAllParentCats = (expandAll: boolean): void => {
+    if (expandAll) {
+      setExpandedParentCats(new Set(CATEGORIES.map((c) => c.id)));
+    } else {
+      setExpandedParentCats(new Set());
+    }
+  };
 
   /**
    * 各チェーンに属する全国の店舗数を集計した辞書。
-   * なぜ `useMemo` を使うか：約2,000店舗のループ集計を `allShops` が変化した時だけに限定し、
+   * なぜ `useMemo` を使うか：約2,500店舗のループ集計を `allShops` が変化した時だけに限定し、
    * スライダー操作時などの不要な再計算を防ぐためです。
    */
   const chainCounts = useMemo<Record<ChainId, number>>(() => {
@@ -161,21 +215,42 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
   }, [allShops]);
 
   /**
-   * 各商品カテゴリを取り扱っている全国の店舗数を集計した辞書。
+   * 各親カテゴリおよび各詳細サブジャンルを取り扱っている全国の店舗数を集計した辞書ペア。
    */
-  const categoryCounts = useMemo<Record<CategoryId, number>>(() => {
-    const counts = {} as Record<CategoryId, number>;
+  const { categoryCounts, subCategoryCounts } = useMemo<{
+    categoryCounts: Record<CategoryId, number>;
+    subCategoryCounts: Record<SubCategoryId, number>;
+  }>(() => {
+    const catCounts = {} as Record<CategoryId, number>;
+    const subCounts = {} as Record<SubCategoryId, number>;
     CATEGORIES.forEach((c) => {
-      counts[c.id] = 0;
+      catCounts[c.id] = 0;
     });
+    SUB_CATEGORIES.forEach((s) => {
+      subCounts[s.id] = 0;
+    });
+
     allShops.forEach((shop) => {
-      (shop.categories || []).forEach((catId) => {
-        if (counts[catId] !== undefined) {
-          counts[catId] += 1;
+      const shopSubs = getEffectiveShopSubCategories(shop);
+      const seenParents = new Set<CategoryId>();
+      shopSubs.forEach((subId) => {
+        if (subCounts[subId] !== undefined) {
+          subCounts[subId] += 1;
+        }
+        const subInfo = SUB_CATEGORY_MAP[subId];
+        if (subInfo) {
+          seenParents.add(subInfo.parentId);
+        }
+      });
+      (shop.categories || []).forEach((cid) => seenParents.add(cid));
+      seenParents.forEach((cid) => {
+        if (catCounts[cid] !== undefined) {
+          catCounts[cid] += 1;
         }
       });
     });
-    return counts;
+
+    return { categoryCounts: catCounts, subCategoryCounts: subCounts };
   }, [allShops]);
 
   /**
@@ -450,10 +525,10 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
           </div>
         </section>
 
-        {/* 4. 扱っているカテゴリリストのオン・オフ */}
+        {/* 4. 扱っているカテゴリリストのオン・オフ（親カテゴリ大分類＋詳細サブジャンル階層ツリー） */}
         <section className="option-section">
           <div className="section-title-row">
-            <h3>🎮 扱っているカテゴリのオン・オフ</h3>
+            <h3>🎮 取扱ジャンル絞り込み（詳細対応）</h3>
             <div className="mini-actions">
               <button
                 type="button"
@@ -471,8 +546,21 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
               >
                 全OFF
               </button>
+              <button
+                type="button"
+                id="btn-cats-expand-toggle"
+                className="text-link-btn"
+                onClick={() =>
+                  handleExpandAllParentCats(expandedParentCats.size < CATEGORIES.length)
+                }
+              >
+                {expandedParentCats.size < CATEGORIES.length ? '▼全展開' : '▲全閉'}
+              </button>
             </div>
           </div>
+          <p className="section-desc">
+            大分類の一括ON/OFFはもちろん、「▼詳細」を開いてガンプラ・レトロゲーム・工具・同人誌など27種類の詳細ジャンルで絞り込めます。
+          </p>
 
           <div className="match-mode-bar">
             <span>絞り込み条件:</span>
@@ -498,24 +586,104 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
             </label>
           </div>
 
-          <div id="category-filter-list" className="filter-check-list">
+          <div id="category-filter-list" className="filter-check-list cat-tree-container">
             {CATEGORIES.map((cat) => {
-              const checked = enabledCategories.has(cat.id);
+              const childSubIds = cat.subCategories;
+              const enabledChildCount = childSubIds.filter((sid) =>
+                enabledSubCategories.has(sid)
+              ).length;
+              const isAllChecked = enabledChildCount === childSubIds.length;
+              const isNoneChecked = enabledChildCount === 0;
+              const isPartial = !isAllChecked && !isNoneChecked;
+              const isExpanded = expandedParentCats.has(cat.id);
+
               return (
-                <label key={cat.id} className={`filter-item ${checked ? 'checked' : 'unchecked'}`}>
-                  <div className="filter-item-left">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={(e) => onToggleCategory(cat.id, e.target.checked)}
-                    />
-                    <span className="chain-dot" style={{ background: cat.color }}>
-                      {cat.icon}
-                    </span>
-                    <span className="filter-name">{cat.name}</span>
+                <div
+                  key={cat.id}
+                  className={`cat-tree-group ${
+                    isNoneChecked ? 'unchecked' : isPartial ? 'partial' : 'checked'
+                  }`}
+                >
+                  <div className="cat-parent-row">
+                    <label className="cat-parent-label">
+                      <input
+                        type="checkbox"
+                        checked={!isNoneChecked}
+                        ref={(el) => {
+                          if (el) {
+                            el.indeterminate = isPartial;
+                          }
+                        }}
+                        onChange={(e) => onToggleCategory(cat.id, e.target.checked)}
+                      />
+                      <span className="chain-dot" style={{ background: cat.color }}>
+                        {cat.icon}
+                      </span>
+                      <span className="filter-name">{cat.name}</span>
+                    </label>
+
+                    <div className="cat-parent-actions">
+                      <button
+                        type="button"
+                        className="solo-filter-btn"
+                        title={`「${cat.name}」のみを表示`}
+                        onClick={() => onSelectOnlyCategory(cat.id)}
+                      >
+                        のみ
+                      </button>
+                      <span className="filter-count" title="該当店舗数">
+                        {categoryCounts[cat.id] || 0}店
+                      </span>
+                      <button
+                        type="button"
+                        className={`cat-expand-btn ${isExpanded ? 'open' : ''}`}
+                        title="詳細ジャンルを展開・折りたたむ"
+                        onClick={() => handleToggleExpandParent(cat.id)}
+                      >
+                        {isExpanded ? '▲' : '▼'} 詳細({enabledChildCount}/{childSubIds.length})
+                      </button>
+                    </div>
                   </div>
-                  <span className="filter-count">{categoryCounts[cat.id] || 0}</span>
-                </label>
+
+                  {isExpanded && (
+                    <div className="cat-sub-list">
+                      {childSubIds.map((subId) => {
+                        const subInfo = SUB_CATEGORY_MAP[subId];
+                        if (!subInfo) return null;
+                        const subChecked = enabledSubCategories.has(subId);
+                        return (
+                          <div
+                            key={subId}
+                            className={`cat-sub-item ${subChecked ? 'checked' : 'unchecked'}`}
+                          >
+                            <label className="cat-sub-label">
+                              <input
+                                type="checkbox"
+                                checked={subChecked}
+                                onChange={(e) => onToggleSubCategory(subId, e.target.checked)}
+                              />
+                              <span className="sub-cat-icon">{subInfo.icon}</span>
+                              <span className="sub-cat-name">{subInfo.name}</span>
+                            </label>
+                            <div className="cat-sub-right">
+                              <button
+                                type="button"
+                                className="solo-filter-btn"
+                                title={`「${subInfo.shortName}」のみをピンポイント表示`}
+                                onClick={() => onSelectOnlySubCategory(subId)}
+                              >
+                                のみ
+                              </button>
+                              <span className="sub-filter-count">
+                                {subCategoryCounts[subId] || 0}店
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

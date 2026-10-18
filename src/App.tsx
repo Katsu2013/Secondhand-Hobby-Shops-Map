@@ -11,14 +11,18 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  CATEGORIES,
+  CATEGORY_MAP,
   CHAIN_GROUPS,
   CHAIN_MAP,
   classifyShopByName,
+  deriveParentCategoriesFromSubCategories,
   estimateTravelInfo,
   evaluateClosingFeasibility,
   formatClockTimeFromMinutes,
   formatDurationMinutes,
+  getEffectiveShopSubCategories,
+  SUB_CATEGORIES,
+  SUB_CATEGORY_MAP,
   TRAVEL_MODE_MAP,
   TRAVEL_MODES,
 } from './config/shopMaster';
@@ -55,6 +59,7 @@ import type {
   OriginLocation,
   Shop,
   SortByMode,
+  SubCategoryId,
   TravelModeId,
 } from './types/shop';
 
@@ -147,9 +152,14 @@ export const App: React.FC = () => {
   const [enabledChains, setEnabledChains] = useState<Set<ChainId>>(
     () => new Set(initialPrefs.enabledChains)
   );
-  /** ONになっているカテゴリIDのSet */
-  const [enabledCategories, setEnabledCategories] = useState<Set<CategoryId>>(
-    () => new Set(initialPrefs.enabledCategories)
+  /** ONになっている詳細サブジャンルIDのSet（27区分） */
+  const [enabledSubCategories, setEnabledSubCategories] = useState<Set<SubCategoryId>>(
+    () => new Set(initialPrefs.enabledSubCategories || SUB_CATEGORIES.map((s) => s.id))
+  );
+  /** ONになっている親カテゴリIDのSet（有効な詳細サブジャンルから自動導出） */
+  const enabledCategories = useMemo<Set<CategoryId>>(
+    () => new Set(deriveParentCategoriesFromSubCategories(Array.from(enabledSubCategories))),
+    [enabledSubCategories]
   );
   /** カテゴリ一致モード（`'OR'` または `'AND'`） */
   const [categoryMatchMode, setCategoryMatchMode] = useState<CategoryMatchMode>(
@@ -242,6 +252,7 @@ export const App: React.FC = () => {
       showTimeCircles,
       enabledChains: Array.from(enabledChains),
       enabledCategories: Array.from(enabledCategories),
+      enabledSubCategories: Array.from(enabledSubCategories),
       categoryMatchMode,
       hideClosedOnArrival,
     });
@@ -253,6 +264,7 @@ export const App: React.FC = () => {
     showTimeCircles,
     enabledChains,
     enabledCategories,
+    enabledSubCategories,
     categoryMatchMode,
     hideClosedOnArrival,
   ]);
@@ -320,7 +332,7 @@ export const App: React.FC = () => {
   }, []);
 
   /**
-   * チェーンフィルタ・カテゴリフィルタ・所要時間計算・閉店時間（間に合うか）判定・所要時間上限フィルタを適用した全国の該当店舗リスト。
+   * チェーンフィルタ・詳細サブジャンルフィルタ・所要時間計算・閉店時間（間に合うか）判定・所要時間上限フィルタを適用した全国の該当店舗リスト。
    *
    * 【なぜここで所要時間と閉店判定を付与するか】
    * 出発地やアクセス手段・出発時刻が変更された瞬間に、全国すべての対象店舗の `_travel` プロパティ
@@ -335,16 +347,16 @@ export const App: React.FC = () => {
       const hasChain = shopChains.some((cid) => enabledChains.has(cid));
       if (!hasChain) return acc;
 
-      // 2. 取扱カテゴリフィルタ
-      const shopCats = shop.categories || [];
-      if (enabledCategories.size === 0) return acc;
+      // 2. 詳細サブジャンル（27区分）フィルタ
+      if (enabledSubCategories.size === 0) return acc;
+      const shopSubs = getEffectiveShopSubCategories(shop);
       if (categoryMatchMode === 'AND') {
-        for (const reqCat of enabledCategories) {
-          if (!shopCats.includes(reqCat)) return acc;
+        for (const reqSub of enabledSubCategories) {
+          if (!shopSubs.includes(reqSub)) return acc;
         }
       } else {
-        const hasCat = shopCats.some((cid) => enabledCategories.has(cid));
-        if (!hasCat) return acc;
+        const hasSub = shopSubs.some((sid) => enabledSubCategories.has(sid));
+        if (!hasSub) return acc;
       }
 
       // 3. 所要時間と距離の算出（実ルートキャッシュがあれば優先利用、なければ速度モデル推計）
@@ -397,7 +409,7 @@ export const App: React.FC = () => {
     travelMode,
     maxMinutes,
     enabledChains,
-    enabledCategories,
+    enabledSubCategories,
     categoryMatchMode,
     exactRouteCache,
     effectiveDepartureMinutes,
@@ -849,6 +861,7 @@ export const App: React.FC = () => {
           chains,
           brands: inferred.brands,
           categories: formData.categories,
+          subCategories: formData.subCategories,
           lat: formData.lat,
           lng: formData.lng,
           address: formData.address,
@@ -869,6 +882,7 @@ export const App: React.FC = () => {
           brands: inferred.brands,
           subBrand: CHAIN_MAP[formData.chain]?.shortName || '',
           categories: formData.categories,
+          subCategories: formData.subCategories,
           lat: formData.lat,
           lng: formData.lng,
           address: formData.address,
@@ -1025,16 +1039,44 @@ export const App: React.FC = () => {
             setEnabledChains(enableAll ? new Set(CHAIN_GROUPS.map((c) => c.id)) : new Set());
           }}
           enabledCategories={enabledCategories}
+          enabledSubCategories={enabledSubCategories}
           onToggleCategory={(catId, enabled) => {
-            setEnabledCategories((prev) => {
+            const parentInfo = CATEGORY_MAP[catId];
+            if (!parentInfo) return;
+            setEnabledSubCategories((prev) => {
               const next = new Set(prev);
-              if (enabled) next.add(catId);
-              else next.delete(catId);
+              for (const subId of parentInfo.subCategories) {
+                if (enabled) next.add(subId);
+                else next.delete(subId);
+              }
               return next;
             });
           }}
+          onToggleSubCategory={(subCatId, enabled) => {
+            setEnabledSubCategories((prev) => {
+              const next = new Set(prev);
+              if (enabled) next.add(subCatId);
+              else next.delete(subCatId);
+              return next;
+            });
+          }}
+          onSelectOnlyCategory={(catId) => {
+            const parentInfo = CATEGORY_MAP[catId];
+            if (!parentInfo) return;
+            setEnabledSubCategories(new Set(parentInfo.subCategories));
+            showToast(`「${parentInfo.name}」のみに絞り込みました`);
+          }}
+          onSelectOnlySubCategory={(subCatId) => {
+            const subInfo = SUB_CATEGORY_MAP[subCatId];
+            setEnabledSubCategories(new Set([subCatId]));
+            if (subInfo) {
+              showToast(`詳細ジャンル「${subInfo.name}」のみに絞り込みました`);
+            }
+          }}
           onSetAllCategories={(enableAll) => {
-            setEnabledCategories(enableAll ? new Set(CATEGORIES.map((c) => c.id)) : new Set());
+            setEnabledSubCategories(
+              enableAll ? new Set(SUB_CATEGORIES.map((s) => s.id)) : new Set()
+            );
           }}
           categoryMatchMode={categoryMatchMode}
           onChangeCategoryMatchMode={setCategoryMatchMode}
@@ -1097,6 +1139,7 @@ export const App: React.FC = () => {
           selectedShopId={selectedShopId}
           tourShopIds={tourShopIds}
           travelMode={travelMode}
+          enabledSubCategories={enabledSubCategories}
           listSearchText={listSearchText}
           onChangeListSearchText={setListSearchText}
           sortBy={sortBy}

@@ -6,8 +6,15 @@
  */
 
 import React from 'react';
-import { CATEGORY_MAP, CHAIN_GROUPS, CHAIN_MAP, TRAVEL_MODE_MAP, TRAVEL_MODES } from '../config/shopMaster';
-import type { Shop, SortByMode, TravelModeId } from '../types/shop';
+import {
+  CHAIN_GROUPS,
+  CHAIN_MAP,
+  getEffectiveShopSubCategories,
+  SUB_CATEGORY_MAP,
+  TRAVEL_MODE_MAP,
+  TRAVEL_MODES,
+} from '../config/shopMaster';
+import type { Shop, SortByMode, SubCategoryId, TravelModeId } from '../types/shop';
 
 /**
  * `ShopListPanel` コンポーネントのPropsインターフェース。
@@ -25,6 +32,8 @@ export interface ShopListPanelProps {
   tourShopIds: readonly string[];
   /** 現在のアクセス手段ID */
   travelMode: TravelModeId;
+  /** 現在ONになっている詳細サブジャンルIDのSet（店舗カード上のタグ強調表示用） */
+  enabledSubCategories?: ReadonlySet<SubCategoryId>;
   /** リスト内キーワード絞り込みテキスト */
   listSearchText: string;
   /** リスト内キーワード変更時のコールバック */
@@ -62,6 +71,7 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
   selectedShopId,
   tourShopIds,
   travelMode,
+  enabledSubCategories,
   listSearchText,
   onChangeListSearchText,
   sortBy,
@@ -219,15 +229,48 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
                 )}
 
                 <div className="shop-cat-tags">
-                  {(shop.categories || []).map((catId) => {
-                    const cat = CATEGORY_MAP[catId];
-                    if (!cat) return null;
+                  {(() => {
+                    const allSubs = getEffectiveShopSubCategories(shop);
+                    const sortedSubs = [...allSubs].sort((a, b) => {
+                      const aOn = enabledSubCategories ? (enabledSubCategories.has(a) ? 0 : 1) : 0;
+                      const bOn = enabledSubCategories ? (enabledSubCategories.has(b) ? 0 : 1) : 0;
+                      return aOn - bOn;
+                    });
+                    const visibleSubs = sortedSubs.slice(0, 8);
+                    const hiddenSubs = sortedSubs.slice(8);
+                    const isNarrowed =
+                      enabledSubCategories && enabledSubCategories.size < 27;
+
                     return (
-                      <span key={catId} className="cat-pill">
-                        {cat.icon} {cat.shortName}
-                      </span>
+                      <>
+                        {visibleSubs.map((subId) => {
+                          const sub = SUB_CATEGORY_MAP[subId];
+                          if (!sub) return null;
+                          const isHighlighted =
+                            isNarrowed && enabledSubCategories?.has(subId);
+                          return (
+                            <span
+                              key={subId}
+                              className={`cat-pill ${isHighlighted ? 'cat-pill-highlight' : ''}`}
+                              title={sub.name}
+                            >
+                              {sub.icon} {sub.shortName}
+                            </span>
+                          );
+                        })}
+                        {hiddenSubs.length > 0 && (
+                          <span
+                            className="cat-pill cat-pill-more"
+                            title={`その他の取扱ジャンル: ${hiddenSubs
+                              .map((sid) => SUB_CATEGORY_MAP[sid]?.shortName || sid)
+                              .join(' / ')}`}
+                          >
+                            +{hiddenSubs.length}ジャンル
+                          </span>
+                        )}
+                      </>
                     );
-                  })}
+                  })()}
                 </div>
 
                 {(shop.address || shop.hours) && (

@@ -71,21 +71,104 @@ def geocode_gsi(addr):
 
     return None
 
+SUB_TO_PARENT = {
+    "sub_retro_game": "retro_game",
+    "sub_modern_game": "retro_game",
+    "sub_tcg_card": "tcg",
+    "sub_board_game": "tcg",
+    "sub_figure": "figure_hobby",
+    "sub_plamo": "figure_hobby",
+    "sub_minicar_rail": "figure_hobby",
+    "sub_retro_toy": "figure_hobby",
+    "sub_pc_junk": "pc_junk",
+    "sub_smartphone": "pc_junk",
+    "sub_camera": "pc_junk",
+    "sub_tool_diy": "pc_junk",
+    "sub_home_appliance": "pc_junk",
+    "sub_audio": "audio_inst",
+    "sub_instrument": "audio_inst",
+    "sub_vinyl_record": "audio_inst",
+    "sub_comic_book": "book_media",
+    "sub_doujin": "book_media",
+    "sub_anime_goods": "book_media",
+    "sub_otome_goods": "book_media",
+    "sub_cd_dvd": "book_media",
+    "sub_apparel": "apparel_life",
+    "sub_luxury_brand": "apparel_life",
+    "sub_outdoor_sport": "apparel_life",
+    "sub_car_bike": "apparel_life",
+    "sub_liquor": "apparel_life",
+    "sub_furniture_zakka": "apparel_life",
+}
+
+def derive_parent_categories(sub_cats):
+    parents = {SUB_TO_PARENT[sc] for sc in sub_cats if sc in SUB_TO_PARENT}
+    return sorted(parents)
+
 HO_LOGO_MAP = {
-    "hard_off": ("hardoff", "hardoff", ["pc_junk", "audio_inst", "retro_game"]),
-    "hard_gakki": ("hardoff", "hardoff", ["audio_inst"]),
-    "kougukan": ("hardoff", "hardoff", ["pc_junk"]),
-    "hard_pc": ("hardoff", "hardoff", ["pc_junk", "retro_game"]),
-    "kamerakan": ("hardoff", "hardoff", ["pc_junk", "audio_inst"]),
-    "off_house": ("offhouse", "offhouse", ["pc_junk", "figure_hobby"]),
-    "outdoor": ("offhouse", "offhouse", ["figure_hobby", "pc_junk"]),
-    "mode_off": ("offhouse", "modeoff", ["figure_hobby"]),
-    "mode_off_vintage": ("offhouse", "modeoff", ["figure_hobby"]),
-    "garage_off": ("offhouse", "garageoff", ["pc_junk", "figure_hobby"]),
-    "liquor_off": ("offhouse", "liquoroff", ["figure_hobby"]),
-    "hobby_off": ("hobbyoff", "hobbyoff", ["figure_hobby", "tcg", "retro_game"]),
-    "hobby_toreka": ("hobbyoff", "hobbyoff", ["tcg", "figure_hobby", "retro_game"]),
-    "book_off": ("bookoff", "bookoff", ["book_media", "retro_game", "tcg", "figure_hobby"]),
+    "hard_off": (
+        "hardoff",
+        "hardoff",
+        [
+            "sub_pc_junk",
+            "sub_smartphone",
+            "sub_camera",
+            "sub_tool_diy",
+            "sub_home_appliance",
+            "sub_audio",
+            "sub_instrument",
+            "sub_vinyl_record",
+            "sub_retro_game",
+            "sub_modern_game",
+        ],
+    ),
+    "hard_gakki": ("hardoff", "hardoff", ["sub_instrument", "sub_audio", "sub_vinyl_record"]),
+    "kougukan": ("hardoff", "hardoff", ["sub_tool_diy"]),
+    "hard_pc": ("hardoff", "hardoff", ["sub_pc_junk", "sub_smartphone"]),
+    "kamerakan": ("hardoff", "hardoff", ["sub_camera"]),
+    "off_house": (
+        "offhouse",
+        "offhouse",
+        [
+            "sub_apparel",
+            "sub_luxury_brand",
+            "sub_outdoor_sport",
+            "sub_furniture_zakka",
+            "sub_home_appliance",
+        ],
+    ),
+    "outdoor": ("offhouse", "offhouse", ["sub_outdoor_sport", "sub_apparel"]),
+    "mode_off": ("offhouse", "modeoff", ["sub_apparel", "sub_luxury_brand"]),
+    "mode_off_vintage": ("offhouse", "modeoff", ["sub_apparel", "sub_luxury_brand"]),
+    "garage_off": ("offhouse", "garageoff", ["sub_car_bike", "sub_tool_diy"]),
+    "liquor_off": ("offhouse", "liquoroff", ["sub_liquor"]),
+    "hobby_off": (
+        "hobbyoff",
+        "hobbyoff",
+        [
+            "sub_figure",
+            "sub_plamo",
+            "sub_minicar_rail",
+            "sub_retro_toy",
+            "sub_tcg_card",
+            "sub_board_game",
+            "sub_anime_goods",
+        ],
+    ),
+    "hobby_toreka": ("hobbyoff", "hobbyoff", ["sub_tcg_card", "sub_board_game"]),
+    "book_off": (
+        "bookoff",
+        "bookoff",
+        [
+            "sub_comic_book",
+            "sub_cd_dvd",
+            "sub_retro_game",
+            "sub_modern_game",
+            "sub_tcg_card",
+            "sub_figure",
+            "sub_plamo",
+        ],
+    ),
 }
 
 BRAND_ORDER = [
@@ -95,43 +178,76 @@ BRAND_ORDER = [
     "geo", "furuichi", "otakarasouko", "mandai", "mangasouko"
 ]
 
-def map_bookoff_categories(item, store_cat):
+def map_bookoff_subcategories(item, store_cat):
     """
     ブックオフ公式APIの product_parents_sell コード配列と業態名から、
-    実際の店舗ごとの取扱カテゴリを正確にマッピングします。
+    実際の店舗ごとの詳細サブジャンル（subCategories）を正確にマッピングします。
     """
     raw_codes = ":".join(item.get("product_parents_sell") or [])
     parts = set(raw_codes.split(":")) if raw_codes else set()
-    cats = set()
+    sub_cats = set()
 
-    # 01:本, 02:CD/DVD/ゲーム, 21:アニメグッズ
-    if any(k in parts for k in ("01", "02", "21")) or not parts:
-        cats.add("book_media")
-    # 02:ゲーム
+    # 01:本・コミック・書籍
+    if "01" in parts or not parts:
+        sub_cats.add("sub_comic_book")
+    # 02:CD・DVD・ブルーレイ・ゲーム
     if "02" in parts or not parts:
-        cats.add("retro_game")
-    # 09:トレカ
-    if "09" in parts:
-        cats.add("tcg")
-    # 10:ホビー・フィギュア・プラモデル
-    if "10" in parts:
-        cats.add("figure_hobby")
-    # 03:スマホ, 04:デジタル家電/PC, 05:生活家電
-    if any(k in parts for k in ("03", "04", "05")):
-        cats.add("pc_junk")
-    # 06:楽器
+        sub_cats.update(["sub_cd_dvd", "sub_modern_game", "sub_retro_game"])
+    # 03:携帯電話・スマートフォン・タブレット
+    if "03" in parts:
+        sub_cats.add("sub_smartphone")
+    # 04:デジタル家電・パソコン・AV機器
+    if "04" in parts:
+        sub_cats.update(["sub_pc_junk", "sub_home_appliance", "sub_audio", "sub_camera"])
+    # 05:生活家電
+    if "05" in parts:
+        sub_cats.add("sub_home_appliance")
+    # 06:楽器・音楽機材
     if "06" in parts:
-        cats.add("audio_inst")
+        sub_cats.add("sub_instrument")
+    # 07:メンズ・レディース古着・アパレル
+    if "07" in parts:
+        sub_cats.add("sub_apparel")
+    # 08:ブランドバッグ・腕時計・貴金属
+    if "08" in parts:
+        sub_cats.add("sub_luxury_brand")
+    # 09:トレーディングカード
+    if "09" in parts:
+        sub_cats.add("sub_tcg_card")
+    # 10:フィギュア・プラモデル・おもちゃ・ミニカー・鉄道模型
+    if "10" in parts:
+        sub_cats.update(["sub_figure", "sub_plamo", "sub_minicar_rail", "sub_retro_toy"])
+    # 11:ベビー・キッズ, 14:食器・雑貨・インテリア・家具
+    if "11" in parts or "14" in parts:
+        sub_cats.add("sub_furniture_zakka")
+    # 12:スポーツ用品, 13:アウトドア・キャンプ・釣具, 15:ゴルフ用品
+    if any(k in parts for k in ("12", "13", "15")):
+        sub_cats.add("sub_outdoor_sport")
+    # 21:アニメ・キャラグッズ
+    if "21" in parts:
+        sub_cats.update(["sub_anime_goods", "sub_otome_goods"])
+    # 22:レコード・アナログ盤
+    if "22" in parts:
+        sub_cats.add("sub_vinyl_record")
 
     # 業態別の標準保証
     if store_cat == "BOOKOFF SUPER BAZAAR":
-        cats.update(["book_media", "retro_game", "tcg", "figure_hobby", "pc_junk", "audio_inst"])
+        sub_cats.update([
+            "sub_comic_book", "sub_cd_dvd", "sub_retro_game", "sub_modern_game",
+            "sub_tcg_card", "sub_figure", "sub_plamo", "sub_minicar_rail", "sub_retro_toy",
+            "sub_pc_junk", "sub_smartphone", "sub_home_appliance", "sub_audio", "sub_instrument",
+            "sub_anime_goods", "sub_apparel", "sub_luxury_brand", "sub_outdoor_sport", "sub_furniture_zakka"
+        ])
     elif store_cat == "BOOKOFF PLUS":
-        cats.update(["book_media", "retro_game", "tcg", "figure_hobby", "pc_junk"])
+        sub_cats.update([
+            "sub_comic_book", "sub_cd_dvd", "sub_retro_game", "sub_modern_game",
+            "sub_tcg_card", "sub_figure", "sub_plamo", "sub_anime_goods",
+            "sub_apparel", "sub_luxury_brand"
+        ])
     else:
-        cats.update(["book_media", "retro_game"])
+        sub_cats.update(["sub_comic_book", "sub_cd_dvd", "sub_retro_game", "sub_modern_game"])
 
-    return sorted(cats)
+    return sorted(sub_cats)
 
 def build_master_database():
     with open("scripts/official_surugaya.json", "r", encoding="utf-8") as f:
@@ -171,7 +287,10 @@ def build_master_database():
     ho_grouped = {}
     for item in ho_official:
         key = extract_core_address_key(item["address"])
-        chain_id, brand_id, cats = HO_LOGO_MAP.get(item["logo_type"], ("hardoff", "hardoff", ["pc_junk", "retro_game"]))
+        chain_id, brand_id, sub_cats = HO_LOGO_MAP.get(
+            item["logo_type"],
+            ("hardoff", "hardoff", ["sub_pc_junk", "sub_retro_game", "sub_modern_game"]),
+        )
         park_str = item.get("parking", "").strip()
         base_ho_hours = "11:00～20:00" if ("秋葉原" in item["name"] or "上野" in item["name"]) else "10:00～20:00"
         ho_hours = f"{base_ho_hours} ({park_str})" if park_str else base_ho_hours
@@ -181,7 +300,7 @@ def build_master_database():
                 "names": [item["name"]],
                 "chains": [chain_id],
                 "brands": [brand_id],
-                "categories": list(cats),
+                "subCategories": list(sub_cats),
                 "address": clean_address_for_geocode(item["address"]),
                 "hours": ho_hours
             }
@@ -193,9 +312,9 @@ def build_master_database():
                 g["chains"].append(chain_id)
             if brand_id not in g["brands"]:
                 g["brands"].append(brand_id)
-            for c in cats:
-                if c not in g["categories"]:
-                    g["categories"].append(c)
+            for sc in sub_cats:
+                if sc not in g["subCategories"]:
+                    g["subCategories"].append(sc)
 
     all_addresses = set()
     for s in su_real + su_friendly + furu_official + ota_official + lash_official + geo_official + kanteidan_official:
@@ -228,15 +347,22 @@ def build_master_database():
         if not coords:
             continue
         name = s["name"]
-        cats = ["retro_game", "figure_hobby", "tcg", "book_media", "pc_junk"]
+        sub_cats = [
+            "sub_retro_game", "sub_modern_game", "sub_tcg_card", "sub_board_game",
+            "sub_figure", "sub_plamo", "sub_minicar_rail", "sub_retro_toy",
+            "sub_comic_book", "sub_doujin", "sub_anime_goods", "sub_otome_goods",
+            "sub_cd_dvd", "sub_pc_junk"
+        ]
         if "プラモデル" in name:
-            cats = ["figure_hobby"]
-        elif "トレカ" in name:
-            cats = ["tcg", "figure_hobby"]
+            sub_cats = ["sub_plamo", "sub_minicar_rail", "sub_figure"]
+        elif "トレカ" in name or "ボードゲーム" in name:
+            sub_cats = ["sub_tcg_card", "sub_board_game"]
         elif "ゲーム館" in name:
-            cats = ["retro_game", "pc_junk"]
+            sub_cats = ["sub_retro_game", "sub_modern_game", "sub_pc_junk"]
         elif "乙女" in name or "キャラ" in name:
-            cats = ["figure_hobby", "book_media"]
+            sub_cats = ["sub_otome_goods", "sub_anime_goods", "sub_doujin", "sub_comic_book", "sub_figure"]
+        elif "アニメ・ホビー" in name:
+            sub_cats = ["sub_figure", "sub_plamo", "sub_anime_goods", "sub_doujin", "sub_cd_dvd"]
 
         su_hours = (s.get("hours") or "").strip() or "10:00～21:00"
         final_shops.append({
@@ -245,7 +371,8 @@ def build_master_database():
             "chain": "surugaya",
             "chains": ["surugaya"],
             "brands": ["surugaya"],
-            "categories": cats,
+            "categories": derive_parent_categories(sub_cats),
+            "subCategories": sorted(sub_cats),
             "lat": coords["lat"],
             "lng": coords["lng"],
             "address": clean_address_for_geocode(s["address"]),
@@ -261,13 +388,15 @@ def build_master_database():
         g["brands"].sort(key=lambda b: BRAND_ORDER.index(b) if b in BRAND_ORDER else 99)
         primary_chain = next((p for p in priority_chains if p in g["chains"]), g["chains"][0])
         display_name = " / ".join(g["names"])
+        sub_cats = sorted(g["subCategories"])
         final_shops.append({
             "id": g["id"],
             "name": display_name,
             "chain": primary_chain,
             "chains": g["chains"],
             "brands": g["brands"],
-            "categories": sorted(g["categories"]),
+            "categories": derive_parent_categories(sub_cats),
+            "subCategories": sub_cats,
             "lat": coords["lat"],
             "lng": coords["lng"],
             "address": g["address"],
@@ -311,7 +440,7 @@ def build_master_database():
         hours_str = hours_list[0] if isinstance(hours_list, list) and hours_list else ""
         hours_str = re.sub(r'<[^>]+>', ' ', hours_str).strip()
 
-        cats = map_bookoff_categories(b, sc)
+        sub_cats = map_bookoff_subcategories(b, sc)
 
         final_shops.append({
             "id": f"bookoff_off_{b.get('id')}",
@@ -320,7 +449,8 @@ def build_master_database():
             "chains": ["bookoff"],
             "brands": [brand_id],
             "subBrand": sub_brand,
-            "categories": cats,
+            "categories": derive_parent_categories(sub_cats),
+            "subCategories": sub_cats,
             "lat": coords["lat"],
             "lng": coords["lng"],
             "address": addr,
@@ -338,6 +468,11 @@ def build_master_database():
         coords = geocode_gsi(g["address"])
         if not coords:
             continue
+        geo_subs = [
+            "sub_modern_game", "sub_retro_game", "sub_smartphone",
+            "sub_home_appliance", "sub_pc_junk", "sub_cd_dvd",
+            "sub_comic_book", "sub_tcg_card"
+        ]
         final_shops.append({
             "id": g["id"],
             "name": g["name"],
@@ -345,7 +480,8 @@ def build_master_database():
             "chains": ["general_game"],
             "brands": ["geo"],
             "subBrand": "ゲオ (GEO)",
-            "categories": ["retro_game", "book_media", "pc_junk"],
+            "categories": derive_parent_categories(geo_subs),
+            "subCategories": sorted(geo_subs),
             "lat": coords["lat"],
             "lng": coords["lng"],
             "address": clean_address_for_geocode(g["address"]),
@@ -360,13 +496,19 @@ def build_master_database():
         coords = geocode_gsi(s["address"])
         if not coords:
             continue
+        lash_subs = [
+            "sub_figure", "sub_plamo", "sub_tcg_card", "sub_comic_book",
+            "sub_doujin", "sub_anime_goods", "sub_otome_goods", "sub_cd_dvd",
+            "sub_retro_game", "sub_modern_game"
+        ]
         final_shops.append({
             "id": f"lashin_off_{idx+1}",
             "name": s["name"],
             "chain": "anime_shop",
             "chains": ["anime_shop"],
             "brands": ["lashinbang"],
-            "categories": ["figure_hobby", "book_media", "tcg", "retro_game"],
+            "categories": derive_parent_categories(lash_subs),
+            "subCategories": sorted(lash_subs),
             "lat": coords["lat"],
             "lng": coords["lng"],
             "address": clean_address_for_geocode(s["address"]),
@@ -380,13 +522,22 @@ def build_master_database():
         if not coords:
             continue
         f_hours = (s.get("hours") or "").strip() or furu_hours_map.get(s["name"], "10:00～22:00")
+        if "トレカパーク" in s["name"]:
+            furu_subs = ["sub_tcg_card", "sub_board_game"]
+        else:
+            furu_subs = [
+                "sub_comic_book", "sub_retro_game", "sub_modern_game",
+                "sub_tcg_card", "sub_board_game", "sub_figure",
+                "sub_plamo", "sub_anime_goods", "sub_cd_dvd", "sub_smartphone"
+            ]
         final_shops.append({
             "id": f"furu_off_{idx+1}",
             "name": s["name"],
             "chain": "general_game",
             "chains": ["general_game"],
             "brands": ["furuichi"],
-            "categories": ["retro_game", "tcg", "book_media", "figure_hobby"],
+            "categories": derive_parent_categories(furu_subs),
+            "subCategories": sorted(furu_subs),
             "lat": coords["lat"],
             "lng": coords["lng"],
             "address": clean_address_for_geocode(s["address"]),
@@ -402,13 +553,36 @@ def build_master_database():
         ota_h = (s.get("hours") or "").strip()
         if not ota_h:
             ota_h = "10:00～21:00" if ("イオン" in s["name"] or "アピタ" in s["name"] or "ららぽーと" in s["name"]) else "10:00～24:00"
+        oname = s["name"]
+        if "エコツール" in oname:
+            ota_subs = ["sub_tool_diy"]
+        elif "プレイズ" in oname:
+            ota_subs = ["sub_tcg_card", "sub_board_game", "sub_retro_game", "sub_modern_game"]
+        elif "おじゃま館" in oname:
+            ota_subs = ["sub_retro_game", "sub_modern_game", "sub_tcg_card"]
+        elif "メディオ" in oname:
+            ota_subs = [
+                "sub_plamo", "sub_figure", "sub_minicar_rail",
+                "sub_retro_game", "sub_modern_game", "sub_tcg_card",
+                "sub_pc_junk", "sub_anime_goods"
+            ]
+        else:
+            ota_subs = [
+                "sub_retro_game", "sub_modern_game", "sub_tcg_card", "sub_board_game",
+                "sub_figure", "sub_plamo", "sub_minicar_rail", "sub_retro_toy",
+                "sub_pc_junk", "sub_smartphone", "sub_camera", "sub_tool_diy",
+                "sub_home_appliance", "sub_audio", "sub_instrument",
+                "sub_comic_book", "sub_anime_goods", "sub_cd_dvd",
+                "sub_apparel", "sub_luxury_brand", "sub_outdoor_sport"
+            ]
         final_shops.append({
             "id": f"ota_off_{idx+1}",
-            "name": s["name"],
+            "name": oname,
             "chain": "general_game",
             "chains": ["general_game"],
             "brands": ["otakarasouko"],
-            "categories": ["retro_game", "figure_hobby", "tcg", "pc_junk", "audio_inst"],
+            "categories": derive_parent_categories(ota_subs),
+            "subCategories": sorted(ota_subs),
             "lat": coords["lat"],
             "lng": coords["lng"],
             "address": clean_address_for_geocode(s["address"]),
@@ -418,6 +592,14 @@ def build_master_database():
 
     # Add Official Kanteidan Group (22 active stores across Chiba, Ibaraki, Shizuoka, Tochigi, Gunma)
     kantei_added = 0
+    kantei_subs = [
+        "sub_retro_game", "sub_modern_game", "sub_tcg_card", "sub_board_game",
+        "sub_figure", "sub_plamo", "sub_minicar_rail", "sub_retro_toy",
+        "sub_pc_junk", "sub_smartphone", "sub_camera", "sub_tool_diy",
+        "sub_home_appliance", "sub_audio", "sub_instrument", "sub_vinyl_record",
+        "sub_comic_book", "sub_doujin", "sub_anime_goods", "sub_cd_dvd",
+        "sub_apparel", "sub_luxury_brand", "sub_outdoor_sport", "sub_car_bike", "sub_liquor"
+    ]
     for idx, s in enumerate(kanteidan_official):
         coords = geocode_gsi(s["address"])
         if not coords:
@@ -429,7 +611,8 @@ def build_master_database():
             "chains": ["kanteidan"],
             "brands": ["kanteidan"],
             "subBrand": s.get("subBrand", "鑑定団"),
-            "categories": ["retro_game", "figure_hobby", "tcg", "book_media", "pc_junk", "audio_inst"],
+            "categories": derive_parent_categories(kantei_subs),
+            "subCategories": sorted(kantei_subs),
             "lat": coords["lat"],
             "lng": coords["lng"],
             "address": clean_address_for_geocode(s["address"]),
@@ -504,13 +687,30 @@ def build_master_database():
             else:
                 hours = "10:00～21:00"
 
+        osm_subs = set()
+        if "mandarake" in info["brands"]:
+            osm_subs.update([
+                "sub_figure", "sub_plamo", "sub_minicar_rail", "sub_retro_toy",
+                "sub_retro_game", "sub_tcg_card", "sub_comic_book", "sub_doujin",
+                "sub_anime_goods", "sub_otome_goods", "sub_cd_dvd", "sub_vinyl_record"
+            ])
+        if "melonbooks" in info["brands"]:
+            osm_subs.update(["sub_doujin", "sub_comic_book", "sub_anime_goods", "sub_otome_goods", "sub_cd_dvd"])
+        if "animate" in info["brands"]:
+            osm_subs.update(["sub_comic_book", "sub_anime_goods", "sub_otome_goods", "sub_cd_dvd", "sub_figure", "sub_tcg_card"])
+        if "mandai" in info["brands"] or "mangasouko" in info["brands"]:
+            osm_subs.update(kantei_subs)
+
+        osm_sub_list = sorted(osm_subs) if osm_subs else ["sub_comic_book", "sub_anime_goods"]
+
         final_shops.append({
             "id": f"osm_{el.get('type','n')[0]}_{el.get('id')}",
             "name": name,
             "chain": info["chain"],
             "chains": info["chains"],
             "brands": info["brands"],
-            "categories": info["categories"],
+            "categories": derive_parent_categories(osm_sub_list),
+            "subCategories": osm_sub_list,
             "lat": round(float(lat), 6),
             "lng": round(float(lng), 6),
             "address": full_addr,
@@ -538,6 +738,13 @@ def build_master_database():
                 for cat in s["categories"]:
                     if cat not in m["categories"]:
                         m["categories"].append(cat)
+                if "subCategories" not in m:
+                    m["subCategories"] = []
+                for sc in s.get("subCategories", []):
+                    if sc not in m["subCategories"]:
+                        m["subCategories"].append(sc)
+                m["subCategories"].sort()
+                m["categories"].sort()
                 # Avoid duplicate Bookoff names if Hard Off FC already had Bookoff
                 if s["name"] not in m["name"] and len(m["name"]) < 75:
                     if not ("ブックオフ" in s["name"] and ("ブックオフ" in m["name"] or "BOOKOFF" in m["name"])):

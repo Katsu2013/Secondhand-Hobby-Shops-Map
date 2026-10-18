@@ -18,6 +18,8 @@ import type {
   ClosingStatusInfo,
   Shop,
   ShopClassification,
+  SubCategoryId,
+  SubCategoryInfo,
   TravelEstimate,
   TravelModeId,
   TravelModeInfo,
@@ -61,7 +63,7 @@ export const CHAIN_GROUPS: readonly ChainGroup[] = [
     icon: '🏠',
     badgeText: 'OH',
     subBrands: ['オフハウス', 'モードオフ', 'ガレージオフ', 'リカーオフ'],
-    defaultCategories: ['pc_junk', 'figure_hobby'],
+    defaultCategories: ['apparel_life', 'pc_junk'],
     keywords: [
       'オフハウス',
       'OFF HOUSE',
@@ -82,7 +84,7 @@ export const CHAIN_GROUPS: readonly ChainGroup[] = [
     icon: '📚',
     badgeText: 'BO',
     subBrands: ['ブックオフ', 'BOOKOFF SUPER BAZAAR', 'BOOKOFF PLUS'],
-    defaultCategories: ['book_media', 'retro_game', 'tcg', 'figure_hobby'],
+    defaultCategories: ['book_media', 'retro_game', 'tcg', 'figure_hobby', 'apparel_life'],
     keywords: ['ブックオフ', 'BOOKOFF', 'BOOK OFF', 'BookOff'],
   },
   {
@@ -118,7 +120,7 @@ export const CHAIN_GROUPS: readonly ChainGroup[] = [
     icon: '🎮',
     badgeText: '総',
     subBrands: ['ゲオ (GEO)', '古本市場・ふるいち', 'お宝創庫', '万代・マンガ倉庫'],
-    defaultCategories: ['retro_game', 'tcg', 'figure_hobby', 'book_media', 'pc_junk'],
+    defaultCategories: ['retro_game', 'tcg', 'figure_hobby', 'book_media', 'pc_junk', 'apparel_life'],
     keywords: ['ゲオ', 'GEO', '古本市場', 'ふるいち', 'お宝創庫', '万代', 'マンガ倉庫'],
   },
   {
@@ -144,7 +146,15 @@ export const CHAIN_GROUPS: readonly ChainGroup[] = [
       '高根沢鑑定団',
       '今市鑑定団',
     ],
-    defaultCategories: ['retro_game', 'figure_hobby', 'tcg', 'book_media', 'pc_junk', 'audio_inst'],
+    defaultCategories: [
+      'retro_game',
+      'figure_hobby',
+      'tcg',
+      'book_media',
+      'pc_junk',
+      'audio_inst',
+      'apparel_life',
+    ],
     keywords: ['鑑定団', '千葉鑑定団', '茨城鑑定団', '静岡鑑定団', '宇都宮鑑定団', 'ガラクタ鑑定団'],
   },
 ];
@@ -284,50 +294,333 @@ export const BRAND_PLATES: Readonly<Record<BrandPlateId, BrandPlateSpec>> = {
 };
 
 /**
- * 取扱商品カテゴリ（6分類）のマスター定義配列。
+ * 詳細サブジャンル（小分類・全27区分）のマスター定義配列。
+ *
+ * 【なぜ27区分に細分化するのか】
+ * 公式データ（ブックオフの取扱品目コード17種、ハードオフの専門館区分、お宝創庫・古本市場・駿河屋の専門館等）を活用し、
+ * 「ガンプラ・プラモデル」「レトロゲーム」「工具・DIY」「同人誌」「女性向け・乙女系」「カー用品」など
+ * ユーザーの具体的な目的に合致する店舗だけをピンポイントで絞り込めるようにするためです。
  */
-export const CATEGORIES: readonly CategoryInfo[] = [
+export const SUB_CATEGORIES: readonly SubCategoryInfo[] = [
+  // 1. ゲーム系 (retro_game)
   {
-    id: 'retro_game',
-    name: 'レトロゲーム・TVゲーム',
-    shortName: 'ゲーム',
-    icon: '🕹️',
+    id: 'sub_retro_game',
+    parentId: 'retro_game',
+    name: 'レトロゲーム (FC/SFC/GB/PS1〜2/SS等)',
+    shortName: 'レトロゲーム',
+    icon: '👾',
     color: '#2563eb',
   },
   {
-    id: 'figure_hobby',
-    name: 'フィギュア・プラモデル・ホビー',
-    shortName: 'フィギュア・ホビー',
-    icon: '🤖',
-    color: '#dc2626',
+    id: 'sub_modern_game',
+    parentId: 'retro_game',
+    name: '現行TVゲーム・本体 (Switch/PS5/PS4等)',
+    shortName: '現行TVゲーム',
+    icon: '🎮',
+    color: '#3b82f6',
   },
+
+  // 2. トレカ・ボドゲ系 (tcg)
   {
-    id: 'tcg',
-    name: 'トレーディングカード（トレカ）',
+    id: 'sub_tcg_card',
+    parentId: 'tcg',
+    name: 'ポケカ・遊戯王・デュエマ・ワンピ等トレカ',
     shortName: 'トレカ',
     icon: '🃏',
     color: '#d97706',
   },
   {
-    id: 'pc_junk',
-    name: 'PCパーツ・ジャンク品・家電',
-    shortName: 'PC・ジャンク・家電',
+    id: 'sub_board_game',
+    parentId: 'tcg',
+    name: 'ボードゲーム・TRPG・カードサプライ',
+    shortName: 'ボドゲ・TRPG',
+    icon: '🎲',
+    color: '#f59e0b',
+  },
+
+  // 3. ホビー・フィギュア・模型系 (figure_hobby)
+  {
+    id: 'sub_figure',
+    parentId: 'figure_hobby',
+    name: 'フィギュア・一番くじ・プライズ',
+    shortName: 'フィギュア・くじ',
+    icon: '🦸',
+    color: '#dc2626',
+  },
+  {
+    id: 'sub_plamo',
+    parentId: 'figure_hobby',
+    name: 'ガンプラ・プラモデル・スケール模型',
+    shortName: 'ガンプラ・プラモ',
+    icon: '🤖',
+    color: '#ef4444',
+  },
+  {
+    id: 'sub_minicar_rail',
+    parentId: 'figure_hobby',
+    name: 'ミニカー・鉄道模型(Nゲージ)・ラジコン',
+    shortName: 'ミニカー・鉄道模型',
+    icon: '🚄',
+    color: '#e11d48',
+  },
+  {
+    id: 'sub_retro_toy',
+    parentId: 'figure_hobby',
+    name: 'レトロ玩具・ソフビ・特撮・超合金',
+    shortName: 'レトロ玩具・ソフビ',
+    icon: '🦖',
+    color: '#be123c',
+  },
+
+  // 4. PC・スマホ・ジャンク・カメラ・工具・家電系 (pc_junk)
+  {
+    id: 'sub_pc_junk',
+    parentId: 'pc_junk',
+    name: 'PC本体・PCパーツ・ジャンク品',
+    shortName: 'PC・ジャンク',
     icon: '💻',
     color: '#0284c7',
   },
   {
-    id: 'audio_inst',
-    name: 'オーディオ・楽器',
-    shortName: 'オーディオ・楽器',
-    icon: '🎸',
+    id: 'sub_smartphone',
+    parentId: 'pc_junk',
+    name: 'スマホ・タブレット・スマートウォッチ',
+    shortName: 'スマホ・タブレット',
+    icon: '📱',
+    color: '#0369a1',
+  },
+  {
+    id: 'sub_camera',
+    parentId: 'pc_junk',
+    name: 'カメラ・レンズ・撮影機材',
+    shortName: 'カメラ・レンズ',
+    icon: '📷',
+    color: '#0e7490',
+  },
+  {
+    id: 'sub_tool_diy',
+    parentId: 'pc_junk',
+    name: '工具・電動工具・DIY (工具館・エコツール等)',
+    shortName: '工具・DIY',
+    icon: '🛠️',
+    color: '#1d4ed8',
+  },
+  {
+    id: 'sub_home_appliance',
+    parentId: 'pc_junk',
+    name: 'テレビ・AV機器・生活家電',
+    shortName: '家電・AV機器',
+    icon: '📺',
+    color: '#0891b2',
+  },
+
+  // 5. オーディオ・楽器・レコード系 (audio_inst)
+  {
+    id: 'sub_audio',
+    parentId: 'audio_inst',
+    name: 'オーディオ機器・スピーカー・アンプ',
+    shortName: 'オーディオ機器',
+    icon: '🔊',
     color: '#7c3aed',
   },
   {
+    id: 'sub_instrument',
+    parentId: 'audio_inst',
+    name: '楽器・ギター・エフェクター・DTM機材',
+    shortName: '楽器・音楽機材',
+    icon: '🎸',
+    color: '#6d28d9',
+  },
+  {
+    id: 'sub_vinyl_record',
+    parentId: 'audio_inst',
+    name: 'レコード・アナログ盤・カセット',
+    shortName: 'レコード・アナログ盤',
+    icon: '🎵',
+    color: '#8b5cf6',
+  },
+
+  // 6. 本・同人誌・アニメグッズ・メディア系 (book_media)
+  {
+    id: 'sub_comic_book',
+    parentId: 'book_media',
+    name: 'コミック・書籍・文庫・ラノベ・古本',
+    shortName: 'コミック・古本',
+    icon: '📚',
+    color: '#059669',
+  },
+  {
+    id: 'sub_doujin',
+    parentId: 'book_media',
+    name: '同人誌・同人ソフト・同人アイテム',
+    shortName: '同人誌・同人ソフト',
+    icon: '📘',
+    color: '#10b981',
+  },
+  {
+    id: 'sub_anime_goods',
+    parentId: 'book_media',
+    name: 'アニメ・声優・VTuber・キャラグッズ',
+    shortName: 'アニメ・VTuberグッズ',
+    icon: '✨',
+    color: '#0d9488',
+  },
+  {
+    id: 'sub_otome_goods',
+    parentId: 'book_media',
+    name: '女性向け・乙女系・アイドル・2.5次元',
+    shortName: '女性向け・乙女系',
+    icon: '🎀',
+    color: '#db2777',
+  },
+  {
+    id: 'sub_cd_dvd',
+    parentId: 'book_media',
+    name: 'CD・DVD・ブルーレイ・ゲーム音楽',
+    shortName: 'CD・DVD・BD',
+    icon: '💿',
+    color: '#047857',
+  },
+
+  // 7. アパレル・ブランド・アウトドア・カー・酒・生活系 (apparel_life)
+  {
+    id: 'sub_apparel',
+    parentId: 'apparel_life',
+    name: '古着・アパレル・スニーカー・靴',
+    shortName: '古着・スニーカー',
+    icon: '👕',
+    color: '#16a34a',
+  },
+  {
+    id: 'sub_luxury_brand',
+    parentId: 'apparel_life',
+    name: 'ブランドバッグ・腕時計・貴金属',
+    shortName: 'ブランド品・時計',
+    icon: '👜',
+    color: '#b45309',
+  },
+  {
+    id: 'sub_outdoor_sport',
+    parentId: 'apparel_life',
+    name: 'キャンプ・釣具・アウトドア・スポーツ用品',
+    shortName: 'キャンプ・釣具・スポーツ',
+    icon: '⛺',
+    color: '#15803d',
+  },
+  {
+    id: 'sub_car_bike',
+    parentId: 'apparel_life',
+    name: 'カー用品・バイク用品・タイヤ (ガレージオフ等)',
+    shortName: 'カー・バイク用品',
+    icon: '🛞',
+    color: '#1e40af',
+  },
+  {
+    id: 'sub_liquor',
+    parentId: 'apparel_life',
+    name: 'お酒・ウイスキー・ワイン (リカーオフ等)',
+    shortName: 'お酒・リカー',
+    icon: '🥃',
+    color: '#9f1239',
+  },
+  {
+    id: 'sub_furniture_zakka',
+    parentId: 'apparel_life',
+    name: '家具・インテリア・食器・ギフト雑貨',
+    shortName: '家具・インテリア雑貨',
+    icon: '🛋️',
+    color: '#4d7c0f',
+  },
+];
+
+/**
+ * 詳細サブジャンルIDから `SubCategoryInfo` をO(1)で高速参照するための辞書マップ。
+ */
+export const SUB_CATEGORY_MAP: Readonly<Record<SubCategoryId, SubCategoryInfo>> =
+  Object.fromEntries(SUB_CATEGORIES.map((s) => [s.id, s])) as Record<
+    SubCategoryId,
+    SubCategoryInfo
+  >;
+
+/**
+ * 取扱商品カテゴリ（親カテゴリ大分類・7分類）のマスター定義配列。
+ * 各親カテゴリは配下の詳細サブジャンルID配列（`subCategories`）を保持します。
+ */
+export const CATEGORIES: readonly CategoryInfo[] = [
+  {
+    id: 'retro_game',
+    name: 'ゲーム（レトロ・現行TVゲーム）',
+    shortName: 'ゲーム',
+    icon: '🕹️',
+    color: '#2563eb',
+    subCategories: ['sub_retro_game', 'sub_modern_game'],
+  },
+  {
+    id: 'tcg',
+    name: 'トレカ・ボードゲーム',
+    shortName: 'トレカ・ボドゲ',
+    icon: '🃏',
+    color: '#d97706',
+    subCategories: ['sub_tcg_card', 'sub_board_game'],
+  },
+  {
+    id: 'figure_hobby',
+    name: 'ホビー・フィギュア・プラモ・模型',
+    shortName: 'フィギュア・ホビー',
+    icon: '🤖',
+    color: '#dc2626',
+    subCategories: ['sub_figure', 'sub_plamo', 'sub_minicar_rail', 'sub_retro_toy'],
+  },
+  {
+    id: 'pc_junk',
+    name: 'PC・スマホ・ジャンク・カメラ・工具',
+    shortName: 'PC・ジャンク・工具',
+    icon: '💻',
+    color: '#0284c7',
+    subCategories: [
+      'sub_pc_junk',
+      'sub_smartphone',
+      'sub_camera',
+      'sub_tool_diy',
+      'sub_home_appliance',
+    ],
+  },
+  {
+    id: 'audio_inst',
+    name: 'オーディオ・楽器・レコード',
+    shortName: 'オーディオ・楽器',
+    icon: '🎸',
+    color: '#7c3aed',
+    subCategories: ['sub_audio', 'sub_instrument', 'sub_vinyl_record'],
+  },
+  {
     id: 'book_media',
-    name: '古本・CD・DVD・アニメグッズ',
-    shortName: '古本・CD・グッズ',
+    name: '古本・同人誌・アニメ・CD/DVD',
+    shortName: '古本・同人・グッズ',
     icon: '💿',
     color: '#059669',
+    subCategories: [
+      'sub_comic_book',
+      'sub_doujin',
+      'sub_anime_goods',
+      'sub_otome_goods',
+      'sub_cd_dvd',
+    ],
+  },
+  {
+    id: 'apparel_life',
+    name: '古着・ブランド・アウトドア・カー・酒',
+    shortName: '古着・アウトドア・他',
+    icon: '👕',
+    color: '#16a34a',
+    subCategories: [
+      'sub_apparel',
+      'sub_luxury_brand',
+      'sub_outdoor_sport',
+      'sub_car_bike',
+      'sub_liquor',
+      'sub_furniture_zakka',
+    ],
   },
 ];
 
@@ -337,6 +630,54 @@ export const CATEGORIES: readonly CategoryInfo[] = [
 export const CATEGORY_MAP: Readonly<Record<CategoryId, CategoryInfo>> = Object.fromEntries(
   CATEGORIES.map((c) => [c.id, c])
 ) as Record<CategoryId, CategoryInfo>;
+
+/**
+ * 詳細サブジャンルIDの配列から、それらが属する親カテゴリID（`CategoryId`）の重複なし配列を導出します。
+ *
+ * @param subCategories - 詳細サブジャンルIDの配列
+ * @returns 対応する親カテゴリIDの配列
+ */
+export function deriveParentCategoriesFromSubCategories(
+  subCategories: readonly SubCategoryId[]
+): CategoryId[] {
+  const parents = new Set<CategoryId>();
+  for (const subId of subCategories) {
+    const info = SUB_CATEGORY_MAP[subId];
+    if (info) {
+      parents.add(info.parentId);
+    }
+  }
+  return Array.from(parents);
+}
+
+/**
+ * 店舗オブジェクトから有効な詳細サブジャンル配列（`SubCategoryId[]`）を取得します。
+ *
+ * 【なぜこのヘルパー関数が必要か】
+ * 公式店舗マスター（`data/shops.json`）には全店舗分の `subCategories` が格納されていますが、
+ * ユーザーが過去に `localStorage` に保存したカスタム店舗など `categories`（親カテゴリ）しか持たないデータに対しても、
+ * 親カテゴリから自動的に配下の詳細サブジャンルを展開して後方互換性を100%保証するためです。
+ *
+ * @param shop - `categories` および任意の `subCategories` を持つ店舗オブジェクト
+ * @returns 店舗が取り扱っている詳細サブジャンルIDの配列
+ */
+export function getEffectiveShopSubCategories(
+  shop: Pick<Shop, 'categories' | 'subCategories'>
+): SubCategoryId[] {
+  if (Array.isArray(shop.subCategories) && shop.subCategories.length > 0) {
+    return shop.subCategories;
+  }
+  const expanded = new Set<SubCategoryId>();
+  for (const catId of shop.categories || []) {
+    const catInfo = CATEGORY_MAP[catId];
+    if (catInfo) {
+      for (const subId of catInfo.subCategories) {
+        expanded.add(subId);
+      }
+    }
+  }
+  return Array.from(expanded);
+}
 
 /**
  * アクセス手段（5種類）のマスター定義配列。
@@ -594,15 +935,36 @@ export function classifyShopByName(name: string): ShopClassification {
   const brands: BrandPlateId[] = [];
   /** 代表サブブランド名 */
   let subBrand = '';
-  /** 推論された取扱カテゴリIDの集合 */
-  const categories = new Set<CategoryId>();
+  /** 推論された詳細サブジャンルIDの集合 */
+  const subCategories = new Set<SubCategoryId>();
 
   // 1. ハードオフの判定
   if (/ハードオフ|HARD\s*OFF|HARD・OFF/i.test(normalizedName)) {
     matchedChains.push('hardoff');
     brands.push('hardoff');
     subBrand = subBrand || 'ハードオフ';
-    (['pc_junk', 'audio_inst', 'retro_game'] as const).forEach((c) => categories.add(c));
+    if (/工具館/.test(normalizedName)) {
+      subCategories.add('sub_tool_diy');
+    } else if (/楽器/.test(normalizedName)) {
+      (['sub_instrument', 'sub_audio', 'sub_vinyl_record'] as const).forEach((s) =>
+        subCategories.add(s)
+      );
+    } else {
+      (
+        [
+          'sub_pc_junk',
+          'sub_smartphone',
+          'sub_camera',
+          'sub_tool_diy',
+          'sub_home_appliance',
+          'sub_audio',
+          'sub_instrument',
+          'sub_vinyl_record',
+          'sub_retro_game',
+          'sub_modern_game',
+        ] as const
+      ).forEach((s) => subCategories.add(s));
+    }
   }
 
   // 2. ブックオフ（SUPER BAZAAR / PLUS / 通常店）の判定
@@ -612,20 +974,59 @@ export function classifyShopByName(name: string): ShopClassification {
       brands.push('bookoff_sb');
       subBrand = 'BOOKOFF SUPER BAZAAR';
       (
-        ['book_media', 'retro_game', 'tcg', 'figure_hobby', 'pc_junk', 'audio_inst'] as const
-      ).forEach((c) => categories.add(c));
+        [
+          'sub_comic_book',
+          'sub_cd_dvd',
+          'sub_retro_game',
+          'sub_modern_game',
+          'sub_tcg_card',
+          'sub_figure',
+          'sub_plamo',
+          'sub_minicar_rail',
+          'sub_retro_toy',
+          'sub_pc_junk',
+          'sub_smartphone',
+          'sub_home_appliance',
+          'sub_audio',
+          'sub_instrument',
+          'sub_anime_goods',
+          'sub_apparel',
+          'sub_luxury_brand',
+          'sub_outdoor_sport',
+          'sub_furniture_zakka',
+        ] as const
+      ).forEach((s) => subCategories.add(s));
     } else if (/PLUS|プラス/i.test(normalizedName)) {
       brands.push('bookoff_plus');
       subBrand = 'BOOKOFF PLUS';
-      (['book_media', 'retro_game', 'tcg', 'figure_hobby', 'pc_junk'] as const).forEach((c) =>
-        categories.add(c)
-      );
+      (
+        [
+          'sub_comic_book',
+          'sub_cd_dvd',
+          'sub_retro_game',
+          'sub_modern_game',
+          'sub_tcg_card',
+          'sub_figure',
+          'sub_plamo',
+          'sub_anime_goods',
+          'sub_apparel',
+          'sub_luxury_brand',
+        ] as const
+      ).forEach((s) => subCategories.add(s));
     } else {
       brands.push('bookoff');
       subBrand = subBrand || 'ブックオフ';
-      (['book_media', 'retro_game', 'tcg', 'figure_hobby'] as const).forEach((c) =>
-        categories.add(c)
-      );
+      (
+        [
+          'sub_comic_book',
+          'sub_cd_dvd',
+          'sub_retro_game',
+          'sub_modern_game',
+          'sub_tcg_card',
+          'sub_figure',
+          'sub_plamo',
+        ] as const
+      ).forEach((s) => subCategories.add(s));
     }
   }
 
@@ -639,17 +1040,28 @@ export function classifyShopByName(name: string): ShopClassification {
     if (/モードオフ|MODE\s*OFF/i.test(normalizedName)) {
       brands.push('modeoff');
       subBrand = subBrand || 'モードオフ';
+      (['sub_apparel', 'sub_luxury_brand'] as const).forEach((s) => subCategories.add(s));
     } else if (/ガレージオフ|GARAGE\s*OFF/i.test(normalizedName)) {
       brands.push('garageoff');
       subBrand = subBrand || 'ガレージオフ';
+      (['sub_car_bike', 'sub_tool_diy'] as const).forEach((s) => subCategories.add(s));
     } else if (/リカーオフ|LIQUOR\s*OFF/i.test(normalizedName)) {
       brands.push('liquoroff');
       subBrand = subBrand || 'リカーオフ';
+      subCategories.add('sub_liquor');
     } else {
       brands.push('offhouse');
       subBrand = subBrand || 'オフハウス';
+      (
+        [
+          'sub_apparel',
+          'sub_luxury_brand',
+          'sub_outdoor_sport',
+          'sub_furniture_zakka',
+          'sub_home_appliance',
+        ] as const
+      ).forEach((s) => subCategories.add(s));
     }
-    (['pc_junk', 'figure_hobby'] as const).forEach((c) => categories.add(c));
   }
 
   // 4. ホビーオフの判定
@@ -657,7 +1069,17 @@ export function classifyShopByName(name: string): ShopClassification {
     matchedChains.push('hobbyoff');
     brands.push('hobbyoff');
     subBrand = subBrand || 'ホビーオフ';
-    (['figure_hobby', 'tcg', 'retro_game'] as const).forEach((c) => categories.add(c));
+    (
+      [
+        'sub_figure',
+        'sub_plamo',
+        'sub_minicar_rail',
+        'sub_retro_toy',
+        'sub_tcg_card',
+        'sub_board_game',
+        'sub_anime_goods',
+      ] as const
+    ).forEach((s) => subCategories.add(s));
   }
 
   // 5. 駿河屋の判定
@@ -665,9 +1087,36 @@ export function classifyShopByName(name: string): ShopClassification {
     matchedChains.push('surugaya');
     brands.push('surugaya');
     subBrand = '駿河屋';
-    (['retro_game', 'figure_hobby', 'tcg', 'book_media', 'pc_junk'] as const).forEach((c) =>
-      categories.add(c)
-    );
+    if (/プラモデル/.test(normalizedName)) {
+      (['sub_plamo', 'sub_minicar_rail', 'sub_figure'] as const).forEach((s) =>
+        subCategories.add(s)
+      );
+    } else if (/トレカ|ボードゲーム/.test(normalizedName)) {
+      (['sub_tcg_card', 'sub_board_game'] as const).forEach((s) => subCategories.add(s));
+    } else if (/乙女/.test(normalizedName)) {
+      (['sub_otome_goods', 'sub_anime_goods', 'sub_doujin', 'sub_comic_book'] as const).forEach(
+        (s) => subCategories.add(s)
+      );
+    } else {
+      (
+        [
+          'sub_retro_game',
+          'sub_modern_game',
+          'sub_tcg_card',
+          'sub_board_game',
+          'sub_figure',
+          'sub_plamo',
+          'sub_minicar_rail',
+          'sub_retro_toy',
+          'sub_comic_book',
+          'sub_doujin',
+          'sub_anime_goods',
+          'sub_otome_goods',
+          'sub_cd_dvd',
+          'sub_pc_junk',
+        ] as const
+      ).forEach((s) => subCategories.add(s));
+    }
   }
 
   // 6. アニメ・同人系（らしんばん・まんだらけ・メロンブックス・アニメイト）の判定
@@ -676,72 +1125,235 @@ export function classifyShopByName(name: string): ShopClassification {
     if (/らしんばん/.test(normalizedName)) {
       brands.push('lashinbang');
       subBrand = 'らしんばん';
-      (['figure_hobby', 'book_media', 'tcg', 'retro_game'] as const).forEach((c) =>
-        categories.add(c)
-      );
+      (
+        [
+          'sub_figure',
+          'sub_plamo',
+          'sub_tcg_card',
+          'sub_comic_book',
+          'sub_doujin',
+          'sub_anime_goods',
+          'sub_otome_goods',
+          'sub_cd_dvd',
+          'sub_retro_game',
+          'sub_modern_game',
+        ] as const
+      ).forEach((s) => subCategories.add(s));
     }
     if (/まんだらけ|MANDARAKE/i.test(normalizedName)) {
       brands.push('mandarake');
       subBrand = 'まんだらけ';
-      (['figure_hobby', 'book_media', 'retro_game', 'tcg'] as const).forEach((c) =>
-        categories.add(c)
-      );
+      (
+        [
+          'sub_figure',
+          'sub_plamo',
+          'sub_minicar_rail',
+          'sub_retro_toy',
+          'sub_retro_game',
+          'sub_tcg_card',
+          'sub_comic_book',
+          'sub_doujin',
+          'sub_anime_goods',
+          'sub_otome_goods',
+          'sub_cd_dvd',
+          'sub_vinyl_record',
+        ] as const
+      ).forEach((s) => subCategories.add(s));
     }
     if (/メロンブックス/.test(normalizedName)) {
       brands.push('melonbooks');
       subBrand = 'メロンブックス';
-      categories.add('book_media');
+      (
+        ['sub_doujin', 'sub_comic_book', 'sub_anime_goods', 'sub_otome_goods', 'sub_cd_dvd'] as const
+      ).forEach((s) => subCategories.add(s));
     }
     if (/アニメイト|animate/i.test(normalizedName)) {
       brands.push('animate');
       subBrand = 'アニメイト';
-      (['book_media', 'figure_hobby', 'tcg'] as const).forEach((c) => categories.add(c));
+      (
+        [
+          'sub_comic_book',
+          'sub_anime_goods',
+          'sub_otome_goods',
+          'sub_cd_dvd',
+          'sub_figure',
+          'sub_tcg_card',
+        ] as const
+      ).forEach((s) => subCategories.add(s));
     }
   }
 
   // 7. 総合・ゲーム系（ゲオ・古本市場・お宝創庫・万代・マンガ倉庫）の判定
-  if (/ゲオ|GEO|古本市場|ふるいち|お宝創庫|万代|マンガ倉庫/i.test(normalizedName)) {
+  if (
+    /ゲオ|GEO|古本市場|ふるいち|トレカパーク|お宝創庫|プレイズ|おじゃま館|エコツール|メディオ|万代|マンガ倉庫/i.test(
+      normalizedName
+    )
+  ) {
     matchedChains.push('general_game');
-    if (/古本市場|ふるいち/.test(normalizedName)) {
+    if (/古本市場|ふるいち|トレカパーク/.test(normalizedName)) {
       brands.push('furuichi');
       subBrand = '古本市場・ふるいち';
-      (['retro_game', 'tcg', 'book_media', 'figure_hobby'] as const).forEach((c) =>
-        categories.add(c)
-      );
-    } else if (/お宝創庫/.test(normalizedName)) {
+      if (/トレカパーク/.test(normalizedName)) {
+        (['sub_tcg_card', 'sub_board_game'] as const).forEach((s) => subCategories.add(s));
+      } else {
+        (
+          [
+            'sub_comic_book',
+            'sub_retro_game',
+            'sub_modern_game',
+            'sub_tcg_card',
+            'sub_board_game',
+            'sub_figure',
+            'sub_plamo',
+            'sub_anime_goods',
+            'sub_cd_dvd',
+            'sub_smartphone',
+          ] as const
+        ).forEach((s) => subCategories.add(s));
+      }
+    } else if (/お宝創庫|プレイズ|おじゃま館|エコツール|メディオ/.test(normalizedName)) {
       brands.push('otakarasouko');
       subBrand = 'お宝創庫';
-      (['retro_game', 'figure_hobby', 'tcg', 'pc_junk', 'audio_inst'] as const).forEach((c) =>
-        categories.add(c)
-      );
+      if (/エコツール/.test(normalizedName)) {
+        subCategories.add('sub_tool_diy');
+      } else if (/プレイズ/.test(normalizedName)) {
+        (['sub_tcg_card', 'sub_board_game', 'sub_retro_game', 'sub_modern_game'] as const).forEach(
+          (s) => subCategories.add(s)
+        );
+      } else if (/おじゃま館/.test(normalizedName)) {
+        (['sub_retro_game', 'sub_modern_game', 'sub_tcg_card'] as const).forEach((s) =>
+          subCategories.add(s)
+        );
+      } else {
+        (
+          [
+            'sub_retro_game',
+            'sub_modern_game',
+            'sub_tcg_card',
+            'sub_board_game',
+            'sub_figure',
+            'sub_plamo',
+            'sub_minicar_rail',
+            'sub_retro_toy',
+            'sub_pc_junk',
+            'sub_smartphone',
+            'sub_camera',
+            'sub_tool_diy',
+            'sub_home_appliance',
+            'sub_audio',
+            'sub_instrument',
+            'sub_comic_book',
+            'sub_anime_goods',
+            'sub_cd_dvd',
+            'sub_apparel',
+            'sub_luxury_brand',
+            'sub_outdoor_sport',
+          ] as const
+        ).forEach((s) => subCategories.add(s));
+      }
     } else if (/マンガ倉庫/.test(normalizedName)) {
       brands.push('mangasouko');
       subBrand = 'マンガ倉庫';
       (
-        ['retro_game', 'figure_hobby', 'tcg', 'book_media', 'pc_junk', 'audio_inst'] as const
-      ).forEach((c) => categories.add(c));
+        [
+          'sub_retro_game',
+          'sub_modern_game',
+          'sub_tcg_card',
+          'sub_board_game',
+          'sub_figure',
+          'sub_plamo',
+          'sub_minicar_rail',
+          'sub_retro_toy',
+          'sub_pc_junk',
+          'sub_smartphone',
+          'sub_audio',
+          'sub_instrument',
+          'sub_comic_book',
+          'sub_anime_goods',
+          'sub_cd_dvd',
+          'sub_apparel',
+          'sub_luxury_brand',
+          'sub_outdoor_sport',
+        ] as const
+      ).forEach((s) => subCategories.add(s));
     } else if (/万代/.test(normalizedName)) {
       brands.push('mandai');
       subBrand = '万代';
       (
-        ['retro_game', 'figure_hobby', 'tcg', 'book_media', 'pc_junk', 'audio_inst'] as const
-      ).forEach((c) => categories.add(c));
+        [
+          'sub_retro_game',
+          'sub_modern_game',
+          'sub_tcg_card',
+          'sub_board_game',
+          'sub_figure',
+          'sub_plamo',
+          'sub_minicar_rail',
+          'sub_retro_toy',
+          'sub_pc_junk',
+          'sub_smartphone',
+          'sub_audio',
+          'sub_instrument',
+          'sub_comic_book',
+          'sub_anime_goods',
+          'sub_cd_dvd',
+          'sub_apparel',
+          'sub_luxury_brand',
+          'sub_outdoor_sport',
+        ] as const
+      ).forEach((s) => subCategories.add(s));
     } else {
       brands.push('geo');
       subBrand = 'ゲオ (GEO)';
-      (['retro_game', 'book_media', 'pc_junk'] as const).forEach((c) => categories.add(c));
+      (
+        [
+          'sub_modern_game',
+          'sub_retro_game',
+          'sub_smartphone',
+          'sub_home_appliance',
+          'sub_pc_junk',
+          'sub_cd_dvd',
+          'sub_comic_book',
+          'sub_tcg_card',
+        ] as const
+      ).forEach((s) => subCategories.add(s));
     }
   }
 
-  // 8. 鑑定団の判定（千葉鑑定団・茨城鑑定団・静岡鑑定団など地域冠名を保持）
+  // 8. 鑑定団の判定（千葉鑑定団・茨城鑑定団・静岡鑑定団・宇都宮鑑定団・ガラクタ鑑定団など地域冠名を保持）
   if (/鑑定団/.test(normalizedName)) {
     matchedChains.push('kanteidan');
     brands.push('kanteidan');
     const kanteiMatch = normalizedName.match(/([一-龠ぁ-んァ-ヶー]{1,6}鑑定団)/);
     subBrand = kanteiMatch ? kanteiMatch[1] : '鑑定団';
-    (['retro_game', 'figure_hobby', 'tcg', 'book_media', 'pc_junk', 'audio_inst'] as const).forEach(
-      (c) => categories.add(c)
-    );
+    (
+      [
+        'sub_retro_game',
+        'sub_modern_game',
+        'sub_tcg_card',
+        'sub_board_game',
+        'sub_figure',
+        'sub_plamo',
+        'sub_minicar_rail',
+        'sub_retro_toy',
+        'sub_pc_junk',
+        'sub_smartphone',
+        'sub_camera',
+        'sub_tool_diy',
+        'sub_home_appliance',
+        'sub_audio',
+        'sub_instrument',
+        'sub_vinyl_record',
+        'sub_comic_book',
+        'sub_doujin',
+        'sub_anime_goods',
+        'sub_cd_dvd',
+        'sub_apparel',
+        'sub_luxury_brand',
+        'sub_outdoor_sport',
+        'sub_car_bike',
+        'sub_liquor',
+      ] as const
+    ).forEach((s) => subCategories.add(s));
   }
 
   // どのキーワードにも一致しなかった場合のフォールバック（デフォルトでハードオフ扱い）
@@ -749,7 +1361,9 @@ export function classifyShopByName(name: string): ShopClassification {
     matchedChains.push('hardoff');
     brands.push('hardoff');
     subBrand = 'ハードオフ';
-    (['pc_junk', 'retro_game'] as const).forEach((c) => categories.add(c));
+    (['sub_pc_junk', 'sub_retro_game', 'sub_modern_game'] as const).forEach((s) =>
+      subCategories.add(s)
+    );
   }
 
   /** 複合店において代表チェーンを決定するための優先順位配列 */
@@ -766,13 +1380,16 @@ export function classifyShopByName(name: string): ShopClassification {
 
   /** 優先順位に基づき決定されたメインチェーンID */
   const primaryChain = priorityOrder.find((p) => matchedChains.includes(p)) || matchedChains[0];
+  /** 詳細サブジャンルの配列 */
+  const subCatArray = Array.from(subCategories);
 
   return {
     chain: primaryChain,
     chains: Array.from(new Set(matchedChains)),
     brands: Array.from(new Set(brands)),
     subBrand,
-    categories: Array.from(categories),
+    categories: deriveParentCategoriesFromSubCategories(subCatArray),
+    subCategories: subCatArray,
   };
 }
 

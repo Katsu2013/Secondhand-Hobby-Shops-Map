@@ -50,16 +50,54 @@ export type BrandPlateId =
   | 'kanteidan';
 
 /**
- * 店舗が取り扱っている商品カテゴリの識別子型。
- * オプション画面のカテゴリON/OFFフィルタで使用されます。
+ * 店舗が取り扱っている商品カテゴリ（親カテゴリ大分類）の識別子型。
+ * オプション画面のカテゴリ階層ツリーフィルタの親ノードとして使用されます。
  */
 export type CategoryId =
   | 'retro_game'
-  | 'figure_hobby'
   | 'tcg'
+  | 'figure_hobby'
   | 'pc_junk'
   | 'audio_inst'
-  | 'book_media';
+  | 'book_media'
+  | 'apparel_life';
+
+/**
+ * 店舗が取り扱っている詳細サブジャンル（小分類・27区分）の識別子型。
+ *
+ * 【なぜ詳細サブジャンル型が必要か】
+ * 「ホビー」の中でもガンプラ・プラモデルを探す人と鉄道模型やフィギュアを探す人では目的の店舗が異なり、
+ * 「PC・家電」の中でも工具専門店（ハードオフ工具館・エコツール）やカメラ館、スマホ取扱店などを
+ * ピンポイントで絞り込めるようにするためです。
+ */
+export type SubCategoryId =
+  | 'sub_retro_game'
+  | 'sub_modern_game'
+  | 'sub_tcg_card'
+  | 'sub_board_game'
+  | 'sub_figure'
+  | 'sub_plamo'
+  | 'sub_minicar_rail'
+  | 'sub_retro_toy'
+  | 'sub_pc_junk'
+  | 'sub_smartphone'
+  | 'sub_camera'
+  | 'sub_tool_diy'
+  | 'sub_home_appliance'
+  | 'sub_audio'
+  | 'sub_instrument'
+  | 'sub_vinyl_record'
+  | 'sub_comic_book'
+  | 'sub_doujin'
+  | 'sub_anime_goods'
+  | 'sub_otome_goods'
+  | 'sub_cd_dvd'
+  | 'sub_apparel'
+  | 'sub_luxury_brand'
+  | 'sub_outdoor_sport'
+  | 'sub_car_bike'
+  | 'sub_liquor'
+  | 'sub_furniture_zakka';
 
 /**
  * 出発地から店舗までのアクセス手段（移動モード）の識別子型。
@@ -73,8 +111,8 @@ export type TravelModeId =
 
 /**
  * カテゴリフィルタの絞り込み条件モード型。
- * - `'OR'`: 選択したカテゴリのうち「どれか1つでも扱う」店舗を表示
- * - `'AND'`: 選択したカテゴリを「すべて扱う」大型店・複合店のみを表示
+ * - `'OR'`: 選択したカテゴリ・詳細ジャンルのうち「どれか1つでも扱う」店舗を表示
+ * - `'AND'`: 選択したカテゴリ・詳細ジャンルを「すべて扱う」大型店・複合店のみを表示
  */
 export type CategoryMatchMode = 'OR' | 'AND';
 
@@ -111,7 +149,7 @@ export interface ChainGroup {
   badgeText: string;
   /** このグループに含まれるサブブランド名称の配列 */
   subBrands: string[];
-  /** このチェーンが標準で取り扱っているカテゴリの配列 */
+  /** このチェーンが標準で取り扱っている親カテゴリの配列 */
   defaultCategories: CategoryId[];
   /** 店名から自動判定する際のキーワード配列 */
   keywords: string[];
@@ -131,10 +169,28 @@ export interface BrandPlateSpec {
 }
 
 /**
- * 取扱商品カテゴリのマスター定義インターフェース。
+ * 詳細サブジャンル（小分類）のマスター定義インターフェース。
+ */
+export interface SubCategoryInfo {
+  /** 詳細サブジャンルの一意なID */
+  id: SubCategoryId;
+  /** 所属する親カテゴリ（大分類）のID */
+  parentId: CategoryId;
+  /** オプション画面のツリー内に表示する詳細ジャンル正式名称 */
+  name: string;
+  /** 店舗カード内のタグやモーダルに表示する短縮名称 */
+  shortName: string;
+  /** 詳細ジャンルの絵文字アイコン */
+  icon: string;
+  /** 詳細ジャンルのテーマカラー（16進数カラーコード） */
+  color: string;
+}
+
+/**
+ * 取扱商品カテゴリ（親カテゴリ大分類）のマスター定義インターフェース。
  */
 export interface CategoryInfo {
-  /** カテゴリの一意なID */
+  /** 親カテゴリの一意なID */
   id: CategoryId;
   /** オプション画面に表示するカテゴリ正式名称 */
   name: string;
@@ -144,6 +200,8 @@ export interface CategoryInfo {
   icon: string;
   /** カテゴリのテーマカラー（16進数カラーコード） */
   color: string;
+  /** この親カテゴリ配下に属する詳細サブジャンルIDの配列 */
+  subCategories: SubCategoryId[];
 }
 
 /**
@@ -278,8 +336,10 @@ export interface Shop {
   brands?: BrandPlateId[];
   /** サブブランド表示名（例: `"BOOKOFF SUPER BAZAAR"`, `"駿河屋"`） */
   subBrand?: string;
-  /** 取り扱っている商品カテゴリIDの配列 */
+  /** 取り扱っている親カテゴリ（大分類）IDの配列 */
   categories: CategoryId[];
+  /** 取り扱っている詳細サブジャンル（小分類・27区分）IDの配列 */
+  subCategories?: SubCategoryId[];
   /** 店舗の緯度（国土地理院API等でジオコーディング済みの正確な北緯） */
   lat: number;
   /** 店舗の経度（国土地理院API等でジオコーディング済みの正確な東経） */
@@ -306,8 +366,10 @@ export interface ShopClassification {
   brands: BrandPlateId[];
   /** 検出されたサブブランド名 */
   subBrand: string;
-  /** 推定される取扱カテゴリID配列 */
+  /** 推定される取扱親カテゴリID配列 */
   categories: CategoryId[];
+  /** 推定される詳細サブジャンルID配列 */
+  subCategories: SubCategoryId[];
 }
 
 /**
@@ -372,8 +434,10 @@ export interface UserPreferences {
   showTimeCircles: boolean;
   /** ONになっているチェーンIDの配列 */
   enabledChains: ChainId[];
-  /** ONになっている取扱カテゴリIDの配列 */
+  /** ONになっている取扱親カテゴリIDの配列 */
   enabledCategories: CategoryId[];
+  /** ONになっている詳細サブジャンルIDの配列 */
+  enabledSubCategories?: SubCategoryId[];
   /** カテゴリ絞り込みのOR/ANDモード */
   categoryMatchMode: CategoryMatchMode;
   /** 到着時に閉店している（間に合わない）店舗を地図・リストから除外するかどうか */
