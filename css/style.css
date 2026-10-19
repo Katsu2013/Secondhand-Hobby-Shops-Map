@@ -674,6 +674,24 @@ html, body {
   gap: 5px;
 }
 
+/* チェーンジャンル小見出し */
+.chain-genre-heading {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-subtle, #f8fafc);
+  border-left: 3px solid var(--primary, #2563eb);
+  padding: 4px 8px;
+  margin-top: 8px;
+  margin-bottom: 2px;
+  border-radius: 2px;
+  letter-spacing: 0.02em;
+}
+
+.chain-genre-heading:first-child {
+  margin-top: 0;
+}
+
 .filter-item {
   display: flex;
   align-items: center;
@@ -2333,6 +2351,20 @@ html, body {
 .brand-plate.plate-official.plate-otakarasouko { background: #ffffff; border-color: #000000; }
 .brand-plate.plate-official.plate-kanteidan { background: #000000; }
 .brand-plate.plate-official.plate-kanteidan .plate-main { color: #ffffff; font-size: 14px; }
+.brand-plate.plate-official.plate-yuzawaya { background: #e50012; }
+.brand-plate.plate-official.plate-yuzawaya .plate-main { color: #ffffff; font-size: 14px; font-weight: 900; letter-spacing: 0.05em; }
+.brand-plate.plate-official.plate-tokai { background: #00873c; }
+.brand-plate.plate-official.plate-tokai .plate-main { color: #ffffff; font-size: 10px; font-weight: 800; }
+.brand-plate.plate-official.plate-okadaya { background: #1a1a1a; }
+.brand-plate.plate-official.plate-okadaya .plate-main { color: #ffffff; font-size: 12.5px; font-weight: 800; letter-spacing: 0.02em; }
+.brand-plate.plate-official.plate-pandorahouse { background: #c2185b; }
+.brand-plate.plate-official.plate-pandorahouse .plate-main { color: #ffffff; font-size: 10px; font-weight: 800; }
+.brand-plate.plate-official.plate-yellowsubmarine { background: #ffdc00; border-color: #d97706; }
+.brand-plate.plate-official.plate-yellowsubmarine .plate-main { color: #0f172a; font-size: 10.5px; font-weight: 900; letter-spacing: -0.02em; }
+.brand-plate.plate-official.plate-popondetta { background: #007b43; border-color: #00582f; }
+.brand-plate.plate-official.plate-popondetta .plate-main { color: #ffffff; font-size: 13px; font-weight: 900; letter-spacing: 0.04em; }
+.brand-plate.plate-official.plate-otakara_market { background: #dc2626; border-color: #991b1b; }
+.brand-plate.plate-official.plate-otakara_market .plate-main { color: #fef08a; font-size: 9.5px; font-weight: 900; }
 
 /* 一覧と地図は同じ業態ロゴ・同じ74:25の表示枠を使用する。 */
 .shop-brand-plates { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }

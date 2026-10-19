@@ -46,6 +46,7 @@ import { ApiKeyModal } from './components/Modals';
 import type {
   ActiveRouteInfo,
   AreaPreset,
+  CameraTarget,
   CategoryId,
   CategoryMatchMode,
   ChainId,
@@ -93,13 +94,16 @@ export const App: React.FC = () => {
   /** Google Directions Renderer の参照 */
   const googleDirRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
 
-  /** 地図カメラをプログラムから移動させるための命令オブジェクト */
-  const [cameraTarget, setCameraTarget] = useState<{
-    lat: number;
-    lng: number;
-    zoom?: number;
-    seq: number;
-  }>({
+  /**
+   * 地図カメラをプログラムから移動（パン・ズーム）させるための命令オブジェクト。
+   * 店舗カード選択、エリアプリセット選択、GPS現在地取得などの操作に応じて更新されます。
+   *
+   * @param lat - 移動先中心の緯度（10進法表記の北緯度数、例: 35.698）
+   * @param lng - 移動先中心の経度（10進法表記の東経度数、例: 139.773）
+   * @param zoom - 変更後の推奨ズームレベル（1〜20、省略時は現在のズームを維持）
+   * @param seq - 同一座標への再要求時にも確実にReactのuseEffectを発火させるための更新シーケンス番号
+   */
+  const [cameraTarget, setCameraTarget] = useState<CameraTarget>({
     lat: initialPrefs.origin.lat,
     lng: initialPrefs.origin.lng,
     zoom: 12,
@@ -130,11 +134,13 @@ export const App: React.FC = () => {
   /** 任意指定の出発時刻文字列（`"HH:MM"` 形式） */
   const [customDepartureTime, setCustomDepartureTime] = useState<string>(() => {
     if (initialPrefs.customDepartureTime) return initialPrefs.customDepartureTime;
+    /** 現在時刻を取得して初期出発時刻（HH:mm）を生成 */
     const d = new Date();
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   });
   /** 現在時刻の0:00からの経過分数（1分ごとに自動更新） */
   const [nowMinutesOfDay, setNowMinutesOfDay] = useState<number>(() => {
+    /** 現在時刻から当日の0:00起点経過分数を計算 */
     const d = new Date();
     return d.getHours() * 60 + d.getMinutes();
   });
@@ -200,7 +206,9 @@ export const App: React.FC = () => {
 
   // 現在時刻の分数（nowMinutesOfDay）を30秒ごとに自動更新し、リアルタイム閉店判定を最新に保つ
   useEffect(() => {
+    /** 30秒ごとに時計を更新し閉店判定をリアルタイムに追従させるインターバルタイマー */
     const timer = setInterval(() => {
+      /** 現在の日時オブジェクト */
       const d = new Date();
       setNowMinutesOfDay(d.getHours() * 60 + d.getMinutes());
     }, 30000);
@@ -212,6 +220,7 @@ export const App: React.FC = () => {
    */
   const effectiveDepartureMinutes = useMemo<number>(() => {
     if (departureTimeMode === 'custom') {
+      /** 指定時刻文字列の「時:分」正規表現マッチング結果 */
       const m = customDepartureTime.match(/^(\d{1,2}):(\d{2})$/);
       if (m) {
         return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
@@ -234,6 +243,7 @@ export const App: React.FC = () => {
    * @param message - 表示する通知メッセージ
    */
   const showToast = useCallback((message: string): void => {
+    /** 一意なトーストID（タイムスタンプ＋乱数） */
     const id = Date.now() + Math.random();
     setToasts((prev) => [...prev, { id, message }]);
     setTimeout(() => {
@@ -296,6 +306,7 @@ export const App: React.FC = () => {
   // あわせて初回オープン時に現在地（GPS）の取得を自動的に試み、許可されれば現在地を出発地・地図中心に設定し、
   // 拒否・非対応・タイムアウトの場合は現在の初期位置（東京・秋葉原駅周辺など）をそのまま維持する。
   useEffect(() => {
+    /** アンマウント時の状態更新を防止するフラグ */
     let isMounted = true;
     fetchShopsDatabase().then((shops) => {
       if (isMounted) {
@@ -309,7 +320,9 @@ export const App: React.FC = () => {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           if (!isMounted) return;
+          /** GPSから取得した現在地北緯 */
           const lat = pos.coords.latitude;
+          /** GPSから取得した現在地東経 */
           const lng = pos.coords.longitude;
           setOrigin({ lat, lng, name: '現在地 (GPS)' });
           setCameraTarget((prev) => ({
@@ -340,11 +353,14 @@ export const App: React.FC = () => {
    * （推定または実測の所要時間＋閉店時間に間に合うかの判定情報）を一括更新し、地図ピンと右リストの双方に即座に反映させるためです。
    */
   const filteredShops = useMemo<Shop[]>(() => {
+    /** 出発地点の座標 */
     const { lat: oLat, lng: oLng } = origin;
 
     return allShops.reduce<Shop[]>((acc, shop) => {
       // 1. チェーンフィルタ（複合店は併設チェーンのどれか1つでもONなら表示）
+      /** 店舗に属するすべてのチェーンIDの配列 */
       const shopChains = shop.chains && shop.chains.length > 0 ? shop.chains : [shop.chain];
+      /** 有効チェーンの中に含まれているかどうかの真偽値 */
       const hasChain = shopChains.some((cid) => enabledChains.has(cid));
       if (!hasChain) return acc;
 
@@ -354,12 +370,16 @@ export const App: React.FC = () => {
       if (!matchesShopCategories(shop, enabledSubCategories, categoryMatchMode)) return acc;
 
       // 3. 所要時間と距離の算出（実ルートキャッシュがあれば優先利用、なければ速度モデル推計）
+      /** ルートキャッシュの一意識別キー文字列 */
       const cacheKey = `${oLat},${oLng}->${shop.id}:${shop.lat},${shop.lng}:${travelMode}:${mapEngine}:${departureTimeMode}:${customDepartureTime}`;
       /** 交通情報の古い値を使い続けないためキャッシュを5分で失効させます。 */
       const cached = routeCache.get(cacheKey);
+      /** 5分以内に計算された有効期限内の正確なルート計算結果 */
       const exact = cached && Date.now() - cached.calculatedAt < 300000 ? cached : undefined;
+      /** 速度モデルと迂回係数によるリアルタイム概算移動情報 */
       const est = estimateTravelInfo(oLat, oLng, shop.lat, shop.lng, travelMode);
 
+      /** 実ルートキャッシュまたは推計モデルから算出した移動時間・距離の基本情報 */
       const baseTravel = exact
         ? {
             estMinutes: exact.minutes,
@@ -379,6 +399,7 @@ export const App: React.FC = () => {
       }
 
       // 5. 閉店時間に対する間に合う・間に合わない判定
+      /** 対象店舗の営業時間・所要時間・出発時刻から算出した閉店到着可否情報 */
       const closingInfo = evaluateClosingFeasibility(
         shop.hours,
         baseTravel.estMinutes,
@@ -416,8 +437,10 @@ export const App: React.FC = () => {
    * 現在の地図表示領域（`mapBounds`）およびリスト内テキスト検索で絞り込み、指定ソート順で並べ替えた画面内店舗リスト。
    */
   const viewportShops = useMemo<Shop[]>(() => {
+    /** 検索ボックスの入力文字列（小文字化・前後空白除去） */
     const query = listSearchText.trim().toLowerCase();
 
+    /** 地図の現在表示境界および検索キーワードに合致する店舗一覧 */
     const visible = filteredShops.filter((shop) => {
       if (mapBounds) {
         if (
@@ -430,6 +453,7 @@ export const App: React.FC = () => {
         }
       }
       if (query) {
+        /** 店名・住所・サブブランドを結合した検索対象文字列 */
         const haystack = `${shop.name} ${shop.address || ''} ${shop.subBrand || ''}`.toLowerCase();
         if (!haystack.includes(query)) return false;
       }
@@ -455,6 +479,7 @@ export const App: React.FC = () => {
 
     return visible;
   }, [filteredShops, mapBounds, listSearchText, sortBy]);
+
 
   /**
    * 地図上に表示中のルートラインとルート案内カードを消去します。
@@ -601,7 +626,9 @@ export const App: React.FC = () => {
     (shopId: string): void => {
       clearActiveRoute();
       setTourShopIds((prev) => {
+        /** 既に追加済みかどうかのインデックス（未追加時は -1） */
         const idx = prev.indexOf(shopId);
+        /** 更新後の店舗ID配列 */
         let next: string[];
         if (idx >= 0) {
           next = prev.filter((id) => id !== shopId);
@@ -629,11 +656,11 @@ export const App: React.FC = () => {
     }
     showToast('現在地(GPS)を取得しています...');
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      (pos: GeolocationPosition) => {
         updateOriginLocation(pos.coords.latitude, pos.coords.longitude, '現在地 (GPS)', true, 13);
         showToast('現在地を出発地に設定しました！');
       },
-      (err) => {
+      (err: GeolocationPositionError) => {
         console.warn('Geolocation error:', err);
         showToast('現在地の取得に失敗しました。地図クリックまたは駅名検索をご利用ください。');
       },
@@ -649,6 +676,7 @@ export const App: React.FC = () => {
   const handleSearchOrigin = useCallback(
     async (query: string): Promise<void> => {
       showToast(`「${query}」を検索しています...`);
+      /** 国土地理院またはGoogleジオコーディングによる検索結果 */
       const loc = await geocodeLocationQuery(query, mapEngine === 'google');
       if (loc) {
         updateOriginLocation(loc.lat, loc.lng, loc.name, true, 13);
@@ -659,6 +687,7 @@ export const App: React.FC = () => {
     },
     [mapEngine, showToast, updateOriginLocation]
   );
+
 
   /**
    * 現在表示中の地図エリア内にある未登録ショップをリアルタイムスキャンするハンドラ。

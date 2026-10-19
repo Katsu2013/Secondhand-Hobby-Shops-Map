@@ -184,11 +184,15 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
           </div>
         ) : (
           listItems.map((shop) => {
+            /** 代表チェーンの定義オブジェクト */
             const primaryChain = CHAIN_MAP[shop.chain] || CHAIN_GROUPS[0];
+            /** 店舗が現在選択中かどうか */
             const isSelected = shop.id === selectedShopId;
+            /** 店舗が巡回（ハシゴ）リストに含まれているかどうか */
             const inTour = tourShopIds.includes(shop.id);
+            /** 移動所要時間・距離・閉店判定の計算結果オブジェクト */
             const travel = shop._travel;
-            /** モバイルの詳細を閉じても、通常ゲオの取得範囲の制限は常に読めるようにします。 */
+            /** モバイルの詳細を閉じても、通常ゲオの取得範囲の制限は常に読めるようにする注意文 */
             const assortmentNotice = getGeoAssortmentNotice(shop);
 
             return (
@@ -252,22 +256,29 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
                     <span className="cat-pill" key={cat}>{CATEGORY_MAP[cat].shortName}（詳細未確認）</span>
                   ))}
                   {(() => {
+                    /** 店舗が取り扱うすべての有効な詳細サブジャンルID配列 */
                     const allSubs = getEffectiveShopSubCategories(shop);
+                    /** 選択中（ON）のジャンルを優先的に先頭へ並べ替えた詳細ジャンル配列 */
                     const sortedSubs = [...allSubs].sort((a, b) => {
                       const aOn = enabledSubCategories ? (enabledSubCategories.has(a) ? 0 : 1) : 0;
                       const bOn = enabledSubCategories ? (enabledSubCategories.has(b) ? 0 : 1) : 0;
                       return aOn - bOn;
                     });
+                    /** カード上に常時表示する上位8件のジャンル配列 */
                     const visibleSubs = sortedSubs.slice(0, 8);
+                    /** 「+Nジャンル」として折りたたむ9件目以降のジャンル配列 */
                     const hiddenSubs = sortedSubs.slice(8);
+                    /** ユーザーによって一部のジャンルに絞り込み中かどうかの真偽値 */
                     const isNarrowed =
                       enabledSubCategories && enabledSubCategories.size < 27;
 
                     return (
                       <>
                         {visibleSubs.map((subId) => {
+                          /** 詳細サブジャンルのマスター定義 */
                           const sub = SUB_CATEGORY_MAP[subId];
                           if (!sub) return null;
+                          /** 絞り込み条件に一致してハイライト表示すべきかどうかの真偽値 */
                           const isHighlighted =
                             isNarrowed && enabledSubCategories?.has(subId);
                           return (
@@ -280,6 +291,7 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
                             </span>
                           );
                         })}
+
                         {hiddenSubs.length > 0 && (
                           <span
                             className="cat-pill cat-pill-more"

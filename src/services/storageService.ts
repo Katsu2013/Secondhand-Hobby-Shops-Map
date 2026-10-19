@@ -68,9 +68,11 @@ export function loadUserPreferencesFromStorage(): UserPreferences {
   /** デフォルト設定をベースとして用意 */
   const defaults = getDefaultUserPreferences();
   try {
+    /** localStorage から取得したユーザー設定の生JSON文字列 */
     const raw = localStorage.getItem(STORAGE_KEYS.USER_PREFS);
     if (!raw) return defaults;
 
+    /** JSONパースしたユーザー設定オブジェクト */
     const parsed = JSON.parse(raw) as Partial<UserPreferences>;
 
     // 出発地座標の妥当性チェック
@@ -108,24 +110,80 @@ export function loadUserPreferencesFromStorage(): UserPreferences {
 
     // 有効チェーンリストの復元
     if (Array.isArray(parsed.enabledChains)) {
-      /** 保存時のチェーン集合。旧設定は従来の8グループとして引き継ぎます。 */
-      const known = new Set(parsed.knownChains ?? CHAIN_GROUPS.filter((chain) => !['iosys', 'janpara', 'pc_koubou', 'inverse'].includes(chain.id)).map((chain) => chain.id));
-      defaults.enabledChains = CHAIN_GROUPS.filter((chain) => parsed.enabledChains!.includes(chain.id) || !known.has(chain.id)).map((chain) => chain.id);
+      /** 保存時のチェーン集合。旧設定の anime_shop / general_game を個別チェーンへ展開して引き継ぎます。 */
+      let rawChains: string[] = parsed.enabledChains;
+      if (rawChains.includes('anime_shop')) {
+        rawChains = [...rawChains.filter((c) => c !== 'anime_shop'), 'animate', 'lashinbang', 'melonbooks', 'mandarake'];
+      }
+      if (rawChains.includes('general_game')) {
+        rawChains = [...rawChains.filter((c) => c !== 'general_game'), 'geo', 'furuichi', 'otakarasouko', 'mandai', 'mangasouko'];
+      }
+
+      /** 保存時に既知だったチェーンID配列 */
+      let rawKnown = parsed.knownChains as string[] | undefined;
+      if (Array.isArray(rawKnown)) {
+        if (rawKnown.includes('anime_shop')) {
+          rawKnown = [...rawKnown.filter((c) => c !== 'anime_shop'), 'animate', 'lashinbang', 'melonbooks', 'mandarake'];
+        }
+        if (rawKnown.includes('general_game')) {
+          rawKnown = [...rawKnown.filter((c) => c !== 'general_game'), 'geo', 'furuichi', 'otakarasouko', 'mandai', 'mangasouko'];
+        }
+      }
+
+      /** アプリのバージョンアップで新規追加された専門店チェーン配列 */
+      const newlyAddedSpecialties = [
+        'iosys',
+        'janpara',
+        'pc_koubou',
+        'inverse',
+        'craft_chain',
+        'yellowsubmarine',
+        'popondetta',
+        'otakara_market',
+      ];
+      /** 既存バージョンにおける標準チェーンID配列 */
+      const defaultKnown = CHAIN_GROUPS.filter(
+        (chain) => !newlyAddedSpecialties.includes(chain.id)
+      ).map((chain) => chain.id);
+
+      /** 既知チェーンのSet（新規追加チェーンを初回自動ONにするために使用） */
+      const known = new Set(rawKnown ?? defaultKnown);
+      defaults.enabledChains = CHAIN_GROUPS.filter(
+        (chain) => rawChains.includes(chain.id) || !known.has(chain.id)
+      ).map((chain) => chain.id);
     }
 
     // 有効カテゴリ・詳細サブジャンルリストの復元（旧バージョン設定からの自動マイグレーション対応）
     if (Array.isArray(parsed.enabledSubCategories)) {
-      defaults.enabledSubCategories = parsed.enabledSubCategories as SubCategoryId[];
-      if (Array.isArray(parsed.enabledCategories)) {
-        defaults.enabledCategories = parsed.enabledCategories as CategoryId[];
-      }
+      /** 保存時に既知だったサブジャンルIDの集合 */
+      const knownSubs = new Set<string>((parsed as { knownSubCategories?: string[] }).knownSubCategories ?? [
+        'sub_retro_game', 'sub_modern_game', 'sub_tcg_card', 'sub_board_game',
+        'sub_figure', 'sub_plamo', 'sub_minicar_rail', 'sub_retro_toy',
+        'sub_pc_junk', 'sub_smartphone', 'sub_camera', 'sub_tool_diy', 'sub_home_appliance',
+        'sub_audio', 'sub_instrument', 'sub_vinyl_record',
+        'sub_comic_book', 'sub_doujin', 'sub_anime_goods', 'sub_otome_goods', 'sub_cd_dvd',
+        'sub_apparel', 'sub_luxury_brand', 'sub_outdoor_sport', 'sub_car_bike', 'sub_liquor', 'sub_furniture_zakka',
+      ]);
+      defaults.enabledSubCategories = SUB_CATEGORIES.filter(
+        (sub) => parsed.enabledSubCategories!.includes(sub.id) || !knownSubs.has(sub.id)
+      ).map((sub) => sub.id);
+      defaults.enabledCategories = Array.from(
+        new Set(
+          defaults.enabledSubCategories
+            .map((subId) => SUB_CATEGORIES.find((s) => s.id === subId)?.parentId)
+            .filter((p): p is CategoryId => Boolean(p))
+        )
+      );
     } else if (Array.isArray(parsed.enabledCategories)) {
+      /** 旧バージョンの親カテゴリ配列からSetを生成 */
       const legacyCats = new Set<CategoryId>(parsed.enabledCategories as CategoryId[]);
-      // 旧6分類時代に全ONだった場合は新しく追加された apparel_life も含めて全ONにマイグレーションする
+      // 旧6分類時代に全ONだった場合は新しく追加された apparel_life や craft も含めて全ONにマイグレーションする
       if (legacyCats.size >= 6) {
         legacyCats.add('apparel_life');
+        legacyCats.add('craft');
       }
       defaults.enabledCategories = Array.from(legacyCats);
+      /** マイグレーション後の詳細サブジャンル集合 */
       const migratedSubs = new Set<SubCategoryId>();
       for (const cid of legacyCats) {
         const catInfo = CATEGORY_MAP[cid];
@@ -135,6 +193,7 @@ export function loadUserPreferencesFromStorage(): UserPreferences {
       }
       defaults.enabledSubCategories = Array.from(migratedSubs);
     }
+
 
     // カテゴリ一致モード（OR / AND）の復元
     if (parsed.categoryMatchMode === 'OR' || parsed.categoryMatchMode === 'AND') {
@@ -161,7 +220,14 @@ export function loadUserPreferencesFromStorage(): UserPreferences {
  */
 export function saveUserPreferencesToStorage(prefs: UserPreferences): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.USER_PREFS, JSON.stringify({ ...prefs, knownChains: CHAIN_GROUPS.map((chain) => chain.id) }));
+    localStorage.setItem(
+      STORAGE_KEYS.USER_PREFS,
+      JSON.stringify({
+        ...prefs,
+        knownChains: CHAIN_GROUPS.map((chain) => chain.id),
+        knownSubCategories: SUB_CATEGORIES.map((sub) => sub.id),
+      })
+    );
   } catch (err) {
     console.warn('ユーザー設定の保存に失敗しました:', err);
   }

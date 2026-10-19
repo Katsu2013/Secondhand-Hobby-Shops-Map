@@ -40,13 +40,24 @@
           "offhouse",
           "bookoff",
           "surugaya",
-          "anime_shop",
-          "general_game",
+          "geo",
+          "furuichi",
+          "otakarasouko",
+          "mandai",
+          "mangasouko",
+          "otakara_market",
           "kanteidan",
+          "animate",
+          "lashinbang",
+          "melonbooks",
+          "mandarake",
           "iosys",
           "janpara",
           "pc_koubou",
-          "inverse"
+          "inverse",
+          "craft_chain",
+          "yellowsubmarine",
+          "popondetta"
         ]
       },
       "chains": {
@@ -60,13 +71,24 @@
             "offhouse",
             "bookoff",
             "surugaya",
-            "anime_shop",
-            "general_game",
+            "geo",
+            "furuichi",
+            "otakarasouko",
+            "mandai",
+            "mangasouko",
+            "otakara_market",
             "kanteidan",
+            "animate",
+            "lashinbang",
+            "melonbooks",
+            "mandarake",
             "iosys",
             "janpara",
             "pc_koubou",
-            "inverse"
+            "inverse",
+            "craft_chain",
+            "yellowsubmarine",
+            "popondetta"
           ]
         },
         "minItems": 1
@@ -109,7 +131,14 @@
             "janpara",
             "pc_koubou",
             "inverse",
-            "goodwill"
+            "goodwill",
+            "yuzawaya",
+            "tokai",
+            "okadaya",
+            "pandorahouse",
+            "yellowsubmarine",
+            "popondetta",
+            "otakara_market"
           ]
         }
       },
@@ -125,7 +154,8 @@
             "pc_junk",
             "audio_inst",
             "book_media",
-            "apparel_life"
+            "apparel_life",
+            "craft"
           ]
         }
       },
@@ -161,7 +191,10 @@
             "sub_outdoor_sport",
             "sub_car_bike",
             "sub_liquor",
-            "sub_furniture_zakka"
+            "sub_furniture_zakka",
+            "sub_craft_fabric",
+            "sub_craft_yarn",
+            "sub_craft_parts"
           ]
         }
       },
@@ -255,7 +288,8 @@
                 "iosys",
                 "janpara",
                 "pc_koubou",
-                "inverse"
+                "inverse",
+                "craft_chain"
               ]
             },
             "categories": {
@@ -270,7 +304,8 @@
                   "pc_junk",
                   "audio_inst",
                   "book_media",
-                  "apparel_life"
+                  "apparel_life",
+                  "craft"
                 ]
               }
             },
@@ -306,7 +341,10 @@
                   "sub_outdoor_sport",
                   "sub_car_bike",
                   "sub_liquor",
-                  "sub_furniture_zakka"
+                  "sub_furniture_zakka",
+                  "sub_craft_fabric",
+                  "sub_craft_yarn",
+                  "sub_craft_parts"
                 ]
               }
             }

@@ -18,17 +18,28 @@ export type ChainId =
   | 'offhouse'
   | 'bookoff'
   | 'surugaya'
-  | 'anime_shop'
-  | 'general_game'
+  | 'geo'
+  | 'furuichi'
+  | 'otakarasouko'
+  | 'mandai'
+  | 'mangasouko'
+  | 'otakara_market'
   | 'kanteidan'
+  | 'animate'
+  | 'lashinbang'
+  | 'melonbooks'
+  | 'mandarake'
   | 'iosys'
   | 'janpara'
   | 'pc_koubou'
-  | 'inverse';
+  | 'inverse'
+  | 'craft_chain'
+  | 'yellowsubmarine'
+  | 'popondetta';
 
 /**
  * バルーンマーカー内に表示する個別ブランド看板プレートの識別子型。
- * 1つのチェーン大分類（例: `offhouse` や `anime_shop`）の中に複数のブランド看板が存在するため、
+ * 1つのチェーン大分類（例: `offhouse` や `anime_shop`、`craft_chain`）の中に複数のブランド看板が存在するため、
  * `ChainId` とは別に詳細なプレート識別子を定義しています。
  */
 export type BrandPlateId =
@@ -64,7 +75,14 @@ export type BrandPlateId =
   | 'janpara'
   | 'pc_koubou'
   | 'goodwill'
-  | 'inverse';
+  | 'inverse'
+  | 'yuzawaya'
+  | 'tokai'
+  | 'okadaya'
+  | 'pandorahouse'
+  | 'yellowsubmarine'
+  | 'popondetta'
+  | 'otakara_market';
 
 /**
  * 店舗が取り扱っている商品カテゴリ（親カテゴリ大分類）の識別子型。
@@ -77,15 +95,16 @@ export type CategoryId =
   | 'pc_junk'
   | 'audio_inst'
   | 'book_media'
-  | 'apparel_life';
+  | 'apparel_life'
+  | 'craft';
 
 /**
- * 店舗が取り扱っている詳細サブジャンル（小分類・27区分）の識別子型。
+ * 店舗が取り扱っている詳細サブジャンル（小分類・30区分）の識別子型。
  *
  * 【なぜ詳細サブジャンル型が必要か】
  * 「ホビー」の中でもガンプラ・プラモデルを探す人と鉄道模型やフィギュアを探す人では目的の店舗が異なり、
- * 「PC・家電」の中でも工具専門店（ハードオフ工具館・エコツール）やカメラ館、スマホ取扱店などを
- * ピンポイントで絞り込めるようにするためです。
+ * 「手芸」の中でも生地・布地を探す人（コスプレ・ドール服）と毛糸・レースを探す人（編み物・ニッター）、
+ * 工具やスマホなどをピンポイントで絞り込めるようにするためです。
  */
 export type SubCategoryId =
   | 'sub_retro_game'
@@ -114,7 +133,10 @@ export type SubCategoryId =
   | 'sub_outdoor_sport'
   | 'sub_car_bike'
   | 'sub_liquor'
-  | 'sub_furniture_zakka';
+  | 'sub_furniture_zakka'
+  | 'sub_craft_fabric'
+  | 'sub_craft_yarn'
+  | 'sub_craft_parts';
 
 /**
  * 出発地から店舗までのアクセス手段（移動モード）の識別子型。
@@ -170,6 +192,8 @@ export interface ChainGroup {
   defaultCategories: CategoryId[];
   /** 店名から自動判定する際のキーワード配列 */
   keywords: string[];
+  /** 所属するチェーンジャンル見出し（例: "💻 PC・スマホ・デジタル系"） */
+  genre: string;
 }
 
 /**
@@ -496,3 +520,42 @@ export interface UserPreferences {
   /** 任意指定の出発時刻（HH:mm） */
   customDepartureTime?: string;
 }
+
+/**
+ * 地図カメラ（中心座標・ズーム倍率）の移動指示パラメータを保持するインターフェース。
+ *
+ * 【なぜこのインターフェースが必要か】
+ * 店舗リストのカードクリック、ヘッダーのプリセット地域ジャンプ、現在地ボタン押下など、
+ * 外部のUIコンポーネントから地図コンポーネント（Google Maps / Leaflet）に対して
+ * 視点移動（パン・ズーム）を安全かつ宣言的に要求するためです。
+ * 同一店舗・同一座標への連続クリック時でもReactの `useEffect` が状態変化を確実に検知できるよう、
+ * リクエストごとにインクリメントされる更新シーケンス番号（`seq`）を内包しています。
+ */
+export interface CameraTarget {
+  /**
+   * 移動先中心の緯度（10進法表記の北緯度数、例: 35.698383）。
+   * 日本国内はおよそ北緯24度〜46度の範囲となります。
+   */
+  lat: number;
+
+  /**
+   * 移動先中心の経度（10進法表記の東経度数、例: 139.773128）。
+   * 日本国内はおよそ東経122度〜153度の範囲となります。
+   */
+  lng: number;
+
+  /**
+   * 変更後の推奨ズームレベル（1〜20）。
+   * 省略された場合は現在の地図のズーム倍率を維持したまま中心座標のみをパン移動します。
+   * 店舗フォーカス時は一般に `15` または `16`、広域エリアジャンプ時は `11`〜`13` が指定されます。
+   */
+  zoom?: number;
+
+  /**
+   * 同一座標への連続再ジャンプ要求を検知するための更新シーケンス番号。
+   * 座標やズーム値が直前と同一であっても、ユーザーが店舗カードを再度クリックした場合に
+   * `useEffect` によるカメラ移動・バルーン再展開処理を発火させるために呼び出し毎に加算されます。
+   */
+  seq: number;
+}
+

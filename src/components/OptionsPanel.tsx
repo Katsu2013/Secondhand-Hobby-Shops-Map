@@ -191,11 +191,13 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
    * スライダー操作時などの不要な再計算を防ぐためです。
    */
   const chainCounts = useMemo<Record<ChainId, number>>(() => {
+    /** チェーンIDごとの店舗数カウンターマップ */
     const counts = {} as Record<ChainId, number>;
     CHAIN_GROUPS.forEach((c) => {
       counts[c.id] = 0;
     });
     allShops.forEach((shop) => {
+      /** 店舗が所属する全チェーンID（複合店対応） */
       const chList = shop.chains && shop.chains.length > 0 ? shop.chains : [shop.chain];
       chList.forEach((cid) => {
         if (counts[cid] !== undefined) {
@@ -213,7 +215,9 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
     categoryCounts: Record<CategoryId, number>;
     subCategoryCounts: Record<SubCategoryId, number>;
   }>(() => {
+    /** 親カテゴリIDごとの該当店舗数マップ */
     const catCounts = {} as Record<CategoryId, number>;
+    /** 詳細サブジャンルIDごとの該当店舗数マップ */
     const subCounts = {} as Record<SubCategoryId, number>;
     CATEGORIES.forEach((c) => {
       catCounts[c.id] = 0;
@@ -223,12 +227,15 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
     });
 
     allShops.forEach((shop) => {
+      /** 店舗が取り扱う有効な詳細サブジャンル配列 */
       const shopSubs = getEffectiveShopSubCategories(shop);
+      /** 重複カウントを防ぐための親カテゴリID集合 */
       const seenParents = new Set<CategoryId>();
       shopSubs.forEach((subId) => {
         if (subCounts[subId] !== undefined) {
           subCounts[subId] += 1;
         }
+        /** 詳細ジャンルのマスター定義 */
         const subInfo = SUB_CATEGORY_MAP[subId];
         if (subInfo) {
           seenParents.add(subInfo.parentId);
@@ -244,6 +251,7 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
 
     return { categoryCounts: catCounts, subCategoryCounts: subCounts };
   }, [allShops]);
+
 
   /**
    * 出発地検索の実行ハンドラ。
@@ -480,26 +488,35 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
           </div>
           <p className="section-desc">巡りたいショップチェーンを選択してください。</p>
           <div id="chain-filter-list" className="filter-check-list">
-            {CHAIN_GROUPS.map((chain) => {
+            {CHAIN_GROUPS.map((chain, index) => {
+              /** 1つ前のインデックスのチェーンジャンル見出し文字列 */
+              const prevGenre = index > 0 ? CHAIN_GROUPS[index - 1].genre : null;
+              /** ジャンルの切り替わり目かどうか（新しい小見出しを挿入するフラグ） */
+              const isNewGenre = Boolean(chain.genre && chain.genre !== prevGenre);
+              /** このチェーンが現在ON（有効）かどうか */
               const checked = enabledChains.has(chain.id);
               return (
-                <label
-                  key={chain.id}
-                  className={`filter-item ${checked ? 'checked' : 'unchecked'}`}
-                >
-                  <div className="filter-item-left">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={(e) => onToggleChain(chain.id, e.target.checked)}
-                    />
-                    <span className="chain-dot" style={{ background: chain.color }}>
-                      {chain.icon}
-                    </span>
-                    <span className="filter-name">{chain.name}</span>
-                  </div>
-                  <span className="filter-count">{chainCounts[chain.id] || 0}店</span>
-                </label>
+                <React.Fragment key={chain.id}>
+                  {isNewGenre && (
+                    <div className="chain-genre-heading">{chain.genre}</div>
+                  )}
+                  <label
+                    className={`filter-item ${checked ? 'checked' : 'unchecked'}`}
+                  >
+                    <div className="filter-item-left">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => onToggleChain(chain.id, e.target.checked)}
+                      />
+                      <span className="chain-dot" style={{ background: chain.color }}>
+                        {chain.icon}
+                      </span>
+                      <span className="filter-name">{chain.name}</span>
+                    </div>
+                    <span className="filter-count">{chainCounts[chain.id] || 0}店</span>
+                  </label>
+                </React.Fragment>
               );
             })}
           </div>
@@ -568,13 +585,19 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
 
           <div id="category-filter-list" className="filter-check-list cat-tree-container">
             {CATEGORIES.map((cat) => {
+              /** 親カテゴリに属する詳細サブジャンルIDの配列 */
               const childSubIds = cat.subCategories;
+              /** 有効化されている詳細サブジャンルの件数 */
               const enabledChildCount = childSubIds.filter((sid) =>
                 enabledSubCategories.has(sid)
               ).length;
+              /** 配下の詳細ジャンルがすべてONになっているかどうか */
               const isAllChecked = enabledChildCount === childSubIds.length;
+              /** 配下の詳細ジャンルがすべてOFFになっているかどうか */
               const isNoneChecked = enabledChildCount === 0;
+              /** 一部のみONになっている中間（indeterminate）状態かどうか */
               const isPartial = !isAllChecked && !isNoneChecked;
+              /** 詳細ツリーが展開表示されているかどうか */
               const isExpanded = expandedParentCats.has(cat.id);
 
               return (
@@ -628,8 +651,10 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
                   {isExpanded && (
                     <div className="cat-sub-list">
                       {childSubIds.map((subId) => {
+                        /** 詳細サブジャンルのマスター定義オブジェクト */
                         const subInfo = SUB_CATEGORY_MAP[subId];
                         if (!subInfo) return null;
+                        /** この詳細サブジャンルが現在ONかどうか */
                         const subChecked = enabledSubCategories.has(subId);
                         return (
                           <div
@@ -667,6 +692,7 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
               );
             })}
           </div>
+
         </section>
 
 

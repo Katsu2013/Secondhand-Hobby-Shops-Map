@@ -7,7 +7,17 @@ test('旧設定へ新規チェーンを一度だけ追加し、以後のOFF操�
   const load = createLoader({ localStorage: { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) } });
   const storage = load('src/services/storageService.ts');
   const prefs = storage.loadUserPreferencesFromStorage();
-  assert.deepEqual([...prefs.enabledChains].sort(), ['bookoff', 'inverse', 'iosys', 'janpara', 'pc_koubou']);
+  assert.deepEqual([...prefs.enabledChains].sort(), [
+    'bookoff',
+    'craft_chain',
+    'inverse',
+    'iosys',
+    'janpara',
+    'otakara_market',
+    'pc_koubou',
+    'popondetta',
+    'yellowsubmarine',
+  ]);
   prefs.enabledChains = ['bookoff', 'janpara'];
   storage.saveUserPreferencesToStorage(prefs);
   assert.deepEqual([...storage.loadUserPreferencesFromStorage().enabledChains].sort(), ['bookoff', 'janpara']);

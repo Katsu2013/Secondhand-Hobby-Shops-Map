@@ -1,0 +1,190 @@
+[
+  {
+    "name": "お宝あっとマーケット 町田店",
+    "chain": "otakara_market",
+    "chains": [
+      "otakara_market"
+    ],
+    "brands": [
+      "otakara_market"
+    ],
+    "address": "〒194-0038 東京都町田市根岸2-33-2",
+    "clean_address": "東京都町田市根岸2-33-2",
+    "tel": "042-791-8121",
+    "hours": "10:00～22:00",
+    "url": "https://e-otakara.com/machida/",
+    "categories": [
+      "figure_hobby",
+      "tcg",
+      "retro_game"
+    ],
+    "subCategories": [
+      "sub_figure",
+      "sub_minicar_rail",
+      "sub_tcg_card",
+      "sub_retro_game",
+      "sub_plamo"
+    ]
+  },
+  {
+    "name": "お宝あっとマーケット 浅草店",
+    "chain": "otakara_market",
+    "chains": [
+      "otakara_market"
+    ],
+    "brands": [
+      "otakara_market"
+    ],
+    "address": "〒111-0032 東京都台東区浅草1丁目23-7",
+    "clean_address": "東京都台東区浅草1丁目23-7",
+    "tel": "03-6284-7830",
+    "hours": "11:00～21:00",
+    "url": "https://www.woodstock.co.jp/news/asakusa_open/",
+    "categories": [
+      "figure_hobby",
+      "tcg"
+    ],
+    "subCategories": [
+      "sub_figure",
+      "sub_tcg_card",
+      "sub_retro_toy"
+    ]
+  },
+  {
+    "name": "お宝あっとマーケット お台場店（ばんばんトレカ）",
+    "chain": "otakara_market",
+    "chains": [
+      "otakara_market"
+    ],
+    "brands": [
+      "otakara_market"
+    ],
+    "address": "〒135-0091 東京都港区台場1-6-1 デックス東京ビーチ シーサイドモール4F 台場一丁目商店街内",
+    "clean_address": "東京都港区台場1-6-1 デックス東京ビーチ シーサイドモール4F 台場一丁目商店街内",
+    "tel": "03-3599-5601",
+    "hours": "11:00～20:00",
+    "url": "https://e-otakara.com/shop_list/banban/",
+    "categories": [
+      "tcg",
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_tcg_card",
+      "sub_retro_toy"
+    ]
+  },
+  {
+    "name": "お宝あっとマーケット 土浦真鍋店",
+    "chain": "otakara_market",
+    "chains": [
+      "otakara_market"
+    ],
+    "brands": [
+      "otakara_market"
+    ],
+    "address": "〒300-0051 茨城県土浦市真鍋2-2-23",
+    "clean_address": "茨城県土浦市真鍋2-2-23",
+    "tel": "029-875-4220",
+    "hours": "10:00～22:00",
+    "url": "https://e-otakara.com/shop_list/page1974/",
+    "categories": [
+      "figure_hobby",
+      "tcg",
+      "retro_game"
+    ],
+    "subCategories": [
+      "sub_figure",
+      "sub_plamo",
+      "sub_tcg_card",
+      "sub_retro_game"
+    ]
+  },
+  {
+    "name": "お宝あっとマーケットmini 千葉ニュータウン店",
+    "chain": "otakara_market",
+    "chains": [
+      "otakara_market"
+    ],
+    "brands": [
+      "otakara_market"
+    ],
+    "address": "〒270-1350 千葉県印西市中央北3-1-1 イオンモール千葉ニュータウン内3F",
+    "clean_address": "千葉県印西市中央北3-1-1 イオンモール千葉ニュータウン内3F",
+    "tel": "0476-46-0024",
+    "hours": "10:00～21:00",
+    "url": "https://e-otakara.com/shop_list/chibant/",
+    "categories": [
+      "tcg",
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_tcg_card",
+      "sub_figure"
+    ]
+  },
+  {
+    "name": "お宝あっとマーケットmini ノア野田店",
+    "chain": "otakara_market",
+    "chains": [
+      "otakara_market"
+    ],
+    "brands": [
+      "otakara_market"
+    ],
+    "address": "〒278-0031 千葉県野田市中根36-1 イオンノア店1F",
+    "clean_address": "千葉県野田市中根36-1 イオンノア店1F",
+    "tel": "04-7186-6858",
+    "hours": "10:00～21:00",
+    "url": "https://e-otakara.com/shop_list/noda/",
+    "categories": [
+      "tcg",
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_tcg_card",
+      "sub_figure"
+    ]
+  },
+  {
+    "name": "お宝あっとマーケット 稲毛園生店",
+    "chain": "otakara_market",
+    "chains": [
+      "otakara_market"
+    ],
+    "brands": [
+      "otakara_market"
+    ],
+    "address": "〒263-0001 千葉県千葉市稲毛区園生町406-1",
+    "clean_address": "千葉県千葉市稲毛区園生町406-1",
+    "tel": "043-254-9200",
+    "hours": "12:00～20:00",
+    "url": "https://e-otakara.com/shop_list/inage/",
+    "categories": [
+      "tcg"
+    ],
+    "subCategories": [
+      "sub_tcg_card"
+    ]
+  },
+  {
+    "name": "クイーンオフ 野田七光台店",
+    "chain": "otakara_market",
+    "chains": [
+      "otakara_market"
+    ],
+    "brands": [
+      "otakara_market"
+    ],
+    "address": "〒278-0051 千葉県野田市七光台4-2 イオンタウン七光台内",
+    "clean_address": "千葉県野田市七光台4-2 イオンタウン七光台内",
+    "tel": "04-7128-0852",
+    "hours": "10:00～18:00",
+    "url": "https://e-otakara.com/shop_list/nanakoudai/",
+    "categories": [
+      "apparel_life"
+    ],
+    "subCategories": [
+      "sub_luxury_brand"
+    ]
+  }
+]

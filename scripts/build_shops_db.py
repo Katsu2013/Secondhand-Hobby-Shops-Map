@@ -56,36 +56,43 @@ def classify_shop(name, brand, tags):
         brands.append("surugaya")
 
     if re.search(r"らしんばん|まんだらけ|MANDARAKE|メロンブックス|アニメイト|animate", text, re.I):
-        chains.append("anime_shop")
         if "らしんばん" in text:
+            chains.append("lashinbang")
             brands.append("lashinbang")
 
         if re.search(r"まんだらけ|MANDARAKE", text, re.I):
+            chains.append("mandarake")
             brands.append("mandarake")
 
         if "メロンブックス" in text:
+            chains.append("melonbooks")
             brands.append("melonbooks")
 
         if re.search(r"アニメイト|animate", text, re.I):
+            chains.append("animate")
             brands.append("animate")
 
     if re.search(r"ゲオ|GEO|古本市場|ふるいち|お宝創庫|万代|マンガ倉庫", text, re.I):
         if "万代" in text and tags.get("shop") in ("supermarket", "convenience", "department_store"):
             return None
-        chains.append("general_game")
         if re.search(r"古本市場|ふるいち", text):
+            chains.append("furuichi")
             brands.append("furuichi")
 
         elif "お宝創庫" in text:
+            chains.append("otakarasouko")
             brands.append("otakarasouko")
 
         elif "マンガ倉庫" in text:
+            chains.append("mangasouko")
             brands.append("mangasouko")
 
         elif "万代" in text:
+            chains.append("mandai")
             brands.append("mandai")
 
         else:
+            chains.append("geo")
             brands.append("geo")
 
     if "鑑定団" in text:
@@ -100,7 +107,12 @@ def classify_shop(name, brand, tags):
     chains = list(dict.fromkeys(chains))
     brands = list(dict.fromkeys(brands))
 
-    priority = ["hardoff", "hobbyoff", "offhouse", "bookoff", "surugaya", "kanteidan", "anime_shop", "general_game"]
+    priority = [
+        "hardoff", "hobbyoff", "offhouse", "bookoff", "surugaya",
+        "craft_chain", "yellowsubmarine", "popondetta", "otakara_market", "kanteidan",
+        "animate", "lashinbang", "melonbooks", "mandarake",
+        "furuichi", "otakarasouko", "mandai", "mangasouko", "geo"
+    ]
     primary = next((p for p in priority if p in chains), chains[0])
 
     return {
@@ -273,7 +285,12 @@ def main():
                     m["hours"] = s["hours"]
                 # ブランド順序を公式アプリ風（HARD OFF -> BOOK OFF -> OFF HOUSE -> Hobby OFF ...）に整列
                 m["brands"].sort(key=lambda b: BRAND_ORDER.index(b) if b in BRAND_ORDER else 99)
-                priority = ["hardoff", "hobbyoff", "offhouse", "bookoff", "surugaya", "kanteidan", "anime_shop", "general_game"]
+                priority = [
+                    "hardoff", "hobbyoff", "offhouse", "bookoff", "surugaya",
+                    "craft_chain", "yellowsubmarine", "popondetta", "otakara_market", "kanteidan",
+                    "animate", "lashinbang", "melonbooks", "mandarake",
+                    "furuichi", "otakarasouko", "mandai", "mangasouko", "geo"
+                ]
                 m["chain"] = next((p for p in priority if p in m["chains"]), m["chains"][0])
                 found = True
                 break

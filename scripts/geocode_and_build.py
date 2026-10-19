@@ -11,8 +11,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 ctx = ssl.create_default_context()
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
+import unicodedata
+
 def clean_address_for_geocode(addr):
-    a = str(addr or "").strip()
+    a = unicodedata.normalize("NFKC", str(addr or "")).strip()
     a = re.sub(r'〒\s*\d{3}-?\d{4}\s*', '', a)
     a = a.translate(str.maketrans("０１２３４５６７８９－ー−‐　", "0123456789---- "))
     a = re.sub(r'\s+', ' ', a)
@@ -104,6 +106,9 @@ SUB_TO_PARENT = {
     "sub_car_bike": "apparel_life",
     "sub_liquor": "apparel_life",
     "sub_furniture_zakka": "apparel_life",
+    "sub_craft_fabric": "craft",
+    "sub_craft_yarn": "craft",
+    "sub_craft_parts": "craft",
 }
 
 def derive_parent_categories(sub_cats):
@@ -130,7 +135,9 @@ BRAND_ORDER = [
     "hardoff", "bookoff", "bookoff_plus", "bookoff_sb",
     "offhouse", "hobbyoff", "modeoff", "garageoff", "liquoroff",
     "surugaya", "kanteidan", "lashinbang", "mandarake", "melonbooks", "animate",
-    "geo", "furuichi", "otakarasouko", "mandai", "mangasouko"
+    "geo", "furuichi", "otakarasouko", "mandai", "mangasouko",
+    "yuzawaya", "tokai", "okadaya", "pandorahouse",
+    "yellowsubmarine", "popondetta", "otakara_market"
 ]
 
 def build_master_database():
@@ -166,6 +173,30 @@ def build_master_database():
     for kind in ('iosys', 'janpara', 'pc_koubou', 'inverse'):
         with open(f'scripts/official_{kind}.json', encoding='utf-8') as handle:
             pc_official.extend(dict(item, chain=kind) for item in json.load(handle))
+
+    # 大手手芸チェーン（ユザワヤ・トーカイ・オカダヤ）の公式店舗データ
+    craft_official = []
+    for kind in ('yuzawaya', 'tokai', 'okadaya'):
+        c_path = f'scripts/official_{kind}.json'
+        if os.path.exists(c_path):
+            with open(c_path, encoding='utf-8') as handle:
+                craft_official.extend(json.load(handle))
+
+    # イエローサブマリン、ポポンデッタ、お宝あっとマーケットの公式店舗データ
+    ys_official = []
+    if os.path.exists('scripts/official_yellowsubmarine.json'):
+        with open('scripts/official_yellowsubmarine.json', encoding='utf-8') as handle:
+            ys_official = json.load(handle)
+
+    popon_official = []
+    if os.path.exists('scripts/official_popondetta.json'):
+        with open('scripts/official_popondetta.json', encoding='utf-8') as handle:
+            popon_official = json.load(handle)
+
+    otakara_official = []
+    if os.path.exists('scripts/official_otakara.json'):
+        with open('scripts/official_otakara.json', encoding='utf-8') as handle:
+            otakara_official = json.load(handle)
 
     # Extract official Furuichi hours from scripts/furuichi.html
     furu_hours_map = {}
@@ -217,7 +248,7 @@ def build_master_database():
                     g["subCategories"].append(sc)
 
     all_addresses = set()
-    for s in su_real + su_friendly + furu_official + ota_official + lash_official + geo_official + kanteidan_official + pc_official:
+    for s in su_real + su_friendly + furu_official + ota_official + lash_official + geo_official + kanteidan_official + pc_official + craft_official + ys_official + popon_official + otakara_official:
         all_addresses.add(s["address"])
     for b in bo_official:
         sc = b.get("store_category", "")
@@ -238,7 +269,12 @@ def build_master_database():
     print("GSI geocoding complete!")
 
     final_shops = []
-    priority_chains = ["hardoff", "hobbyoff", "offhouse", "bookoff", "surugaya", "kanteidan", "anime_shop", "general_game"]
+    priority_chains = [
+        "hardoff", "hobbyoff", "offhouse", "bookoff", "surugaya",
+        "craft_chain", "yellowsubmarine", "popondetta", "otakara_market", "kanteidan",
+        "animate", "lashinbang", "melonbooks", "mandarake",
+        "furuichi", "otakarasouko", "mandai", "mangasouko", "geo"
+    ]
 
     # Add Official Surugaya Real Stores & Friendly Shops
     for idx, s in enumerate(su_real + su_friendly):
@@ -358,8 +394,8 @@ def build_master_database():
             "id": g["id"],
             "sourceIds": sorted(g.get("sourceIds", [g["id"]])),
             "name": g["name"],
-            "chain": "general_game",
-            "chains": ["general_game"],
+            "chain": "geo",
+            "chains": ["geo"],
             "brands": ["geo"],
             "subBrand": "ゲオ (GEO)",
             "categories": derive_parent_categories(geo_subs),
@@ -382,8 +418,8 @@ def build_master_database():
         final_shops.append({
             "id": stable_shop_id("lashinbang", s, registry),
             "name": s["name"],
-            "chain": "anime_shop",
-            "chains": ["anime_shop"],
+            "chain": "lashinbang",
+            "chains": ["lashinbang"],
             "brands": ["lashinbang"],
             "categories": derive_parent_categories(lash_subs),
             "subCategories": sorted(lash_subs),
@@ -404,8 +440,8 @@ def build_master_database():
         final_shops.append({
             "id": stable_shop_id("furuichi", s, registry),
             "name": s["name"],
-            "chain": "general_game",
-            "chains": ["general_game"],
+            "chain": "furuichi",
+            "chains": ["furuichi"],
             "brands": ["furuichi"],
             "categories": derive_parent_categories(furu_subs),
             "subCategories": sorted(furu_subs),
@@ -427,8 +463,8 @@ def build_master_database():
         final_shops.append({
             "id": stable_shop_id("otakarasouko", s, registry),
             "name": oname,
-            "chain": "general_game",
-            "chains": ["general_game"],
+            "chain": "otakarasouko",
+            "chains": ["otakarasouko"],
             "brands": ["otakarasouko"],
             "categories": derive_parent_categories(ota_subs),
             "subCategories": sorted(ota_subs),
@@ -549,6 +585,171 @@ def build_master_database():
             chains=[kind], brands=[brand], categories=[], subCategories=[], **coords,
             address=clean_address_for_geocode(item['address']), hours=item['hours'], verified=True))
 
+    craft_added = 0
+    craft_subs = ["sub_craft_fabric", "sub_craft_yarn", "sub_craft_parts"]
+    craft_evidence_entries = {}
+    for item in craft_official:
+        coords = geocode_gsi(item["address"])
+        if not coords:
+            continue
+        brand = item["brand"]
+        sid = stable_shop_id(brand, item, registry)
+        sub_brand = "ユザワヤ" if brand == "yuzawaya" else "クラフトハートトーカイ" if brand == "tokai" else "オカダヤ"
+        final_shops.append(dict(
+            id=sid,
+            sourceIds=[sid],
+            name=item["name"],
+            chain="craft_chain",
+            chains=["craft_chain"],
+            brands=[brand],
+            subBrand=sub_brand,
+            categories=["craft"],
+            subCategories=list(craft_subs),
+            lat=coords["lat"],
+            lng=coords["lng"],
+            address=clean_address_for_geocode(item["address"]),
+            hours=item.get("hours", ""),
+            verified=True
+        ))
+        craft_evidence_entries[sid] = {
+            "status": "confirmed",
+            "categories": ["craft"],
+            "subCategories": list(craft_subs),
+            "sources": [
+                {
+                    "url": item.get("url") or "https://www.yuzawaya.co.jp/shop/",
+                    "checkedAt": "2026-10-19",
+                    "labels": ["生地", "毛糸", "手芸資材"],
+                }
+            ]
+        }
+        craft_added += 1
+    print(f"Added {craft_added} official Craft stores (Yuzawaya / Tokai / Okadaya).")
+
+    # イエローサブマリン（25店舗）
+    ys_added = 0
+    ys_evidence_entries = {}
+    for item in ys_official:
+        coords = geocode_gsi(item["address"])
+        if not coords:
+            continue
+        sid = stable_shop_id("yellowsubmarine", item, registry)
+        cats = item.get("categories", ["tcg", "figure_hobby"])
+        subs = item.get("subCategories", ["sub_tcg_card", "sub_board_game"])
+        final_shops.append(dict(
+            id=sid,
+            sourceIds=[sid],
+            name=item["name"],
+            chain="yellowsubmarine",
+            chains=["yellowsubmarine"],
+            brands=["yellowsubmarine"],
+            subBrand="イエローサブマリン",
+            categories=list(cats),
+            subCategories=list(subs),
+            lat=coords["lat"],
+            lng=coords["lng"],
+            address=clean_address_for_geocode(item["address"]),
+            hours=item.get("hours", ""),
+            verified=True
+        ))
+        ys_evidence_entries[sid] = {
+            "status": "confirmed",
+            "categories": list(cats),
+            "subCategories": list(subs),
+            "sources": [
+                {
+                    "url": item.get("url") or "https://yellowsubmarine.co.jp/",
+                    "checkedAt": "2026-10-19",
+                    "labels": ["TCG", "ボードゲーム", "プラモデル", "フィギュア"],
+                }
+            ]
+        }
+        ys_added += 1
+    print(f"Added {ys_added} official Yellow Submarine stores.")
+
+    # ポポンデッタ（47店舗）
+    popon_added = 0
+    popon_evidence_entries = {}
+    for item in popon_official:
+        coords = geocode_gsi(item["address"])
+        if not coords:
+            continue
+        sid = stable_shop_id("popondetta", item, registry)
+        cats = ["figure_hobby"]
+        subs = ["sub_minicar_rail"]
+        final_shops.append(dict(
+            id=sid,
+            sourceIds=[sid],
+            name=item["name"],
+            chain="popondetta",
+            chains=["popondetta"],
+            brands=["popondetta"],
+            subBrand="ポポンデッタ",
+            categories=list(cats),
+            subCategories=list(subs),
+            lat=coords["lat"],
+            lng=coords["lng"],
+            address=clean_address_for_geocode(item["address"]),
+            hours=item.get("hours", ""),
+            verified=True
+        ))
+        popon_evidence_entries[sid] = {
+            "status": "confirmed",
+            "categories": list(cats),
+            "subCategories": list(subs),
+            "sources": [
+                {
+                    "url": item.get("url") or "https://popondetta.com/map.html",
+                    "checkedAt": "2026-10-19",
+                    "labels": ["鉄道模型", "Nゲージ", "ジオラマ"],
+                }
+            ]
+        }
+        popon_added += 1
+    print(f"Added {popon_added} official Popondetta stores.")
+
+    # お宝あっとマーケット（8店舗）
+    otakara_added = 0
+    otakara_evidence_entries = {}
+    for item in otakara_official:
+        coords = geocode_gsi(item["address"])
+        if not coords:
+            continue
+        sid = stable_shop_id("otakara_market", item, registry)
+        sub_brand = "クイーンオフ" if "クイーンオフ" in item["name"] else "お宝あっとマーケット"
+        cats = item.get("categories", ["figure_hobby", "tcg"])
+        subs = item.get("subCategories", ["sub_figure", "sub_tcg_card"])
+        final_shops.append(dict(
+            id=sid,
+            sourceIds=[sid],
+            name=item["name"],
+            chain="otakara_market",
+            chains=["otakara_market"],
+            brands=["otakara_market"],
+            subBrand=sub_brand,
+            categories=list(cats),
+            subCategories=list(subs),
+            lat=coords["lat"],
+            lng=coords["lng"],
+            address=clean_address_for_geocode(item["address"]),
+            hours=item.get("hours", ""),
+            verified=True
+        ))
+        otakara_evidence_entries[sid] = {
+            "status": "confirmed",
+            "categories": list(cats),
+            "subCategories": list(subs),
+            "sources": [
+                {
+                    "url": item.get("url") or "https://e-otakara.com/",
+                    "checkedAt": "2026-10-19",
+                    "labels": ["お宝リユース", "トレカ", "ホビー"],
+                }
+            ]
+        }
+        otakara_added += 1
+    print(f"Added {otakara_added} official Otakara Market stores.")
+
     # 看板は店名から判別できるが、販売商品は系列名から断定しない。
     for shop in final_shops:
         correct_brand(shop)
@@ -566,8 +767,8 @@ def build_master_database():
         s["sourceIds"] = s.get("sourceIds", [s["id"]])
         found = False
         for m in merged:
-            # 秋葉原などでは別住所の専門店が近接する。新規PC店は距離だけで複合店にしない。
-            if any(chain in ('iosys', 'janpara', 'pc_koubou', 'inverse') for chain in s['chains'] + m['chains']):
+            # 秋葉原などでは別住所の専門店が近接する。新規専門店・手芸店・アニメ専門店は距離だけで複合店にしない。
+            if any(chain in ('iosys', 'janpara', 'pc_koubou', 'inverse', 'craft_chain', 'yellowsubmarine', 'popondetta', 'otakara_market', 'animate', 'lashinbang', 'melonbooks', 'mandarake') for chain in s['chains'] + m['chains']):
                 continue
             if abs(s["lat"] - m["lat"]) < 0.0006 and abs(s["lng"] - m["lng"]) < 0.0006:
                 m["sourceIds"] = sorted(set(m["sourceIds"] + s["sourceIds"]))
@@ -610,13 +811,23 @@ def build_master_database():
             merged.append(s)
 
     # 統合の代表が変わっても、前回と共有する更新元IDがあれば既存のピンIDを維持する。
+    used_ids = set()
     for shop in merged:
         candidates = sorted({previous_ids[source_id] for source_id in shop["sourceIds"] if source_id in previous_ids})
-        if candidates:
-            shop["id"] = candidates[0]
+        if shop["id"] in candidates and shop["id"] not in used_ids:
+            target_id = shop["id"]
+        else:
+            avail = [c for c in candidates if c not in used_ids]
+            target_id = avail[0] if avail else shop["id"]
+        shop["id"] = target_id
+        used_ids.add(target_id)
     # 生成途中の従来推測タグを破棄し、確認済み店舗別情報だけを公開する。
     with open("scripts/assortment_evidence.json", encoding="utf-8") as handle:
         evidence = json.load(handle)
+    for entries in (craft_evidence_entries, ys_evidence_entries, popon_evidence_entries, otakara_evidence_entries):
+        for sid, entry in entries.items():
+            if sid not in evidence:
+                evidence[sid] = entry
     for shop in merged:
         apply_assortment(shop, evidence, source_details)
     merged.sort(key=lambda shop: shop["id"])

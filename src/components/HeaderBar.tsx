@@ -55,6 +55,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
    * @param e - セレクト要素の変更イベント
    */
   const handleAreaChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
+    /** 選択されたエリアプリセットの配列インデックス番号 */
     const idx = parseInt(e.target.value, 10);
     if (!Number.isNaN(idx) && AREA_PRESETS[idx]) {
       onSelectAreaPreset(AREA_PRESETS[idx]);
@@ -97,6 +98,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           aria-label="アクセス手段の選択"
         >
           {TRAVEL_MODES.map((mode) => {
+            /** この移動手段ボタンが現在選択されているかどうかの真偽値 */
             const isActive = travelMode === mode.id;
             return (
               <button

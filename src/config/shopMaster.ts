@@ -30,26 +30,33 @@ import type {
  * オプション画面の店舗ON/OFFリストの描画順序および初期設定として使用します。
  */
 export const CHAIN_GROUPS: readonly ChainGroup[] = [
+  // 1. PC・スマホ・デジタル系
   {
     id: 'iosys', name: 'イオシス', shortName: 'イオシス',
     color: '#008341', bgLight: '#dcfce7', icon: '📱', badgeText: 'イ',
     subBrands: ['イオシス'], defaultCategories: ['pc_junk'], keywords: ['イオシス', 'IOSYS'],
+    genre: '💻 PC・スマホ・デジタル系',
   },
   {
     id: 'janpara', name: 'じゃんぱら', shortName: 'じゃんぱら',
     color: '#123485', bgLight: '#dbeafe', icon: '💻', badgeText: 'じ',
     subBrands: ['じゃんぱら'], defaultCategories: ['pc_junk'], keywords: ['じゃんぱら', 'JANPARA'],
+    genre: '💻 PC・スマホ・デジタル系',
   },
   {
     id: 'pc_koubou', name: 'パソコン工房 / グッドウィル（中古販売店）', shortName: 'パソコン工房',
     color: '#1d78be', bgLight: '#dbeafe', icon: '🖥️', badgeText: '工',
     subBrands: ['パソコン工房', 'グッドウィル'], defaultCategories: ['pc_junk'], keywords: ['パソコン工房', 'グッドウィル', 'GoodWill'],
+    genre: '💻 PC・スマホ・デジタル系',
   },
   {
     id: 'inverse', name: 'ショップインバース', shortName: 'ショップインバース',
     color: '#0080cb', bgLight: '#e0f2fe', icon: '💻', badgeText: 'IN',
     subBrands: ['ショップインバース'], defaultCategories: ['pc_junk'], keywords: ['ショップインバース', 'SHOP INVERSE'],
+    genre: '💻 PC・スマホ・デジタル系',
   },
+
+  // 2. 総合リユース・ハードオフ系
   {
     id: 'hardoff',
     name: 'ハードオフ (HARD OFF)',
@@ -61,6 +68,7 @@ export const CHAIN_GROUPS: readonly ChainGroup[] = [
     subBrands: ['ハードオフ'],
     defaultCategories: ['pc_junk', 'audio_inst', 'retro_game'],
     keywords: ['ハードオフ', 'HARD OFF', 'HARD・OFF', 'Hard Off'],
+    genre: '🏠 総合リユース・ハードオフ系',
   },
   {
     id: 'hobbyoff',
@@ -73,6 +81,7 @@ export const CHAIN_GROUPS: readonly ChainGroup[] = [
     subBrands: ['ホビーオフ'],
     defaultCategories: ['figure_hobby', 'tcg', 'retro_game'],
     keywords: ['ホビーオフ', 'HOBBY OFF', 'Hobby Off'],
+    genre: '🏠 総合リユース・ハードオフ系',
   },
   {
     id: 'offhouse',
@@ -94,6 +103,7 @@ export const CHAIN_GROUPS: readonly ChainGroup[] = [
       'リカーオフ',
       'LIQUOR OFF',
     ],
+    genre: '🏠 総合リユース・ハードオフ系',
   },
   {
     id: 'bookoff',
@@ -106,6 +116,7 @@ export const CHAIN_GROUPS: readonly ChainGroup[] = [
     subBrands: ['ブックオフ', 'BOOKOFF SUPER BAZAAR', 'BOOKOFF PLUS'],
     defaultCategories: ['book_media', 'retro_game', 'tcg', 'figure_hobby', 'apparel_life'],
     keywords: ['ブックオフ', 'BOOKOFF', 'BOOK OFF', 'BookOff'],
+    genre: '🏠 総合リユース・ハードオフ系',
   },
   {
     id: 'surugaya',
@@ -118,30 +129,87 @@ export const CHAIN_GROUPS: readonly ChainGroup[] = [
     subBrands: ['駿河屋'],
     defaultCategories: ['retro_game', 'figure_hobby', 'tcg', 'book_media', 'pc_junk'],
     keywords: ['駿河屋', 'SURUGAYA', 'Surugaya'],
+    genre: '🏠 総合リユース・ハードオフ系',
   },
+
+  // 3. ゲーム・エンタメ・大型リユース系
   {
-    id: 'anime_shop',
-    name: 'らしんばん / まんだらけ / メロン / アニメイト',
-    shortName: 'アニメ・同人系',
-    color: '#00b8ee',
-    bgLight: '#e0f2fe',
-    icon: '✨',
-    badgeText: 'アニ',
-    subBrands: ['らしんばん', 'まんだらけ', 'メロンブックス', 'アニメイト'],
-    defaultCategories: ['figure_hobby', 'book_media', 'tcg', 'retro_game'],
-    keywords: ['らしんばん', 'まんだらけ', 'MANDARAKE', 'メロンブックス', 'アニメイト', 'animate'],
-  },
-  {
-    id: 'general_game',
-    name: 'ゲオ・ゲオモバイル / 古本市場 / お宝創庫 / 万代・マンガ倉庫',
-    shortName: 'ゲオ・古本市場ほか',
+    id: 'geo',
+    name: 'ゲオ / ゲオモバイル (GEO)',
+    shortName: 'ゲオ',
     color: '#192a59',
     bgLight: '#fef3c7',
     icon: '🎮',
-    badgeText: '総',
-    subBrands: ['ゲオ (GEO)', '古本市場・ふるいち', 'お宝創庫', '万代・マンガ倉庫'],
+    badgeText: 'ゲオ',
+    subBrands: ['ゲオ (GEO)', 'ゲオモバイル'],
+    defaultCategories: ['retro_game', 'pc_junk', 'book_media'],
+    keywords: ['ゲオ', 'GEO', 'ゲオモバイル'],
+    genre: '🎮 ゲーム・エンタメ・大型リユース系',
+  },
+  {
+    id: 'furuichi',
+    name: '古本市場 / ふるいち / トレカパーク',
+    shortName: '古本市場・ふるいち',
+    color: '#e65100',
+    bgLight: '#ffedd5',
+    icon: '📚',
+    badgeText: 'ふる',
+    subBrands: ['古本市場', 'ふるいち', 'トレカパーク'],
+    defaultCategories: ['retro_game', 'tcg', 'figure_hobby', 'book_media', 'pc_junk'],
+    keywords: ['古本市場', 'ふるいち', 'トレカパーク', 'テイツー'],
+    genre: '🎮 ゲーム・エンタメ・大型リユース系',
+  },
+  {
+    id: 'otakarasouko',
+    name: 'お宝創庫グループ (おじゃま館/プレイズ等)',
+    shortName: 'お宝創庫',
+    color: '#b91c1c',
+    bgLight: '#fee2e2',
+    icon: '💎',
+    badgeText: '創庫',
+    subBrands: ['お宝創庫', 'おじゃま館', 'プレイズ', 'エコツール', 'メディオ！'],
+    defaultCategories: ['retro_game', 'tcg', 'figure_hobby', 'pc_junk'],
+    keywords: ['お宝創庫', 'おじゃま館', 'プレイズ', 'エコツール', 'メディオ'],
+    genre: '🎮 ゲーム・エンタメ・大型リユース系',
+  },
+  {
+    id: 'mandai',
+    name: '万代 / 万代書店',
+    shortName: '万代',
+    color: '#7c2d12',
+    bgLight: '#ffedd5',
+    icon: '🎪',
+    badgeText: '万代',
+    subBrands: ['万代', '万代書店'],
+    defaultCategories: ['retro_game', 'tcg', 'figure_hobby', 'book_media', 'pc_junk', 'apparel_life', 'audio_inst'],
+    keywords: ['万代書店', '万代'],
+    genre: '🎮 ゲーム・エンタメ・大型リユース系',
+  },
+  {
+    id: 'mangasouko',
+    name: 'マンガ倉庫',
+    shortName: 'マンガ倉庫',
+    color: '#c2410c',
+    bgLight: '#ffedd5',
+    icon: '🏰',
+    badgeText: '倉庫',
+    subBrands: ['マンガ倉庫'],
     defaultCategories: ['retro_game', 'tcg', 'figure_hobby', 'book_media', 'pc_junk', 'apparel_life'],
-    keywords: ['ゲオ', 'GEO', '古本市場', 'ふるいち', 'お宝創庫', '万代', 'マンガ倉庫'],
+    keywords: ['マンガ倉庫'],
+    genre: '🎮 ゲーム・エンタメ・大型リユース系',
+  },
+  {
+    id: 'otakara_market',
+    name: 'お宝あっとマーケット / クイーンオフ',
+    shortName: 'お宝あっと',
+    color: '#dc2626',
+    bgLight: '#fee2e2',
+    icon: '🎁',
+    badgeText: '宝',
+    subBrands: ['お宝あっとマーケット', 'クイーンオフ', 'ばんばんトレカ'],
+    defaultCategories: ['figure_hobby', 'tcg', 'retro_game'],
+    keywords: ['お宝あっとマーケット', 'お宝あっと', 'クイーンオフ', 'ばんばんトレカ'],
+    genre: '🎮 ゲーム・エンタメ・大型リユース系',
   },
   {
     id: 'kanteidan',
@@ -176,6 +244,114 @@ export const CHAIN_GROUPS: readonly ChainGroup[] = [
       'apparel_life',
     ],
     keywords: ['鑑定団', '千葉鑑定団', '茨城鑑定団', '静岡鑑定団', '宇都宮鑑定団', 'ガラクタ鑑定団'],
+    genre: '🎮 ゲーム・エンタメ・大型リユース系',
+  },
+
+  // 4. アニメ・キャラクター・同人系
+  {
+    id: 'animate',
+    name: 'アニメイト (animate)',
+    shortName: 'アニメイト',
+    color: '#002b82',
+    bgLight: '#e0e7ff',
+    icon: '✨',
+    badgeText: 'アニ',
+    subBrands: ['アニメイト'],
+    defaultCategories: ['figure_hobby', 'book_media', 'tcg'],
+    keywords: ['アニメイト', 'animate', 'ANIMATE'],
+    genre: '✨ アニメ・キャラクター・同人系',
+  },
+  {
+    id: 'lashinbang',
+    name: 'らしんばん (Lashinbang)',
+    shortName: 'らしんばん',
+    color: '#00a0e9',
+    bgLight: '#e0f2fe',
+    icon: '💫',
+    badgeText: 'らし',
+    subBrands: ['らしんばん'],
+    defaultCategories: ['figure_hobby', 'book_media', 'tcg', 'retro_game'],
+    keywords: ['らしんばん', 'Lashinbang', 'lashinbang'],
+    genre: '✨ アニメ・キャラクター・同人系',
+  },
+  {
+    id: 'melonbooks',
+    name: 'メロンブックス (Melonbooks)',
+    shortName: 'メロンブックス',
+    color: '#008d3c',
+    bgLight: '#dcfce7',
+    icon: '🍈',
+    badgeText: 'メロ',
+    subBrands: ['メロンブックス'],
+    defaultCategories: ['book_media'],
+    keywords: ['メロンブックス', 'Melonbooks', 'melonbooks'],
+    genre: '✨ アニメ・キャラクター・同人系',
+  },
+  {
+    id: 'mandarake',
+    name: 'まんだらけ (MANDARAKE)',
+    shortName: 'まんだらけ',
+    color: '#e60012',
+    bgLight: '#fee2e2',
+    icon: '🏮',
+    badgeText: 'ま',
+    subBrands: ['まんだらけ'],
+    defaultCategories: ['figure_hobby', 'book_media', 'retro_game', 'tcg'],
+    keywords: ['まんだらけ', 'MANDARAKE', 'Mandarake'],
+    genre: '✨ アニメ・キャラクター・同人系',
+  },
+
+  // 5. ホビー・模型・カード専門店系
+  {
+    id: 'yellowsubmarine',
+    name: 'イエローサブマリン (ホビー・TCG・ボードゲーム)',
+    shortName: 'イエローサブマリン',
+    color: '#d97706',
+    bgLight: '#fef3c7',
+    icon: '🎲',
+    badgeText: 'YS',
+    subBrands: ['イエローサブマリン'],
+    defaultCategories: ['tcg', 'figure_hobby'],
+    keywords: ['イエローサブマリン', 'Yellow Submarine', 'ホビーベース'],
+    genre: '🎲 ホビー・模型・カード専門店系',
+  },
+  {
+    id: 'popondetta',
+    name: 'ポポンデッタ (鉄道模型・ジオラマ)',
+    shortName: 'ポポンデッタ',
+    color: '#059669',
+    bgLight: '#ecfdf5',
+    icon: '🚃',
+    badgeText: 'ポ',
+    subBrands: ['ポポンデッタ'],
+    defaultCategories: ['figure_hobby'],
+    keywords: ['ポポンデッタ', 'Popondetta', 'popondetta'],
+    genre: '🎲 ホビー・模型・カード専門店系',
+  },
+
+  // 6. 手芸・ハンドメイド・クラフト系
+  {
+    id: 'craft_chain',
+    name: 'ユザワヤ / トーカイ / オカダヤ / パンドラハウス',
+    shortName: 'ユザワヤ・手芸店',
+    color: '#be185d',
+    bgLight: '#fdf2f8',
+    icon: '🧵',
+    badgeText: '芸',
+    subBrands: ['ユザワヤ', 'クラフトハートトーカイ', 'オカダヤ', 'パンドラハウス'],
+    defaultCategories: ['craft'],
+    keywords: [
+      'ユザワヤ',
+      'Yurazawa',
+      'トーカイ',
+      'クラフトハートトーカイ',
+      'オカダヤ',
+      'okadaya',
+      'ホビースクランブル',
+      'パンドラハウス',
+      'Pandora House',
+    ],
+    genre: '🧵 手芸・ハンドメイド・クラフト系',
   },
 ];
 
@@ -207,24 +383,31 @@ export const BRAND_PLATES: Readonly<Record<BrandPlateId, BrandPlateSpec>> = {
   liquoroff: { chainId: 'offhouse', cls: 'plate-official plate-liquoroff', html: `<img class="brand-official-logo" src="brands/liquoroff-display.svg" alt="リカーオフ" loading="eager" decoding="async" />` },
   hobbyoff: { chainId: 'hobbyoff', cls: 'plate-official plate-hobbyoff', html: `<img class="brand-official-logo" src="brands/hobbyoff-display.svg" alt="ホビーオフ" loading="eager" decoding="async" />` },
   surugaya: { chainId: 'surugaya', cls: 'plate-official plate-surugaya', html: `<img class="brand-official-logo" src="brands/surugaya-display.svg" alt="駿河屋" loading="eager" decoding="async" />` },
-  lashinbang: { chainId: 'anime_shop', cls: 'plate-official plate-lashinbang', html: `<img class="brand-official-logo" src="brands/lashinbang-display.svg" alt="らしんばん" loading="eager" decoding="async" />` },
-  mandarake: { chainId: 'anime_shop', cls: 'plate-official plate-mandarake', html: `<img class="brand-official-logo" src="brands/mandarake-display.svg" alt="まんだらけ" loading="eager" decoding="async" />` },
-  melonbooks: { chainId: 'anime_shop', cls: 'plate-official plate-melonbooks', html: `<img class="brand-official-logo" src="brands/melonbooks-display.svg" alt="メロンブックス" loading="eager" decoding="async" />` },
-  animate: { chainId: 'anime_shop', cls: 'plate-official plate-animate', html: `<img class="brand-official-logo" src="brands/animate-display.svg" alt="アニメイト" loading="eager" decoding="async" />` },
-  geo: { chainId: 'general_game', cls: 'plate-official plate-geo', html: `<span class="plate-main geo-logo"><img class="geo-mark" src="brands/geo-display.svg" width="48" height="20" alt="" decoding="async" /><span>ゲオ</span></span>` },
-  furuichi: { chainId: 'general_game', cls: 'plate-official plate-furuichi', html: `<img class="brand-official-logo" src="brands/furuichi-display.svg" alt="古本市場" loading="eager" decoding="async" />` },
-  otakarasouko: { chainId: 'general_game', cls: 'plate-official plate-otakarasouko', html: `<img class="brand-official-logo" src="brands/otakarasouko.svg" alt="お宝創庫" loading="eager" decoding="async" />` },
-  mandaishoten: { chainId: 'general_game', cls: 'plate-official plate-name plate-mandaishoten', html: `<span class="plate-main">万代書店</span>` },
-  mandai: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/mandai.svg" alt="万代" loading="eager" decoding="async" />` },
-  mangasouko: { chainId: 'general_game', cls: 'plate-official plate-name plate-mangasouko', html: `<span class="plate-main">マンガ倉庫</span>` },
+  lashinbang: { chainId: 'lashinbang', cls: 'plate-official plate-lashinbang', html: `<img class="brand-official-logo" src="brands/lashinbang-display.svg" alt="らしんばん" loading="eager" decoding="async" />` },
+  mandarake: { chainId: 'mandarake', cls: 'plate-official plate-mandarake', html: `<img class="brand-official-logo" src="brands/mandarake-display.svg" alt="まんだらけ" loading="eager" decoding="async" />` },
+  melonbooks: { chainId: 'melonbooks', cls: 'plate-official plate-melonbooks', html: `<img class="brand-official-logo" src="brands/melonbooks-display.svg" alt="メロンブックス" loading="eager" decoding="async" />` },
+  animate: { chainId: 'animate', cls: 'plate-official plate-animate', html: `<img class="brand-official-logo" src="brands/animate-display.svg" alt="アニメイト" loading="eager" decoding="async" />` },
+  geo: { chainId: 'geo', cls: 'plate-official plate-geo', html: `<span class="plate-main geo-logo"><img class="geo-mark" src="brands/geo-display.svg" width="48" height="20" alt="" decoding="async" /><span>ゲオ</span></span>` },
+  furuichi: { chainId: 'furuichi', cls: 'plate-official plate-furuichi', html: `<img class="brand-official-logo" src="brands/furuichi-display.svg" alt="古本市場" loading="eager" decoding="async" />` },
+  otakarasouko: { chainId: 'otakarasouko', cls: 'plate-official plate-otakarasouko', html: `<img class="brand-official-logo" src="brands/otakarasouko.svg" alt="お宝創庫" loading="eager" decoding="async" />` },
+  mandaishoten: { chainId: 'mandai', cls: 'plate-official plate-name plate-mandaishoten', html: `<span class="plate-main">万代書店</span>` },
+  mandai: { chainId: 'mandai', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/mandai.svg" alt="万代" loading="eager" decoding="async" />` },
+  mangasouko: { chainId: 'mangasouko', cls: 'plate-official plate-name plate-mangasouko', html: `<span class="plate-main">マンガ倉庫</span>` },
   kanteidan: { chainId: 'kanteidan', cls: 'plate-official plate-kanteidan', html: `<span class="plate-main">鑑定団</span>` },
-  geo_mobile: { chainId: 'general_game', cls: 'plate-official plate-geo_mobile', html: `<img class="brand-official-logo" src="brands/geo_mobile-display.svg" alt="ゲオモバイル" loading="eager" decoding="async" />` },
-  furuiti: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/furuiti-display.svg" alt="ふるいち" loading="eager" decoding="async" />` },
-  torekapark: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/torekapark-display.svg" alt="トレカパーク" loading="eager" decoding="async" />` },
-  preyz: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/preyz.svg" alt="プレイズ" loading="eager" decoding="async" />` },
-  ecotool: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/ecotool.svg" alt="エコツール" loading="eager" decoding="async" />` },
-  ojamakan: { chainId: 'general_game', cls: 'plate-official plate-monochrome', html: `<img class="brand-official-logo" src="brands/ojamakan.svg" alt="おじゃま館" loading="eager" decoding="async" />` },
-  medio: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/medio.svg" alt="メディオ！" loading="eager" decoding="async" />` },
+  geo_mobile: { chainId: 'geo', cls: 'plate-official plate-geo_mobile', html: `<img class="brand-official-logo" src="brands/geo_mobile-display.svg" alt="ゲオモバイル" loading="eager" decoding="async" />` },
+  furuiti: { chainId: 'furuichi', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/furuiti-display.svg" alt="ふるいち" loading="eager" decoding="async" />` },
+  torekapark: { chainId: 'furuichi', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/torekapark-display.svg" alt="トレカパーク" loading="eager" decoding="async" />` },
+  preyz: { chainId: 'otakarasouko', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/preyz.svg" alt="プレイズ" loading="eager" decoding="async" />` },
+  ecotool: { chainId: 'otakarasouko', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/ecotool.svg" alt="エコツール" loading="eager" decoding="async" />` },
+  ojamakan: { chainId: 'otakarasouko', cls: 'plate-official plate-monochrome', html: `<img class="brand-official-logo" src="brands/ojamakan.svg" alt="おじゃま館" loading="eager" decoding="async" />` },
+  medio: { chainId: 'otakarasouko', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/medio.svg" alt="メディオ！" loading="eager" decoding="async" />` },
+  yuzawaya: { chainId: 'craft_chain', cls: 'plate-official plate-yuzawaya', html: `<span class="plate-main yuzawaya-plate">ユザワヤ</span>` },
+  tokai: { chainId: 'craft_chain', cls: 'plate-official plate-tokai', html: `<span class="plate-main tokai-plate">Craft Heart Tokai</span>` },
+  okadaya: { chainId: 'craft_chain', cls: 'plate-official plate-okadaya', html: `<span class="plate-main okadaya-plate">okadaya</span>` },
+  pandorahouse: { chainId: 'craft_chain', cls: 'plate-official plate-pandorahouse', html: `<span class="plate-main pandora-plate">Pandora House</span>` },
+  yellowsubmarine: { chainId: 'yellowsubmarine', cls: 'plate-official plate-yellowsubmarine', html: `<span class="plate-main yellowsub-plate">Yellow Submarine</span>` },
+  popondetta: { chainId: 'popondetta', cls: 'plate-official plate-popondetta', html: `<span class="plate-main popon-plate">ポポンデッタ</span>` },
+  otakara_market: { chainId: 'otakara_market', cls: 'plate-official plate-otakara_market', html: `<span class="plate-main otakara-plate">お宝あっとマーケット</span>` },
 };
 
 /**
@@ -465,6 +648,32 @@ export const SUB_CATEGORIES: readonly SubCategoryInfo[] = [
     icon: '🛋️',
     color: '#4d7c0f',
   },
+
+  // 8. 手芸・生地・毛糸・クラフト系 (craft)
+  {
+    id: 'sub_craft_fabric',
+    parentId: 'craft',
+    name: '生地・布地・服飾資材 (綿・麻・サテン・特殊生地等)',
+    shortName: '生地・布地',
+    icon: '🧵',
+    color: '#db2777',
+  },
+  {
+    id: 'sub_craft_yarn',
+    parentId: 'craft',
+    name: '毛糸・編み物・手織り・レース (毛糸・ソックヤーン等)',
+    shortName: '毛糸・レース',
+    icon: '🧶',
+    color: '#e11d48',
+  },
+  {
+    id: 'sub_craft_parts',
+    parentId: 'craft',
+    name: '手芸用品・レジン・ビーズ・金具 (道具・ミシン・パーツ等)',
+    shortName: '手芸資材・ビーズ',
+    icon: '✂️',
+    color: '#9333ea',
+  },
 ];
 
 /**
@@ -555,6 +764,14 @@ export const CATEGORIES: readonly CategoryInfo[] = [
       'sub_liquor',
       'sub_furniture_zakka',
     ],
+  },
+  {
+    id: 'craft',
+    name: '手芸・生地・毛糸・クラフト',
+    shortName: '手芸・クラフト',
+    icon: '🧵',
+    color: '#be185d',
+    subCategories: ['sub_craft_fabric', 'sub_craft_yarn', 'sub_craft_parts'],
   },
 ];
 
@@ -758,7 +975,7 @@ export function calcStraightDistanceKm(
   /** 経度差（ラジアン） */
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
 
-  // ハーバーサイン公式により球面上の中心角の正弦二乗項を計算
+  /** ハーバーサイン公式における球面三角法の中間項 */
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
@@ -824,7 +1041,9 @@ export function estimateTravelInfo(
   // 移動手段ごとに近距離区間と長距離区間を分けた速度モデルを適用する
   if (modeId === 'DRIVING_TOLL') {
     // 有料道路優先：最初の8kmは一般道（ICまでのアクセス）、それ以降は高速道路速度で計算
+    /** ICまでの一般道走行距離（最大8km） */
     const localKm = Math.min(estRoadKm, 8);
+    /** 高速道路巡航区間の距離（km） */
     const highwayKm = Math.max(0, estRoadKm - 8);
     minutes =
       mode.startupMinutes +
@@ -832,7 +1051,9 @@ export function estimateTravelInfo(
       (highwayKm / mode.highwaySpeedKmh) * 60;
   } else if (modeId === 'DRIVING_NO_TOLL') {
     // 一般道優先：最初の12kmは市街地速度、それ以降は郊外バイパス速度で計算
+    /** 市街地混雑区間の走行距離（最大12km） */
     const cityKm = Math.min(estRoadKm, 12);
+    /** 郊外バイパス巡航区間の走行距離（km） */
     const suburbKm = Math.max(0, estRoadKm - 12);
     minutes =
       mode.startupMinutes +
@@ -843,7 +1064,9 @@ export function estimateTravelInfo(
     if (estRoadKm < 1.2) {
       minutes = (estRoadKm / 4.5) * 60;
     } else {
+      /** 最寄り駅までのアクセス区間（最大10km） */
       const nearKm = Math.min(estRoadKm, 10);
+      /** 鉄道・バス乗車巡航区間（km） */
       const farKm = Math.max(0, estRoadKm - 10);
       minutes =
         mode.startupMinutes +
@@ -867,6 +1090,7 @@ export function estimateTravelInfo(
     trafficConsidered: false,
   };
 }
+
 
 /**
  * 店舗名称からチェーン大分類、個別ブランドプレート配列、サブブランド名、取扱カテゴリを自動推論します。
@@ -1074,8 +1298,8 @@ export function classifyShopByName(name: string): ShopClassification {
 
   // 6. アニメ・同人系（らしんばん・まんだらけ・メロンブックス・アニメイト）の判定
   if (/らしんばん|まんだらけ|MANDARAKE|メロンブックス|アニメイト|animate/i.test(normalizedName)) {
-    matchedChains.push('anime_shop');
     if (/らしんばん/.test(normalizedName)) {
+      matchedChains.push('lashinbang');
       brands.push('lashinbang');
       subBrand = 'らしんばん';
       (
@@ -1094,6 +1318,7 @@ export function classifyShopByName(name: string): ShopClassification {
       ).forEach((s) => subCategories.add(s));
     }
     if (/まんだらけ|MANDARAKE/i.test(normalizedName)) {
+      matchedChains.push('mandarake');
       brands.push('mandarake');
       subBrand = 'まんだらけ';
       (
@@ -1114,6 +1339,7 @@ export function classifyShopByName(name: string): ShopClassification {
       ).forEach((s) => subCategories.add(s));
     }
     if (/メロンブックス/.test(normalizedName)) {
+      matchedChains.push('melonbooks');
       brands.push('melonbooks');
       subBrand = 'メロンブックス';
       (
@@ -1121,6 +1347,7 @@ export function classifyShopByName(name: string): ShopClassification {
       ).forEach((s) => subCategories.add(s));
     }
     if (/アニメイト|animate/i.test(normalizedName)) {
+      matchedChains.push('animate');
       brands.push('animate');
       subBrand = 'アニメイト';
       (
@@ -1142,8 +1369,8 @@ export function classifyShopByName(name: string): ShopClassification {
       normalizedName
     )
   ) {
-    matchedChains.push('general_game');
     if (/古本市場|ふるいち|トレカパーク/.test(normalizedName)) {
+      matchedChains.push('furuichi');
       brands.push('furuichi');
       subBrand = '古本市場・ふるいち';
       if (/トレカパーク/.test(normalizedName)) {
@@ -1165,6 +1392,7 @@ export function classifyShopByName(name: string): ShopClassification {
         ).forEach((s) => subCategories.add(s));
       }
     } else if (/お宝創庫|プレイズ|おじゃま館|エコツール|メディオ/.test(normalizedName)) {
+      matchedChains.push('otakarasouko');
       brands.push('otakarasouko');
       subBrand = 'お宝創庫';
       if (/エコツール/.test(normalizedName)) {
@@ -1205,6 +1433,7 @@ export function classifyShopByName(name: string): ShopClassification {
         ).forEach((s) => subCategories.add(s));
       }
     } else if (/マンガ倉庫/.test(normalizedName)) {
+      matchedChains.push('mangasouko');
       brands.push('mangasouko');
       subBrand = 'マンガ倉庫';
       (
@@ -1230,6 +1459,7 @@ export function classifyShopByName(name: string): ShopClassification {
         ] as const
       ).forEach((s) => subCategories.add(s));
     } else if (/万代/.test(normalizedName)) {
+      matchedChains.push('mandai');
       brands.push('mandai');
       subBrand = '万代';
       (
@@ -1255,6 +1485,7 @@ export function classifyShopByName(name: string): ShopClassification {
         ] as const
       ).forEach((s) => subCategories.add(s));
     } else {
+      matchedChains.push('geo');
       brands.push('geo');
       subBrand = 'ゲオ (GEO)';
       (
@@ -1318,6 +1549,45 @@ export function classifyShopByName(name: string): ShopClassification {
     }
   }
 
+  // 手芸チェーン（ユザワヤ・トーカイ・オカダヤ・パンドラハウス）の判定
+  if (/ユザワヤ|トーカイ|クラフトハート|オカダヤ|okadaya|ホビースクランブル|パンドラハウス|pandora\s*house/i.test(normalizedName)) {
+    matchedChains.push('craft_chain');
+    if (/ユザワヤ/i.test(normalizedName)) {
+      brands.push('yuzawaya');
+      subBrand = 'ユザワヤ';
+    } else if (/トーカイ|クラフトハート/i.test(normalizedName)) {
+      brands.push('tokai');
+      subBrand = 'クラフトハートトーカイ';
+    } else if (/オカダヤ|okadaya|ホビースクランブル/i.test(normalizedName)) {
+      brands.push('okadaya');
+      subBrand = 'オカダヤ';
+    } else if (/パンドラハウス|pandora\s*house/i.test(normalizedName)) {
+      brands.push('pandorahouse');
+      subBrand = 'パンドラハウス';
+    }
+  }
+
+  // イエローサブマリンの判定
+  if (/イエローサブマリン|yellow\s*submarine|ホビーベース/i.test(normalizedName)) {
+    matchedChains.push('yellowsubmarine');
+    brands.push('yellowsubmarine');
+    subBrand = 'イエローサブマリン';
+  }
+
+  // ポポンデッタの判定
+  if (/ポポンデッタ|popondetta/i.test(normalizedName)) {
+    matchedChains.push('popondetta');
+    brands.push('popondetta');
+    subBrand = 'ポポンデッタ';
+  }
+
+  // お宝あっとマーケットの判定
+  if (/お宝あっと|クイーンオフ|ばんばんトレカ/i.test(normalizedName)) {
+    matchedChains.push('otakara_market');
+    brands.push('otakara_market');
+    subBrand = /クイーンオフ/i.test(normalizedName) ? 'クイーンオフ' : 'お宝あっとマーケット';
+  }
+
   // どのキーワードにも一致しなかった場合のフォールバック（デフォルトでハードオフ扱い）
   if (matchedChains.length === 0) {
     matchedChains.push('hardoff');
@@ -1335,9 +1605,20 @@ export function classifyShopByName(name: string): ShopClassification {
     'offhouse',
     'bookoff',
     'surugaya',
+    'craft_chain',
+    'yellowsubmarine',
+    'popondetta',
+    'otakara_market',
     'kanteidan',
-    'anime_shop',
-    'general_game',
+    'animate',
+    'lashinbang',
+    'melonbooks',
+    'mandarake',
+    'furuichi',
+    'otakarasouko',
+    'mandai',
+    'mangasouko',
+    'geo',
   ];
 
   /** 優先順位に基づき決定されたメインチェーンID */
@@ -1477,10 +1758,13 @@ export function escapeHtml(str: string | undefined | null): string {
  * @returns `"HH:MM"` 形式の時刻文字列
  */
 export function formatClockTimeFromMinutes(totalMinutes: number, keepOver24 = false): string {
+  /** 24時間（1440分）の剰余またはそのまま保持する正規化分数 */
   const normalized = keepOver24
     ? totalMinutes
     : ((totalMinutes % 1440) + 1440) % 1440;
+  /** 時（0〜24以上）の整数値 */
   const h = Math.floor(normalized / 60);
+  /** 分（0〜59）の整数値 */
   const m = normalized % 60;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
@@ -1504,8 +1788,11 @@ export function evaluateClosingFeasibility(
   travelMinutes: number,
   departureMinutesOfDay: number
 ): ClosingStatusInfo {
+  /** 出発時刻に通算移動分数を加算した到着時刻（0:00起点、翌日以降は1440分超） */
   const arrivalMinutesRaw = departureMinutesOfDay + Math.max(0, Math.round(travelMinutes));
+  /** 画面表示用に成形された到着時刻文字列（例: "18:45着", "1日後 01:15着"） */
   const arrivalTimeText = `${arrivalMinutesRaw >= 1440 ? Math.floor(arrivalMinutesRaw / 1440) + '日後 ' : ''}${formatClockTimeFromMinutes(arrivalMinutesRaw, false)}着`;
+  /** 表記揺れを除去した営業時間文字列 */
   const raw = (hoursStr || '').normalize('NFKC').trim();
 
   // 1. 営業時間データが空の場合
@@ -1536,6 +1823,7 @@ export function evaluateClosingFeasibility(
 
   // 3. 「買取受付 10:00～18:00」などのサブ時間帯を誤って拾わないよう、先頭の営業開始〜終了時刻ペアを抽出
   // 対応フォーマット例: "10:00～20:00", "10:00 - 24:00", "9:00~翌1:00", "10:00～0:00"
+  /** 営業時間文字列から開店時刻と閉店時刻を抽出する正規表現マッチ結果 */
   const timeMatch = raw.match(
     /(\d{1,2})\s*:\s*(\d{2})\s*[～〜~\-−ー]\s*(?:翌\s*)?(\d{1,2})\s*:\s*(\d{2})/
   );
@@ -1551,9 +1839,13 @@ export function evaluateClosingFeasibility(
     };
   }
 
+  /** 開店時刻の「時」 */
   const openH = parseInt(timeMatch[1], 10);
+  /** 開店時刻の「分」 */
   const openM = parseInt(timeMatch[2], 10);
+  /** 閉店時刻の「時」（深夜営業時は24以上へ補正） */
   let closeH = parseInt(timeMatch[3], 10);
+  /** 閉店時刻の「分」 */
   const closeM = parseInt(timeMatch[4], 10);
 
   // 閉店時刻が 0:00〜4:00 などの深夜表記、または「翌」表記の場合は +24時間として扱う
@@ -1581,6 +1873,7 @@ export function evaluateClosingFeasibility(
 
   // 開店前到着の判定（朝に出発して開店時刻より前に着く場合）
   if (effectiveArrival < openMinutes) {
+    /** 開店時刻までの待ち分数 */
     const waitMins = openMinutes - effectiveArrival;
     return {
       status: 'before_open',
@@ -1593,11 +1886,12 @@ export function evaluateClosingFeasibility(
     };
   }
 
-  // 到着予定時刻から閉店時刻までの残り分数
+  /** 到着予定時刻から閉店時刻までの残り分数 */
   const remainingMinutes = closeMinutes - effectiveArrival;
 
   // 到着時点で閉店時刻を過ぎている場合（「間に合わない」）
   if (remainingMinutes <= 0) {
+    /** 閉店時刻を超過した分数 */
     const overMins = Math.abs(remainingMinutes);
     return {
       status: 'closed_on_arrival',
@@ -1609,6 +1903,7 @@ export function evaluateClosingFeasibility(
       shortPinLabel: '🔴閉店',
     };
   }
+
 
   // 閉店まで残り30分未満の場合（「ギリギリ・閉店間際」）
   if (remainingMinutes < 30) {

@@ -258,10 +258,13 @@ export function optimizeTourOrder(origin: OriginLocation, shops: readonly Shop[]
   while (remaining.length > 0) {
     // 現在地からユークリッド距離が最も近い店舗を先頭にする
     remaining.sort((a, b) => {
+      /** 店舗Aと現在探索位置の直線距離成分 */
       const distA = Math.hypot(a.lat - curLat, a.lng - curLng);
+      /** 店舗Bと現在探索位置の直線距離成分 */
       const distB = Math.hypot(b.lat - curLat, b.lng - curLng);
       return distA - distB;
     });
+    /** 直近の最近傍店舗 */
     const nextShop = remaining.shift()!;
     ordered.push(nextShop);
     curLat = nextShop.lat;
@@ -306,12 +309,15 @@ export async function scanAreaForNewShops(
     address: string,
     idPrefix: string
   ): void => {
+    /** 既存店舗（または追加済み新規店舗）と120m以内で近接重複しているかどうかの判定フラグ */
     const isDuplicate = allKnown.some(
       (s) => calcStraightDistanceKm(s.lat, s.lng, lat, lng) < 0.12
     );
     if (isDuplicate) return;
 
+    /** 店名から自動推論したチェーン・看板・取扱カテゴリ分類結果 */
     const info = classifyShopByName(name);
+    /** 生成した新規店舗オブジェクト */
     const newShop: Shop = {
       id: idPrefix || `custom_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       name,
@@ -335,7 +341,9 @@ export async function scanAreaForNewShops(
 
   // 1. Google Maps Places API が有効な場合は Places textSearch でスキャン
   if (googleMap && window.google && window.google.maps && window.google.maps.places) {
+    /** Google Places 検索サービスクライアント */
     const placesService = new google.maps.places.PlacesService(googleMap);
+    /** 検索対象とする主要リユース・ホビーチェーンの検索キーワード配列 */
     const keywords = [
       'ハードオフ',
       'ホビーオフ',
@@ -348,9 +356,11 @@ export async function scanAreaForNewShops(
       'お宝創庫',
       '鑑定団',
     ];
+    /** 地図の現在可視領域境界（Google Maps LatLngBounds） */
     const gBounds = googleMap.getBounds();
 
     for (const kw of keywords) {
+      /** キーワード検索で得られた候補スポット結果配列 */
       const results = await new Promise<google.maps.places.PlaceResult[]>((resolve) => {
         placesService.textSearch({ query: kw, bounds: gBounds || undefined }, (res, status) => {
           if (status === google.maps.places.PlacesServiceStatus.OK && res) {
@@ -376,14 +386,18 @@ export async function scanAreaForNewShops(
 
   // 2. OpenStreetMap Overpass API でも現在の表示矩形をスキャンして補完
   try {
+    /** 検索矩形バウンディングボックス文字列（南,西,北,東） */
     const bbox = `${bounds.south.toFixed(4)},${bounds.west.toFixed(4)},${bounds.north.toFixed(4)},${bounds.east.toFixed(4)}`;
+    /** Overpass QL クエリ構文文字列 */
     const query = `[out:json][timeout:15];(nwr["name"~"ハードオフ|オフハウス|ホビーオフ|モードオフ|ガレージオフ|ブックオフ|BOOKOFF|駿河屋|らしんばん|まんだらけ|メロンブックス|アニメイト|ゲオ|GEO|古本市場|ふるいち|お宝創庫|万代|マンガ倉庫|鑑定団"](${bbox}););out center tags;`;
+    /** Overpass API レスポンス */
     const response = await fetch('https://maps.mail.ru/osm/tools/overpass/api/interpreter', {
       method: 'POST',
       body: new URLSearchParams({ data: query }),
     });
 
     if (response.ok) {
+      /** Overpass API JSON解析オブジェクト */
       const data = (await response.json()) as {
         elements?: Array<{
           id: number;
@@ -395,15 +409,20 @@ export async function scanAreaForNewShops(
       };
 
       for (const el of data.elements || []) {
+        /** 要素のOSMタグマップ */
         const tags = el.tags || {};
+        /** 日本語名または標準名 */
         const name = tags['name:ja'] || tags.name || '';
         // 店名キーワードだけでバス停・橋・閉店施設を新規店舗にしない。
         if (!tags.shop || ['no', 'vacant', 'supermarket', 'convenience'].includes(tags.shop) ||
           tags['disused:shop'] || tags['abandoned:shop'] || tags.closed || tags.highway ||
           /閉店|万代橋|万代シティ|万代島|万代町|アニメイトカフェ/.test(name)) continue;
+        /** 緯度（ノード座標またはエリア中心） */
         const lat = el.lat ?? el.center?.lat;
+        /** 経度（ノード座標またはエリア中心） */
         const lng = el.lon ?? el.center?.lon;
         if (name && typeof lat === 'number' && typeof lng === 'number') {
+          /** 住所文字列 */
           const addr =
             tags['addr:full'] || `${tags['addr:city'] || ''}${tags['addr:suburb'] || ''}`;
           tryAddCandidate(name, lat, lng, addr, `osm_scan_${el.id}`);
@@ -413,6 +432,7 @@ export async function scanAreaForNewShops(
   } catch (err) {
     console.warn('Overpass エリアスキャン補完エラー:', err);
   }
+
 
   return discoveredShops;
 }

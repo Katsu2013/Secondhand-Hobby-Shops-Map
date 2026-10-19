@@ -1,0 +1,182 @@
+[
+  {
+    "name": "オカダヤ 新宿本店",
+    "chain": "craft_chain",
+    "brand": "okadaya",
+    "address": "東京都新宿区新宿3-23-17 新宿オカダヤTFビル 6F～11F",
+    "zipcode": "160-0022",
+    "hours": "",
+    "tel": "",
+    "url": "https://www.okadaya.co.jp/okadaya_blog/store/s100/",
+    "categories": [
+      "craft"
+    ],
+    "subCategories": [
+      "sub_craft_fabric",
+      "sub_craft_yarn",
+      "sub_craft_parts"
+    ]
+  },
+  {
+    "name": "オカダヤ 町田店",
+    "chain": "craft_chain",
+    "brand": "okadaya",
+    "address": "東京都町田市原町田6-10-7",
+    "zipcode": "194-0013",
+    "hours": "",
+    "tel": "",
+    "url": "https://www.okadaya.co.jp/okadaya_blog/store/s300/",
+    "categories": [
+      "craft"
+    ],
+    "subCategories": [
+      "sub_craft_fabric",
+      "sub_craft_yarn",
+      "sub_craft_parts"
+    ]
+  },
+  {
+    "name": "オカダヤ 溝口ノクティプラザ店",
+    "chain": "craft_chain",
+    "brand": "okadaya",
+    "address": "神奈川県川崎市高津区溝口1-3-1ノクティプラザ1 5F",
+    "zipcode": "213-0001",
+    "hours": "10:30～20:30",
+    "tel": "",
+    "url": "https://www.okadaya.co.jp/okadaya_blog/store/s400/",
+    "categories": [
+      "craft"
+    ],
+    "subCategories": [
+      "sub_craft_fabric",
+      "sub_craft_yarn",
+      "sub_craft_parts"
+    ]
+  },
+  {
+    "name": "オカダヤ 京王アートマン聖蹟桜ヶ丘店",
+    "chain": "craft_chain",
+    "brand": "okadaya",
+    "address": "東京都多摩市関戸1-11-1京王聖蹟桜ヶ丘SC A館 京王アートマン聖蹟桜ヶ丘 4F",
+    "zipcode": "206-0011",
+    "hours": "10:00～20:00",
+    "tel": "",
+    "url": "https://www.okadaya.co.jp/okadaya_blog/store/s405/",
+    "categories": [
+      "craft"
+    ],
+    "subCategories": [
+      "sub_craft_fabric",
+      "sub_craft_yarn",
+      "sub_craft_parts"
+    ]
+  },
+  {
+    "name": "オカダヤ 北千住マルイ店",
+    "chain": "craft_chain",
+    "brand": "okadaya",
+    "address": "東京都足立区千住3-92北千住マルイ 8F",
+    "zipcode": "120-0034",
+    "hours": "10:00～20:00",
+    "tel": "",
+    "url": "https://www.okadaya.co.jp/okadaya_blog/store/s410/",
+    "categories": [
+      "craft"
+    ],
+    "subCategories": [
+      "sub_craft_fabric",
+      "sub_craft_yarn",
+      "sub_craft_parts"
+    ]
+  },
+  {
+    "name": "オカダヤ 調布パルコ店",
+    "chain": "craft_chain",
+    "brand": "okadaya",
+    "address": "東京都調布市小島町1-38-1調布パルコ 2F",
+    "zipcode": "182-0026",
+    "hours": "10:00～20:30 / 金曜日のみ10:00～21:00",
+    "tel": "",
+    "url": "https://www.okadaya.co.jp/okadaya_blog/store/s420/",
+    "categories": [
+      "craft"
+    ],
+    "subCategories": [
+      "sub_craft_fabric",
+      "sub_craft_yarn",
+      "sub_craft_parts"
+    ]
+  },
+  {
+    "name": "オカダヤ アリオ亀有店",
+    "chain": "craft_chain",
+    "brand": "okadaya",
+    "address": "東京都葛飾区亀有3-49-3アリオ亀有 3F",
+    "zipcode": "125-0061",
+    "hours": "10:00～21:00",
+    "tel": "",
+    "url": "https://www.okadaya.co.jp/okadaya_blog/store/s430/",
+    "categories": [
+      "craft"
+    ],
+    "subCategories": [
+      "sub_craft_fabric",
+      "sub_craft_yarn",
+      "sub_craft_parts"
+    ]
+  },
+  {
+    "name": "オカダヤ グランツリー武蔵小杉店",
+    "chain": "craft_chain",
+    "brand": "okadaya",
+    "address": "神奈川県川崎市中原区新丸子東3-1135-1グランツリー武蔵小杉 4F",
+    "zipcode": "211-0004",
+    "hours": "10:00～21:00",
+    "tel": "",
+    "url": "https://www.okadaya.co.jp/okadaya_blog/store/s435/",
+    "categories": [
+      "craft"
+    ],
+    "subCategories": [
+      "sub_craft_fabric",
+      "sub_craft_yarn",
+      "sub_craft_parts"
+    ]
+  },
+  {
+    "name": "オカダヤ 相模大野ステーションスクエア店",
+    "chain": "craft_chain",
+    "brand": "okadaya",
+    "address": "神奈川県相模原市南区相模大野3-8-1相模大野ステーションスクエア A館 7F",
+    "zipcode": "252-0303",
+    "hours": "10:00～21:00",
+    "tel": "",
+    "url": "https://www.okadaya.co.jp/okadaya_blog/store/s450/",
+    "categories": [
+      "craft"
+    ],
+    "subCategories": [
+      "sub_craft_fabric",
+      "sub_craft_yarn",
+      "sub_craft_parts"
+    ]
+  },
+  {
+    "name": "オカダヤ ラスカ茅ヶ崎店",
+    "chain": "craft_chain",
+    "brand": "okadaya",
+    "address": "神奈川県茅ヶ崎市元町1-1ラスカ茅ヶ崎 4F",
+    "zipcode": "253-0043",
+    "hours": "10:00～20:00",
+    "tel": "",
+    "url": "https://www.okadaya.co.jp/okadaya_blog/store/s455/",
+    "categories": [
+      "craft"
+    ],
+    "subCategories": [
+      "sub_craft_fabric",
+      "sub_craft_yarn",
+      "sub_craft_parts"
+    ]
+  }
+]

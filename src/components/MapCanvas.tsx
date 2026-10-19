@@ -16,6 +16,7 @@ import {
 } from '../config/shopMaster';
 import type {
   ActiveRouteInfo,
+  CameraTarget,
   ChainId,
   MapBounds,
   MapEngineType,
@@ -117,6 +118,7 @@ function createGoogleHtmlBalloonOverlay(
     }
   }
 
+  /** 生成したカスタムバルーンオーバーレイインスタンス */
   const overlay = new HtmlBalloonOverlay();
   overlay.setMap(map);
   return overlay;
@@ -128,8 +130,11 @@ function createGoogleHtmlBalloonOverlay(
 export interface MapCanvasProps {
   /** 現在のマップエンジン（`'google'` または `'leaflet'`） */
   mapEngine: MapEngineType;
-  /** 地図の中心座標とズーム命令（エリアプリセット選択時や出発地ジャンプ時に更新される） */
-  cameraTarget: { lat: number; lng: number; zoom?: number; seq: number };
+  /**
+   * 地図の中心座標と推奨ズームレベル、および同一座標への再移動を検知する更新シーケンス番号。
+   * エリアプリセット選択時、店舗カードクリック時、出発地ジャンプ時などに親コンポーネントから渡されます。
+   */
+  cameraTarget: CameraTarget;
   /** 出発地の座標と名称 */
   origin: OriginLocation;
   /** 地図クリックで出発地を指定するモードかどうか */
@@ -237,15 +242,19 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   const isPickingOriginRef = useRef<boolean>(isPickingOrigin);
   isPickingOriginRef.current = isPickingOrigin;
 
+  /** 出発地クリック指定ハンドラの最新参照を保持するRef（クロージャの陳腐化を防止） */
   const onPickOriginRef = useRef(onPickOriginOnMap);
   onPickOriginRef.current = onPickOriginOnMap;
 
+  /** 表示領域変更通知ハンドラの最新参照を保持するRef（地図イベントから安全に呼び出す） */
   const onViewportChangedRef = useRef(onViewportChanged);
   onViewportChangedRef.current = onViewportChanged;
-  /** 非表示エンジンの遅延イベントで表示範囲を上書きしないための現在値 */
+
+  /** 非表示エンジンの遅延イベントで表示範囲を上書きしないための現在マップエンジン値のRef */
   const mapEngineRef = useRef(mapEngine);
   mapEngineRef.current = mapEngine;
 
+  /** 店舗選択ハンドラの最新参照を保持するRef（マーカークリックイベントから最新のコールバックを呼び出す） */
   const onSelectShopRef = useRef(onSelectShop);
   onSelectShopRef.current = onSelectShop;
 
@@ -253,6 +262,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   useEffect(() => {
     if (!leafletContainerRef.current || leafletMapRef.current) return;
 
+    /** Leaflet マップインスタンスの初期化 */
     const lMap = L.map(leafletContainerRef.current, {
       center: [cameraTarget.lat, cameraTarget.lng],
       zoom: cameraTarget.zoom || 12,
@@ -276,7 +286,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
      */
     const notifyLeafletViewport = (): void => {
       if (mapEngineRef.current !== 'leaflet' || !leafletContainerRef.current?.clientWidth || !leafletContainerRef.current?.clientHeight) return;
+      /** 地図の現在中心座標 */
       const c = lMap.getCenter();
+      /** 地図の現在表示境界領域 */
       const b = lMap.getBounds();
       onViewportChangedRef.current(
         { lat: c.lat, lng: c.lng },
@@ -298,6 +310,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     });
 
     // 初回描画直後にサイズを確定させてから表示領域（Bounds）を通知する
+    /** DOM構築完了後に正しいキャンバス寸法で表示領域を通知するための遅延タイマー */
     const initialSizeTimer = setTimeout(() => {
       lMap.invalidateSize();
       notifyLeafletViewport();
@@ -317,6 +330,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     if (!window.google || !window.google.maps) return;
 
     if (!googleMapRef.current) {
+      /** Google Maps マップインスタンスの初期化 */
       const gMap = new google.maps.Map(googleContainerRef.current, {
         center: { lat: cameraTarget.lat, lng: cameraTarget.lng },
         zoom: cameraTarget.zoom || 12,
@@ -330,7 +344,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         clickableIcons: false,
       });
 
+      /** Google Maps ルート探索サービスクライアント */
       const dirService = new google.maps.DirectionsService();
+      /** Google Maps ルート描画レンダラー */
       const dirRenderer = new google.maps.DirectionsRenderer({
         map: gMap,
         suppressMarkers: true,
@@ -344,10 +360,14 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
       gMap.addListener('idle', () => {
         if (mapEngineRef.current !== 'google') return;
+        /** Google Maps の現在中心座標 */
         const c = gMap.getCenter();
+        /** Google Maps の現在表示境界領域 */
         const b = gMap.getBounds();
         if (c && b) {
+          /** 北東端の緯度経度 */
           const ne = b.getNorthEast();
+          /** 南西端の緯度経度 */
           const sw = b.getSouthWest();
           onViewportChangedRef.current(
             { lat: c.lat(), lng: c.lng() },
@@ -373,6 +393,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapEngine]);
+
 
   // 3. カメラ移動命令（エリアジャンプ・出発地移動・店舗フォーカス）の反映
   useEffect(() => {
@@ -422,18 +443,28 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
   // 5. 出発地ピン ＆ 15分/30分/60分到達目安サークルの描画更新
   useEffect(() => {
+    /** 出発地の緯度・経度・名称の分割代入 */
     const { lat, lng, name } = origin;
+    /** 現在選択されている移動手段の定義オブジェクト（未定義時は車輪・一般道） */
     const mode = TRAVEL_MODE_MAP[travelMode] || TRAVEL_MODES[0];
 
-    // 15分、30分、60分で到達できるおおよその直線半径(m)を計算
+    /**
+     * 15分、30分、60分で到達できるおおよその直線半径（メートル）を移動手段の速度モデルから算出。
+     * 準備時間（駐車出庫・駅待ち）を減算し、迂回係数を考慮して直線距離へ換算します。
+     */
     const circleSpecs = [15, 30, 60].map((mins) => {
+      /** 初期準備時間を差し引いた実効走行/歩行時間（最低2分確保） */
       const effMinutes = Math.max(2, mins - mode.startupMinutes);
+      /** 25分を超える中長距離区間では高速道路等の巡航速度を加味した平均移動速度 */
       const speed = mins > 25 ? (mode.baseSpeedKmh + mode.highwaySpeedKmh) / 2 : mode.baseSpeedKmh;
+      /** 推定実道路走行距離（km） */
       const roadKm = (effMinutes / 60) * speed;
+      /** 迂回係数で割戻した直線到達半径（メートル） */
       const straightMeters = Math.round((roadKm / mode.detourFactor) * 1000);
       return { mins, radius: straightMeters };
     });
 
+    /** 15分圏（緑）、30分圏（青）、60分圏（黄・アンバー）のカラーパレット配列 */
     const colors = ['#10b981', '#3b82f6', '#f59e0b'];
 
     if (mapEngine === 'google' && googleMapRef.current && window.google?.maps) {
@@ -466,6 +497,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
       if (showTimeCircles) {
         circleSpecs.forEach((spec, idx) => {
+          /** Google Maps 到達目安サークルオーバーレイ */
           const circle = new google.maps.Circle({
             map: googleMapRef.current,
             center: { lat, lng },
@@ -486,6 +518,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       }
       leafletCirclesLayerRef.current.clearLayers();
 
+      /** Leaflet用のHTMLリッチ出発地マーカーアイコン */
       const originIcon = L.divIcon({
         className: 'origin-custom-div',
         html: `
@@ -531,7 +564,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       googleMarkersRef.current = [];
 
       shopsToRender.forEach((shop) => {
+        /** 店舗が現在選択中かどうか */
         const isSelected = shop.id === selectedShopId;
+        /** 看板プレート・バッジ・所要時間ピルを含むバルーンHTML文字列 */
         const html = buildShopBalloonHtml(
           shop,
           isSelected,
@@ -539,6 +574,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           travelMode,
           showPinTime
         );
+        /** Google Maps OverlayView カスタムマーカー */
         const overlay = createGoogleHtmlBalloonOverlay(
           googleMapRef.current!,
           shop,
@@ -552,7 +588,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       leafletMarkersLayerRef.current.clearLayers();
 
       shopsToRender.forEach((shop) => {
+        /** 店舗が現在選択中かどうか */
         const isSelected = shop.id === selectedShopId;
+        /** 看板プレート・バッジ・所要時間ピルを含むバルーンHTML文字列 */
         const html = buildShopBalloonHtml(
           shop,
           isSelected,
@@ -561,6 +599,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           showPinTime
         );
 
+        /** Leaflet 用の HTML DivIcon マーカー */
         const icon = L.divIcon({
           className: 'shop-custom-pin',
           html,
@@ -568,6 +607,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           iconAnchor: [0, 0],
         });
 
+        /** Leaflet マーカーインスタンス */
         const marker = L.marker([shop.lat, shop.lng], {
           icon,
           zIndexOffset: isSelected ? 4000 : 100,
