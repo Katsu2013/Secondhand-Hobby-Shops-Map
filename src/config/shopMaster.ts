@@ -402,7 +402,7 @@ export const BRAND_PLATES: Readonly<Record<BrandPlateId, BrandPlateSpec>> = {
   ojamakan: { chainId: 'otakarasouko', cls: 'plate-official plate-monochrome', html: `<img class="brand-official-logo" src="brands/ojamakan.svg" alt="おじゃま館" loading="eager" decoding="async" />` },
   medio: { chainId: 'otakarasouko', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/medio.svg" alt="メディオ！" loading="eager" decoding="async" />` },
   yuzawaya: { chainId: 'craft_chain', cls: 'plate-official plate-yuzawaya', html: `<span class="plate-main yuzawaya-plate">ユザワヤ</span>` },
-  tokai: { chainId: 'craft_chain', cls: 'plate-official plate-tokai', html: `<span class="plate-main tokai-plate">Craft Heart Tokai</span>` },
+  tokai: { chainId: 'craft_chain', cls: 'plate-official plate-tokai', html: `<img class="brand-official-logo" src="brands/tokai-display.svg" alt="クラフトハートトーカイ" loading="eager" decoding="async" />` },
   okadaya: { chainId: 'craft_chain', cls: 'plate-official plate-okadaya', html: `<span class="plate-main okadaya-plate">okadaya</span>` },
   pandorahouse: { chainId: 'craft_chain', cls: 'plate-official plate-pandorahouse', html: `<span class="plate-main pandora-plate">Pandora House</span>` },
   yellowsubmarine: { chainId: 'yellowsubmarine', cls: 'plate-official plate-yellowsubmarine', html: `<span class="plate-main yellowsub-plate">Yellow Submarine</span>` },

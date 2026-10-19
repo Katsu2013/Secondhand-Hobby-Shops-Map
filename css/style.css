@@ -2353,8 +2353,8 @@ html, body {
 .brand-plate.plate-official.plate-kanteidan .plate-main { color: #ffffff; font-size: 14px; }
 .brand-plate.plate-official.plate-yuzawaya { background: #e50012; }
 .brand-plate.plate-official.plate-yuzawaya .plate-main { color: #ffffff; font-size: 14px; font-weight: 900; letter-spacing: 0.05em; }
-.brand-plate.plate-official.plate-tokai { background: #00873c; }
-.brand-plate.plate-official.plate-tokai .plate-main { color: #ffffff; font-size: 10px; font-weight: 800; }
+.brand-plate.plate-official.plate-tokai { background: #ffffff; border-color: #db0034; }
+.brand-plate.plate-official.plate-tokai .plate-main { color: #db0034; font-size: 10px; font-weight: 800; }
 .brand-plate.plate-official.plate-okadaya { background: #1a1a1a; }
 .brand-plate.plate-official.plate-okadaya .plate-main { color: #ffffff; font-size: 12.5px; font-weight: 800; letter-spacing: 0.02em; }
 .brand-plate.plate-official.plate-pandorahouse { background: #c2185b; }
