@@ -824,12 +824,22 @@ export function getEffectiveShopSubCategories(
  */
 export function scopeShopAssortment(shop: Shop, chains: ReadonlySet<ChainId>): Shop {
   if (shop.assortmentStatus === 'user_edited') return shop;
+  if (!shop.assortmentSources || shop.assortmentSources.length === 0) {
+    return shop;
+  }
   /** 公式出典ごとのチェーンを使い、併設店の他系列を除外します。 */
-  const sources = (shop.assortmentSources || []).filter((source) => chains.has(source.chain));
-  return { ...shop, assortmentSources: sources,
+  const sources = shop.assortmentSources.filter((source) => chains.has(source.chain));
+  return {
+    ...shop,
+    assortmentSources: sources,
     assortmentStatus: sources.length ? shop.assortmentStatus : 'unverified',
-    categories: [...new Set(sources.flatMap((source) => source.categories))],
-    subCategories: [...new Set(sources.flatMap((source) => source.subCategories))] };
+    categories: sources.length
+      ? [...new Set(sources.flatMap((source) => source.categories))]
+      : shop.categories,
+    subCategories: sources.length
+      ? [...new Set(sources.flatMap((source) => source.subCategories))]
+      : shop.subCategories,
+  };
 }
 
 /**

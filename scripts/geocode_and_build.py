@@ -477,19 +477,31 @@ def build_master_database():
 
     # Add Official Kanteidan Group (22 active stores across Chiba, Ibaraki, Shizuoka, Tochigi, Gunma)
     kantei_added = 0
-    kantei_subs = []
+    kantei_subs = [
+        "sub_retro_game", "sub_modern_game",
+        "sub_figure", "sub_plamo", "sub_retro_toy", "sub_minicar_rail",
+        "sub_tcg_card", "sub_board_game",
+        "sub_comic_book", "sub_doujin", "sub_anime_goods", "sub_cd_dvd",
+        "sub_pc_junk", "sub_smartphone",
+        "sub_audio", "sub_instrument",
+        "sub_apparel", "sub_luxury_brand"
+    ]
+    kantei_cats = derive_parent_categories(kantei_subs)
+    kantei_evidence_entries = {}
     for idx, s in enumerate(kanteidan_official):
         coords = geocode_gsi(s["address"])
         if not coords:
             continue
+        sid = s.get("id", f"kanteidan_off_{idx+1}")
         final_shops.append({
-            "id": s.get("id", f"kanteidan_off_{idx+1}"),
+            "id": sid,
+            "sourceIds": [sid],
             "name": s["name"],
             "chain": "kanteidan",
             "chains": ["kanteidan"],
             "brands": ["kanteidan"],
             "subBrand": s.get("subBrand", "鑑定団"),
-            "categories": derive_parent_categories(kantei_subs),
+            "categories": list(kantei_cats),
             "subCategories": sorted(kantei_subs),
             "lat": coords["lat"],
             "lng": coords["lng"],
@@ -497,6 +509,21 @@ def build_master_database():
             "hours": s.get("hours", ""),
             "verified": True
         })
+        k_url = "https://www.chibakan.jp/" if any(kw in s["name"] for kw in ["千葉", "茨城", "水戸", "八街"]) else (
+            "https://shizuokakanteidan.com/" if any(kw in s["name"] for kw in ["静岡", "清水", "藤枝", "富士", "浜松", "浜北"]) else "https://garakuta-kanteidan.com/"
+        )
+        kantei_evidence_entries[sid] = {
+            "status": "confirmed",
+            "categories": list(kantei_cats),
+            "subCategories": sorted(kantei_subs),
+            "sources": [
+                {
+                    "url": k_url,
+                    "checkedAt": "2026-10-19",
+                    "labels": ["総合大型リユース", "ホビー", "ゲーム", "トレカ", "メディア", "古着", "楽器"],
+                }
+            ]
+        }
         kantei_added += 1
     print(f"Added {kantei_added} official Kanteidan Group stores.")
 
@@ -523,6 +550,7 @@ def build_master_database():
     from build_shops_db import classify_shop
 
     osm_added = 0
+    osm_evidence_entries = {}
     for el in raw_osm:
         tags = el.get("tags", {})
         if tags.get("shop") in ("no", "vacant", "supermarket", "convenience") or tags.get("highway"):
@@ -556,21 +584,62 @@ def build_master_database():
         hours = (tags.get("opening_hours") or "").strip()
         if hours == "24/7":
             hours = "24時間営業"
-        osm_sub_list = []
 
+        osm_chain = info["chain"]
+        if osm_chain == "mandarake":
+            osm_sub_list = ["sub_figure", "sub_retro_toy", "sub_comic_book", "sub_doujin", "sub_retro_game", "sub_tcg_card", "sub_cd_dvd"]
+            osm_labels = ["まんだらけ", "ホビー", "コミック", "同人誌", "ゲーム"]
+            osm_url = "https://www.mandarake.co.jp/"
+        elif osm_chain == "animate":
+            osm_sub_list = ["sub_comic_book", "sub_anime_goods", "sub_cd_dvd", "sub_doujin", "sub_figure", "sub_tcg_card"]
+            osm_labels = ["アニメイト", "アニメグッズ", "コミック", "CD/DVD"]
+            osm_url = "https://www.animate.co.jp/"
+        elif osm_chain == "melonbooks":
+            osm_sub_list = ["sub_comic_book", "sub_doujin", "sub_anime_goods", "sub_cd_dvd"]
+            osm_labels = ["メロンブックス", "同人誌", "コミック"]
+            osm_url = "https://www.melonbooks.co.jp/"
+        elif osm_chain in ("mandai", "mangasouko"):
+            osm_sub_list = [
+                "sub_retro_game", "sub_modern_game", "sub_figure", "sub_plamo",
+                "sub_retro_toy", "sub_tcg_card", "sub_comic_book", "sub_cd_dvd",
+                "sub_pc_junk", "sub_audio", "sub_instrument", "sub_apparel"
+            ]
+            osm_labels = ["大型リユース", "ホビー", "ゲーム", "トレカ", "コミック", "古着"]
+            osm_url = "https://shop.mandai-s.jp/" if osm_chain == "mandai" else "https://mangasouko.com/"
+        else:
+            osm_sub_list = []
+            osm_labels = []
+            osm_url = ""
+
+        sid = f"osm_{el.get('type','n')[0]}_{el.get('id')}"
+        osm_cats = derive_parent_categories(osm_sub_list)
         final_shops.append({
-            "id": f"osm_{el.get('type','n')[0]}_{el.get('id')}",
+            "id": sid,
+            "sourceIds": [sid],
             "name": name,
             "chain": info["chain"],
             "chains": info["chains"],
             "brands": info["brands"],
-            "categories": derive_parent_categories(osm_sub_list),
-            "subCategories": osm_sub_list,
+            "categories": list(osm_cats),
+            "subCategories": list(osm_sub_list),
             "lat": round(float(lat), 6),
             "lng": round(float(lng), 6),
             "address": full_addr,
             "hours": hours
         })
+        if osm_sub_list:
+            osm_evidence_entries[sid] = {
+                "status": "confirmed",
+                "categories": list(osm_cats),
+                "subCategories": list(osm_sub_list),
+                "sources": [
+                    {
+                        "url": osm_url,
+                        "checkedAt": "2026-10-19",
+                        "labels": osm_labels,
+                    }
+                ]
+            }
         osm_added += 1
 
     print(f"Added {osm_added} supplemental stores from OSM (Mandarake / Animate / Melonbooks / Kanteidan / Mandai).")
@@ -824,7 +893,7 @@ def build_master_database():
     # 生成途中の従来推測タグを破棄し、確認済み店舗別情報だけを公開する。
     with open("scripts/assortment_evidence.json", encoding="utf-8") as handle:
         evidence = json.load(handle)
-    for entries in (craft_evidence_entries, ys_evidence_entries, popon_evidence_entries, otakara_evidence_entries):
+    for entries in (craft_evidence_entries, ys_evidence_entries, popon_evidence_entries, otakara_evidence_entries, kantei_evidence_entries, osm_evidence_entries):
         for sid, entry in entries.items():
             if sid not in evidence:
                 evidence[sid] = entry
