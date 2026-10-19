@@ -2315,7 +2315,7 @@ html, body {
 .brand-plate.plate-official.plate-melonbooks { background: #ffffff; border-color: #18bd67; }
 .brand-plate.plate-official.plate-animate { background: #335eac; }
 .brand-plate.plate-official.plate-geo { background: #fed600; }
-.brand-plate.plate-official.plate-geo .plate-main { color: #192a59; font-size: 13px; font-weight: 900; gap: 4px; }
+.brand-plate.plate-official.plate-geo .plate-main { color: #192a59; font-size: 13.5px; font-weight: 900; gap: 4px; }
 .plate-geo .geo-mark { display: block; object-fit: contain; flex: none; }
 /* 名称表記もロゴと同じ面積で読みやすくし、共通枠を狭めず文字サイズで調整する。 */
 .brand-plate.plate-official.plate-name .plate-main { font-size: 16px; font-weight: 900; letter-spacing: -0.04em; }

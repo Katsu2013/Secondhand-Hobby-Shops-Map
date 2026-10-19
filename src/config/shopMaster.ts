@@ -211,7 +211,7 @@ export const BRAND_PLATES: Readonly<Record<BrandPlateId, BrandPlateSpec>> = {
   mandarake: { chainId: 'anime_shop', cls: 'plate-official plate-mandarake', html: `<img class="brand-official-logo" src="brands/mandarake-display.svg" alt="まんだらけ" loading="eager" decoding="async" />` },
   melonbooks: { chainId: 'anime_shop', cls: 'plate-official plate-melonbooks', html: `<img class="brand-official-logo" src="brands/melonbooks-display.svg" alt="メロンブックス" loading="eager" decoding="async" />` },
   animate: { chainId: 'anime_shop', cls: 'plate-official plate-animate', html: `<img class="brand-official-logo" src="brands/animate-display.svg" alt="アニメイト" loading="eager" decoding="async" />` },
-  geo: { chainId: 'general_game', cls: 'plate-official plate-geo', html: `<span class="plate-main geo-logo"><img class="geo-mark" src="brands/geo-display.svg" width="48" height="20" alt="" decoding="async" /><span>GEO</span></span>` },
+  geo: { chainId: 'general_game', cls: 'plate-official plate-geo', html: `<span class="plate-main geo-logo"><img class="geo-mark" src="brands/geo-display.svg" width="48" height="20" alt="" decoding="async" /><span>ゲオ</span></span>` },
   furuichi: { chainId: 'general_game', cls: 'plate-official plate-furuichi', html: `<img class="brand-official-logo" src="brands/furuichi-display.svg" alt="古本市場" loading="eager" decoding="async" />` },
   otakarasouko: { chainId: 'general_game', cls: 'plate-official plate-otakarasouko', html: `<img class="brand-official-logo" src="brands/otakarasouko.svg" alt="お宝創庫" loading="eager" decoding="async" />` },
   mandaishoten: { chainId: 'general_game', cls: 'plate-official plate-name plate-mandaishoten', html: `<span class="plate-main">万代書店</span>` },
