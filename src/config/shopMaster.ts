@@ -319,8 +319,8 @@ export const CHAIN_GROUPS: readonly ChainGroup[] = [
     id: 'popondetta',
     name: 'ポポンデッタ (鉄道模型・ジオラマ)',
     shortName: 'ポポンデッタ',
-    color: '#059669',
-    bgLight: '#ecfdf5',
+    color: '#1c1f8a',
+    bgLight: '#eef2ff',
     icon: '🚃',
     badgeText: 'ポ',
     subBrands: ['ポポンデッタ'],
@@ -406,7 +406,7 @@ export const BRAND_PLATES: Readonly<Record<BrandPlateId, BrandPlateSpec>> = {
   okadaya: { chainId: 'craft_chain', cls: 'plate-official plate-okadaya', html: `<span class="plate-main okadaya-plate">okadaya</span>` },
   pandorahouse: { chainId: 'craft_chain', cls: 'plate-official plate-pandorahouse', html: `<span class="plate-main pandora-plate">Pandora House</span>` },
   yellowsubmarine: { chainId: 'yellowsubmarine', cls: 'plate-official plate-yellowsubmarine', html: `<span class="plate-main yellowsub-plate">Yellow Submarine</span>` },
-  popondetta: { chainId: 'popondetta', cls: 'plate-official plate-popondetta', html: `<span class="plate-main popon-plate">ポポンデッタ</span>` },
+  popondetta: { chainId: 'popondetta', cls: 'plate-official plate-popondetta', html: `<img class="brand-official-logo" src="brands/popondetta-display.svg" alt="ポポンデッタ" loading="eager" decoding="async" />` },
   otakara_market: { chainId: 'otakara_market', cls: 'plate-official plate-otakara_market', html: `<span class="plate-main otakara-plate">お宝あっとマーケット</span>` },
 };
 
