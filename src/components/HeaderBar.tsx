@@ -78,7 +78,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         </button>
 
         <div className="brand-block">
-          <span className="brand-logo">🗺️</span>
+          <img className="brand-logo app-icon" src={`${import.meta.env.BASE_URL}favicon.svg`} width="32" height="32" alt="" aria-hidden="true" />
           <div>
             <h1 className="app-title">ホビめぐ</h1>
             <p className="app-subtitle">

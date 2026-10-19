@@ -1,8 +1,9 @@
-# 全国中古ショップ巡礼マップ 設計仕様書 (SPECIFICATION.md)
+# ホビめぐ（全国中古＆ホビーショップ巡りマップ）設計仕様書
 
 最終実装照合: **2026-10-19**。本書は現在のローカル実装・保存済みJSONの仕様を記す。件数は同日のスナップショット集計であり、自動更新後に変わる。過去のレビュー記録と未実装の改善案は12章で区別する。
 
 ## 1. アプリケーション概要・目的
+- **愛称**: ホビめぐ。ヘッダー・ブラウザのタブ・アプリ名メタデータに使用し、「全国中古＆ホビーショップ巡りマップ」を説明名として併記する。
 - **目的**: Googleマップをベースに、ハードオフ、ホビーオフ、駿河屋などの中古ショップまでどのくらいの時間で行けるかが一目でわかり、**毎回検索ワードを入力しなくても地図を動かしながら全国の中古ショップを巡れるウェブアプリ**。
 - **基本コンセプト**:
   - 通常のGoogleマップと同様の操作感で扱えること。
@@ -61,6 +62,23 @@ PC専門4チェーンの収録は公式の販売店一覧に限定する。イ�
 ゲオモバイルは黄緑色の公式画像を使い、通常ゲオと区別する。古本市場・ふるいち・トレカパーク、お宝創庫・プレイズ・エコツール・おじゃま館・メディオもそれぞれの業態を区別する。万代書店・マンガ倉庫・地域ごとの鑑定団は、一律の公式画像を確定できていないため通常文字の名称表記とする。詳細な管理方法は8章参照。
 
 ---
+
+
+### 2.3 ホビめぐのアプリアイコン・ファビコン
+
+採用意匠は「青い角丸四角＋白い地図ピン＋黄色いロボット玩具の顔」。プレビューで承認された案を、小さな表示でも輪郭が保たれるSVGへ整える。顔は2つの青い目と短いアンテナだけで構成し、文字・巡回矢印・コントローラーは入れない。青は`#0877ff`、黄は`#ffd000`、ピンは白。店舗チェーンのロゴとは別のアプリ識別マークとして扱う。
+
+- 原本: `public/favicon.svg`（512×512のviewBox）。ヘッダーも同じSVGを32×32pxで表示する。
+- 通常タブ: SVGを優先し、32px PNGと16/32/48pxを内包するICOを代替として指定する。`favicon-16x16.png`も生成して保持する。
+- タッチアイコン: `public/apple-touch-icon.png`（180×180px）。確認・転用向けの`public/app-icon-512.png`も保持する。これらの追加だけでPWAのインストール機能を提供するものではない。
+- 参照方法: `index.html`では`./favicon.svg`等の相対URL、ReactではViteの`import.meta.env.BASE_URL`を使い、GitHub Pagesのサブディレクトリに対応する。
+- 実ファイルの表示確認: [明暗背景と16/32/48pxの表示例](docs/favicon-preview-2026-10-19.png)。
+- 元の検討画像: `docs/favicon-concept-2026-10-19.png`。各サイズの完成ファイルの原本はSVGとし、提案ボードの画像を切り抜いてタブへ表示しない。
+
+再生成は`scripts/build_app_icons.cjs`（`npm run build:icons`）で、SVGからPNGとICOをまとめて作る。SVG変更時は生成済みファイルも同じコミットに含める。生成時だけNode.jsの`sharp`が必要で、通常のアプリ実行・CIビルドでは同梱済みファイルを使用する。手動環境で必要な場合は`npm install --no-save --package-lock=false sharp`を実行してから生成する。
+
+---
+
 
 ## 3. 機能要件・オプション仕様
 
@@ -525,6 +543,7 @@ Google Mapsの稼働中・接続済みという重複した状態表示と、正
 | 一覧検索・並び順と地図ピンの連動 | 9 | App.tsx、ShopListPanel.tsx、MapCanvas.tsx |
 | 概算・交通予測・到着と閉店判定 | 3.2・3.3・3.5・7 | shopMaster.ts、routeService.ts、mapService.ts、App.tsx |
 | 店舗別商品・通常ゲオ／モバイルの分離 | 8・10 | update_assortments.py、update_more_assortments.py、geo_assortments.py、assortment_support.py |
+| アプリ名・ロボット入りピンのファビコン | 1・2.3 | index.html、HeaderBar.tsx、public/favicon.svg、build_app_icons.cjs |
 | 看板の形状・色・余白・縦横比 | 2.2・8.4・11 | BRAND_PLATES、css/style.css、brands/sources.json、2つのbuild_*_displays.py |
 | 地図と一覧のロゴ共通化・スマホ4表示・操作範囲 | 9 | ShopListPanel.tsx、MapCanvas.tsx、App.tsx、css/style.css |
 | Google稼働・接続表示の削除 | 9.1 | HeaderBar.tsx、App.tsx |

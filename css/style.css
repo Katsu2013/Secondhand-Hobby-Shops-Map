@@ -115,6 +115,14 @@ html, body {
   font-size: 1.5rem;
 }
 
+/* タブと同じ図柄を使い、文字サイズの影響でヘッダーのアイコンが変形しないようにする。 */
+.brand-logo.app-icon {
+  display: block;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+}
+
 .app-title {
   font-size: 1.15rem;
   font-weight: 800;

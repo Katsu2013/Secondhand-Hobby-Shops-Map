@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">ホビめぐ</title>
+  <rect width="512" height="512" rx="92" fill="#0877ff"/>
+  <path d="M256 68C167 68 96 136 96 222c0 85 87 174 149 232a16 16 0 0 0 22 0c62-58 149-147 149-232C416 136 345 68 256 68Z" fill="#fff"/>
+  <circle cx="256" cy="222" r="104" fill="#0877ff"/>
+  <g fill="#ffd000">
+    <rect x="180" y="188" width="152" height="106" rx="27"/>
+    <rect x="246" y="164" width="20" height="35" rx="9"/>
+    <circle cx="256" cy="160" r="13"/>
+  </g>
+  <g fill="#0877ff">
+    <rect x="208" y="226" width="28" height="30" rx="6"/>
+    <rect x="276" y="226" width="28" height="30" rx="6"/>
+  </g>
+</svg>
