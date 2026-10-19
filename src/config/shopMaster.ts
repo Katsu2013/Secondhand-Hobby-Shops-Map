@@ -218,7 +218,7 @@ export const BRAND_PLATES: Readonly<Record<BrandPlateId, BrandPlateSpec>> = {
   mandai: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/mandai.svg" alt="万代" loading="eager" decoding="async" />` },
   mangasouko: { chainId: 'general_game', cls: 'plate-official plate-name plate-mangasouko', html: `<span class="plate-main">マンガ倉庫</span>` },
   kanteidan: { chainId: 'kanteidan', cls: 'plate-official plate-kanteidan', html: `<span class="plate-main">鑑定団</span>` },
-  geo_mobile: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/geo_mobile-display.svg" alt="ゲオモバイル" loading="eager" decoding="async" />` },
+  geo_mobile: { chainId: 'general_game', cls: 'plate-official plate-geo_mobile', html: `<img class="brand-official-logo" src="brands/geo_mobile-display.svg" alt="ゲオモバイル" loading="eager" decoding="async" />` },
   furuiti: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/furuiti-display.svg" alt="ふるいち" loading="eager" decoding="async" />` },
   torekapark: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/torekapark-display.svg" alt="トレカパーク" loading="eager" decoding="async" />` },
   preyz: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/preyz.svg" alt="プレイズ" loading="eager" decoding="async" />` },
