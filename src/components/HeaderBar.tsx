@@ -80,9 +80,9 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         <div className="brand-block">
           <span className="brand-logo">🗺️</span>
           <div>
-            <h1 className="app-title">中古＆ホビーショップ巡りマップ</h1>
+            <h1 className="app-title">ホビめぐ</h1>
             <p className="app-subtitle">
-              検索いらずで全国のハードオフ・駿河屋・ブックオフ等の所要時間がひと目でわかる
+              全国中古＆ホビーショップ巡りマップ
             </p>
           </div>
         </div>

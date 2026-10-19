@@ -3,7 +3,7 @@
   "entryPoints": ["./src"],
   "entryPointStrategy": "expand",
   "out": "docs/typedoc",
-  "name": "中古＆ホビーショップ巡りマップ 設計・API仕様書",
+  "name": "ホビめぐ（中古＆ホビーショップ巡りマップ）設計・API仕様書",
   "includeVersion": true,
   "readme": "SPECIFICATION.md",
   "blockTags": [

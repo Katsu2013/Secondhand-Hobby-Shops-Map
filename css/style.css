@@ -116,10 +116,11 @@ html, body {
 }
 
 .app-title {
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 1.15rem;
+  font-weight: 800;
   line-height: 1.2;
   color: var(--text-main);
+  letter-spacing: -0.01em;
 }
 
 .app-subtitle,
@@ -2346,7 +2347,7 @@ html, body {
   #root { height: 100dvh; }
   .app-header { height: 56px; min-height: 56px; }
   .brand-block > div { min-width: 0; }
-  .app-title { font-size: 0.8rem; }
+  .app-title { font-size: 0.95rem; font-weight: 800; }
   .header-left { gap: 6px; }
   .app-header .icon-btn, .app-header .action-btn { min-width: 44px; min-height: 44px; justify-content: center; padding: 8px; }
   .mobile-bottom-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); height: calc(58px + env(safe-area-inset-bottom, 0px)); }

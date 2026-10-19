@@ -2,7 +2,7 @@
   "name": "reuse-shop-pilgrimage-map",
   "version": "1.0.0",
   "private": true,
-  "description": "Googleマップベースで全国のハードオフ・ホビーオフ・駿河屋等の中古ショップを検索なしで巡回・所要時間確認できるReact+TypeScriptウェブアプリ",
+  "description": "ホビめぐ - Googleマップベースで全国のハードオフ・ホビーオフ・駿河屋等の中古ショップを検索なしで巡回・所要時間確認できるReact+TypeScriptウェブアプリ",
   "type": "module",
   "scripts": {
     "dev": "vite --port 8080",
