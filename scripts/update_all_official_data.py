@@ -10,6 +10,7 @@ GitHub Actions の定期実行（cron）やローカルの `npm run update-data`
 全チェーンの一次情報取得からデータベース生成までを安全（フォールバック保護付き）に実行するためです。
 """
 
+from pipeline_support import atomic_json_write
 import json
 import os
 import re
@@ -22,7 +23,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from fetch_official_all import fetch_all_hardoff, fetch_all_surugaya
 from geocode_and_build import build_master_database
 
-ctx = ssl._create_unverified_context()
+ctx = ssl.create_default_context()
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -50,8 +51,18 @@ def save_json_safely(filepath: str, data: list, min_expected_count: int, label: 
         )
         return False
 
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    # 件数だけでなくレコード形式と前回比も検証し、部分取得を全件取得と誤認しない。
+    required = ("title",) if "bookoff" in filepath else ("name", "address")
+    if any(not isinstance(item, dict) or any(not isinstance(item.get(key), str) or not item[key].strip() for key in required) for item in data):
+        print(f"[WARN] {label}: レコード形式が不正なため既存データを維持します。")
+        return False
+    if os.path.exists(filepath):
+        with open(filepath, encoding="utf-8") as handle:
+            previous = json.load(handle)
+        if len(data) < len(previous) * 0.85:
+            print(f"[WARN] {label}: 前回の85%未満のため既存データを維持します。")
+            return False
+    atomic_json_write(filepath, data)
     print(f"[OK] {label}: 最新 {len(data)} 店舗を {filepath} に保存しました。")
     return True
 
@@ -213,77 +224,14 @@ def fetch_all_otakarasouko() -> list:
 # 6. ゲオ (GEO) 公式店舗検索（47都道府県）
 # ============================================================================
 def fetch_all_geo() -> list:
-    """ゲオ公式サイトから全国47都道府県の店舗一覧を取得する。"""
-    print("Fetching GEO official nationwide store list...")
-
-    def fetch_pref_geo(pref_id: int) -> list:
-        res = []
-        for page in range(1, 15):
-            url = f"https://geo-mobile.jp/store/prefecture/{pref_id:02d}?page={page}"
-            try:
-                html = fetch_url(url, timeout=20)
-            except Exception:
-                break
-            cards = re.findall(
-                r'<a[^>]+href="https://geo-mobile\.jp/store/detail/(\d+)/?"[^>]*>(.*?)</a>',
-                html,
-                re.S,
-            )
-            if not cards:
-                # 別フォーマット（テーブル・リスト構造）のフォールバック抽出
-                blocks = html.split("/store/detail/")[1:]
-                if not blocks:
-                    break
-                for b in blocks:
-                    sid_m = re.match(r"^(\d+)", b)
-                    if not sid_m:
-                        continue
-                    sid = sid_m.group(1)
-                    nm = re.search(r'<h[234][^>]*>\s*([^<]+?)\s*</h[234]>', b) or re.search(
-                        r'store_name[^>]*>\s*([^<]+?)\s*<', b
-                    )
-                    ad = re.search(r"(?:住所|所在地).*?<dd[^>]*>(.*?)</dd>", b, re.S) or re.search(
-                        r"([北海道青森岩手宮城秋田山形福島茨城栃木群馬埼玉千葉東京神奈川新潟富山石川福井山梨長野岐阜静岡愛知三重滋賀京都大阪兵庫奈良和歌山鳥取島根岡山広島山口徳島香川愛媛高知福岡佐賀長崎熊本大分宮崎鹿児島沖縄][都道府県][^\n<]{5,60})",
-                        b,
-                    )
-                    hr = re.search(r"(\d{1,2}:\d{2}\s*[～〜~\-]\s*\d{1,2}:\d{2}|24時間営業)", b)
-                    if nm and ad:
-                        name_clean = re.sub(r"\s+", " ", nm.group(1)).strip()
-                        addr_clean = re.sub(r"<[^>]+>", "", ad.group(1)).strip()
-                        addr_clean = re.sub(r"〒\s*\d{3}-\d{4}", "", addr_clean).strip()
-                        res.append(
-                            {
-                                "id": f"geo_off_{sid}",
-                                "name": name_clean,
-                                "address": addr_clean,
-                                "hours": hr.group(1) if hr else "10:00～23:00",
-                            }
-                        )
-            else:
-                for sid, body in cards:
-                    nm = re.search(r'class="[^"]*name[^"]*"[^>]*>([^<]+)<', body)
-                    ad = re.search(r'class="[^"]*address[^"]*"[^>]*>([^<]+)<', body)
-                    hr = re.search(r"(\d{1,2}:\d{2}\s*[～〜~\-]\s*\d{1,2}:\d{2}|24時間営業)", body)
-                    if nm and ad:
-                        res.append(
-                            {
-                                "id": f"geo_off_{sid}",
-                                "name": nm.group(1).strip(),
-                                "address": ad.group(1).strip(),
-                                "hours": hr.group(1) if hr else "10:00～23:00",
-                            }
-                        )
-            if 'rel="next"' not in html and f"page={page + 1}" not in html:
-                break
-        return res
-
-    all_geo = {}
-    with ThreadPoolExecutor(max_workers=8) as ex:
-        futures = [ex.submit(fetch_pref_geo, pid) for pid in range(1, 48)]
-        for f in as_completed(futures):
-            for item in f.result():
-                all_geo[item["id"]] = item
-    return list(all_geo.values())
+    """現行の全国一覧から店舗番号を取得し、既存IDを保持する。"""
+    from update_assortments import parse_geo_index
+    stores = parse_geo_index(fetch_url("https://geo-mobile.jp/store/index.html"))
+    with open("scripts/official_geo.json", encoding="utf-8") as handle:
+        previous = {int(item['id'].removeprefix('geo_off_')): item['id'] for item in json.load(handle)}
+    for item in stores:
+        item['id'] = previous.get(int(item['id'].removeprefix('geo_off_')), item['id'])
+    return stores
 
 
 def main() -> None:
@@ -347,6 +295,18 @@ def main() -> None:
         save_json_safely("scripts/official_geo.json", geo_stores, 500, "ゲオ (GEO)")
     except Exception as e:
         print(f"[WARN] GEO fetch error: {e}")
+
+    # 中古PC・スマホ専門店。店舗ごとの販売情報も同時に検証して保存する。
+    from update_pc_shops import update_pc_shops
+    update_pc_shops()
+
+    # OSM補完は検証済みの追跡対象スナップショットへ更新し、障害時は保持する。
+    from update_osm_supplement import update_osm_supplement
+    update_osm_supplement()
+
+    # 店舗別販売品目を確認する。失敗した出典は以前の確認日付き情報を保持する。
+    from update_assortments import update_assortments
+    update_assortments()
 
     # 8. 国土地理院ジオコーディング＆複合店統合・27詳細サブジャンル付与ビルド
     print("=== Running geocode_and_build.build_master_database() ===")

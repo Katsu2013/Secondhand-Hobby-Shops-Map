@@ -1,10 +1,10 @@
 /**
  * @file src/services/storageService.ts
  * @description 全国店舗データベース（`data/shops.json`）の取得および、ブラウザの `localStorage` を用いた
- * ユーザー設定・カスタム追加店舗・編集済み店舗・APIキーの永続化サービス。
+ * ユーザー設定・APIキーの永続化サービス。店舗情報は配布DBを唯一の永続データとします。
  *
  * 【なぜこのサービス層が必要か】
- * UIコンポーネント（React）からストレージの読み書きやJSONマージ処理を分離することで、
+ * UIコンポーネント（React）からストレージの読み書きや店舗データの検証を分離することで、
  * データの整合性を保ち、将来バックエンドAPIやIndexedDBへ移行する際も変更箇所を局所化できるためです。
  */
 
@@ -12,25 +12,19 @@ import {
   CATEGORIES,
   CATEGORY_MAP,
   CHAIN_GROUPS,
-  getEffectiveShopSubCategories,
   SUB_CATEGORIES,
   TRAVEL_MODE_MAP,
 } from '../config/shopMaster';
-import type { CategoryId, ChainId, Shop, SubCategoryId, UserPreferences } from '../types/shop';
+import { normalizeShop } from './shopValidation';
+import type { CategoryId, Shop, SubCategoryId, UserPreferences } from '../types/shop';
 
 /**
  * `localStorage` で使用するキー文字列の定数オブジェクト。
- * 既存のプロトタイプ環境で保存されたデータとも完全な後方互換性を維持します。
+ * 閲覧設定とAPIキーだけを保存し、店舗データの端末別上書きは行いません。
  */
 export const STORAGE_KEYS = {
   /** Google Maps JavaScript API キーの保存キー */
   API_KEY: 'REUSE_MAP_GOOGLE_API_KEY',
-  /** ユーザーが追加またはエリアスキャンで発見した店舗配列の保存キー */
-  CUSTOM_SHOPS: 'REUSE_MAP_CUSTOM_SHOPS_V1',
-  /** 既存店舗に対するユーザー編集差分の保存キー */
-  EDITED_SHOPS: 'REUSE_MAP_EDITED_SHOPS_V1',
-  /** ユーザーが非表示（削除）にした店舗ID配列の保存キー */
-  DELETED_IDS: 'REUSE_MAP_DELETED_IDS_V1',
   /** フィルタ・移動手段・出発地などのユーザー設定保存キー */
   USER_PREFS: 'REUSE_MAP_USER_PREFS_V1',
 } as const;
@@ -56,6 +50,8 @@ export function getDefaultUserPreferences(): UserPreferences {
     enabledSubCategories: SUB_CATEGORIES.map((s) => s.id),
     categoryMatchMode: 'OR',
     hideClosedOnArrival: false,
+    departureTimeMode: 'now',
+    customDepartureTime: '',
   };
 }
 
@@ -81,7 +77,7 @@ export function loadUserPreferencesFromStorage(): UserPreferences {
     if (
       parsed.origin &&
       typeof parsed.origin.lat === 'number' &&
-      typeof parsed.origin.lng === 'number'
+      typeof parsed.origin.lng === 'number' && Number.isFinite(parsed.origin.lat) && Number.isFinite(parsed.origin.lng) && Math.abs(parsed.origin.lat) <= 90 && Math.abs(parsed.origin.lng) <= 180
     ) {
       defaults.origin = {
         lat: parsed.origin.lat,
@@ -112,7 +108,9 @@ export function loadUserPreferencesFromStorage(): UserPreferences {
 
     // 有効チェーンリストの復元
     if (Array.isArray(parsed.enabledChains)) {
-      defaults.enabledChains = parsed.enabledChains as ChainId[];
+      /** 保存時のチェーン集合。旧設定は従来の8グループとして引き継ぎます。 */
+      const known = new Set(parsed.knownChains ?? CHAIN_GROUPS.filter((chain) => !['iosys', 'janpara', 'pc_koubou', 'inverse'].includes(chain.id)).map((chain) => chain.id));
+      defaults.enabledChains = CHAIN_GROUPS.filter((chain) => parsed.enabledChains!.includes(chain.id) || !known.has(chain.id)).map((chain) => chain.id);
     }
 
     // 有効カテゴリ・詳細サブジャンルリストの復元（旧バージョン設定からの自動マイグレーション対応）
@@ -143,6 +141,9 @@ export function loadUserPreferencesFromStorage(): UserPreferences {
       defaults.categoryMatchMode = parsed.categoryMatchMode;
     }
 
+    // 出発時刻も永続化し、再起動時にユーザー指定を失わない。
+    if (parsed.departureTimeMode === 'now' || parsed.departureTimeMode === 'custom') defaults.departureTimeMode = parsed.departureTimeMode;
+    if (typeof parsed.customDepartureTime === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(parsed.customDepartureTime)) defaults.customDepartureTime = parsed.customDepartureTime;
     // 閉店に間に合わない店舗の非表示フラグの復元
     if (typeof parsed.hideClosedOnArrival === 'boolean') {
       defaults.hideClosedOnArrival = parsed.hideClosedOnArrival;
@@ -160,7 +161,7 @@ export function loadUserPreferencesFromStorage(): UserPreferences {
  */
 export function saveUserPreferencesToStorage(prefs: UserPreferences): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.USER_PREFS, JSON.stringify(prefs));
+    localStorage.setItem(STORAGE_KEYS.USER_PREFS, JSON.stringify({ ...prefs, knownChains: CHAIN_GROUPS.map((chain) => chain.id) }));
   } catch (err) {
     console.warn('ユーザー設定の保存に失敗しました:', err);
   }
@@ -219,127 +220,29 @@ export function saveGoogleApiKey(apiKey: string): void {
 }
 
 /**
- * 全国店舗マスターJSON（`/data/shops.json`）を非同期で取得し、
- * `localStorage` に保存されているユーザー編集差分・追加店舗・削除IDをマージして返します。
+ * 自動更新された全国店舗マスターJSONを取得し、検証済みの店舗だけを返します。
+ * 旧版の端末別編集・追加・削除は読み込まず、全利用者で同じ配布情報を基準にします。
+ * 旧保存キーの値は移行時に消去せず、参照しないことで最新情報の上書きを防ぎます。
  *
- * 【なぜマージ処理が必要か】
- * 静的配信される公式店舗マスターデータ（約2,043拠点）を汚さずに、ユーザー自身がブラウザ上で
- * 取扱カテゴリを微調整したり新規店舗を追加・削除した結果を永続的に反映させるためです。
- *
- * @returns マージ済みの全店舗データ配列のPromise
+ * @returns 検証とID重複除去を行った配布店舗配列のPromise
  */
-export async function fetchAndMergeShopsDatabase(): Promise<Shop[]> {
-  /** マスターJSONから読み込まれた基本店舗配列 */
-  let baseShops: Shop[] = [];
+export async function fetchShopsDatabase(): Promise<Shop[]> {
   try {
+    /** 更新後の配布DBを取得し、古いキャッシュの固定を避けます。 */
     const response = await fetch(`data/shops.json?v=${Date.now()}`);
-    if (response.ok) {
-      baseShops = (await response.json()) as Shop[];
-    }
+    if (!response.ok) return [];
+    /** 外部入力として扱い、不正なレコードは画面へ渡しません。 */
+    const data: unknown = await response.json();
+    if (!Array.isArray(data)) return [];
+    /** 同じIDの複数表示を避けるため、最初の有効なレコードだけ採用します。 */
+    const seenIds = new Set<string>();
+    return data.map(normalizeShop).filter((shop): shop is Shop => {
+      if (!shop || seenIds.has(shop.id)) return false;
+      seenIds.add(shop.id);
+      return true;
+    });
   } catch (err) {
     console.warn('data/shops.json の読み込みに失敗しました:', err);
-  }
-
-  /** 削除済み店舗IDのSet */
-  let deletedIds = new Set<string>();
-  /** 編集された店舗の差分マップ */
-  let editedMap: Record<string, Partial<Shop>> = {};
-  /** カスタム追加された店舗の配列 */
-  let customShops: Shop[] = [];
-
-  try {
-    deletedIds = new Set<string>(
-      JSON.parse(localStorage.getItem(STORAGE_KEYS.DELETED_IDS) || '[]') as string[]
-    );
-    editedMap = JSON.parse(localStorage.getItem(STORAGE_KEYS.EDITED_SHOPS) || '{}') as Record<
-      string,
-      Partial<Shop>
-    >;
-    customShops = JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOM_SHOPS) || '[]') as Shop[];
-  } catch (err) {
-    console.warn('カスタム店舗データのパースに失敗しました:', err);
-  }
-
-  /** マージ後の店舗リスト */
-  const merged: Shop[] = [];
-  /** 重複登録を防ぐための登録済みID集合 */
-  const seenIds = new Set<string>();
-
-  // 1. 公式マスター店舗の取り込みと編集差分の上書き
-  for (const shop of baseShops) {
-    if (deletedIds.has(shop.id)) continue;
-    const finalShop: Shop = editedMap[shop.id] ? { ...shop, ...editedMap[shop.id] } : { ...shop };
-    if (!Array.isArray(finalShop.chains) || finalShop.chains.length === 0) {
-      finalShop.chains = [finalShop.chain];
-    }
-    finalShop.subCategories = getEffectiveShopSubCategories(finalShop);
-    merged.push(finalShop);
-    seenIds.add(finalShop.id);
-  }
-
-  // 2. ユーザーが追加・スキャン発見したカスタム店舗の取り込み
-  for (const custom of customShops) {
-    if (deletedIds.has(custom.id) || seenIds.has(custom.id)) continue;
-    const finalShop: Shop = editedMap[custom.id]
-      ? { ...custom, ...editedMap[custom.id] }
-      : { ...custom };
-    if (!Array.isArray(finalShop.chains) || finalShop.chains.length === 0) {
-      finalShop.chains = [finalShop.chain];
-    }
-    finalShop.subCategories = getEffectiveShopSubCategories(finalShop);
-    merged.push(finalShop);
-    seenIds.add(finalShop.id);
-  }
-
-  return merged;
-}
-
-/**
- * カスタム追加された店舗（`isCustom === true`）を抽出して `localStorage` に保存します。
- *
- * @param allShops - 全店舗配列
- */
-export function persistCustomShops(allShops: readonly Shop[]): void {
-  try {
-    const customList = allShops.filter((s) => s.isCustom);
-    localStorage.setItem(STORAGE_KEYS.CUSTOM_SHOPS, JSON.stringify(customList));
-  } catch (err) {
-    console.warn('カスタム店舗の保存に失敗しました:', err);
-  }
-}
-
-/**
- * 既存店舗に対する編集差分を `localStorage` に記録します。
- *
- * @param shopId - 編集対象の店舗ID
- * @param patch - 上書き保存するプロパティ差分
- */
-export function persistEditedShopPatch(shopId: string, patch: Partial<Shop>): void {
-  try {
-    const editedMap = JSON.parse(localStorage.getItem(STORAGE_KEYS.EDITED_SHOPS) || '{}') as Record<
-      string,
-      Partial<Shop>
-    >;
-    editedMap[shopId] = patch;
-    localStorage.setItem(STORAGE_KEYS.EDITED_SHOPS, JSON.stringify(editedMap));
-  } catch (err) {
-    console.warn('店舗編集差分の保存に失敗しました:', err);
-  }
-}
-
-/**
- * 削除された店舗IDを `localStorage` の削除済みリストに追加します。
- *
- * @param shopId - 削除対象の店舗ID
- */
-export function persistDeletedShopId(shopId: string): void {
-  try {
-    const deletedIds = new Set<string>(
-      JSON.parse(localStorage.getItem(STORAGE_KEYS.DELETED_IDS) || '[]') as string[]
-    );
-    deletedIds.add(shopId);
-    localStorage.setItem(STORAGE_KEYS.DELETED_IDS, JSON.stringify(Array.from(deletedIds)));
-  } catch (err) {
-    console.warn('削除店舗IDの保存に失敗しました:', err);
+    return [];
   }
 }

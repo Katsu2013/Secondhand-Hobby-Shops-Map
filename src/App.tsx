@@ -13,41 +13,36 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   CATEGORY_MAP,
   CHAIN_GROUPS,
-  CHAIN_MAP,
-  classifyShopByName,
   deriveParentCategoriesFromSubCategories,
   estimateTravelInfo,
   evaluateClosingFeasibility,
   formatClockTimeFromMinutes,
   formatDurationMinutes,
-  getEffectiveShopSubCategories,
+  matchesShopCategories,
+  scopeShopAssortment,
   SUB_CATEGORIES,
   SUB_CATEGORY_MAP,
   TRAVEL_MODE_MAP,
-  TRAVEL_MODES,
 } from './config/shopMaster';
 import {
-  fetchOsrmOrFallbackRouteData,
   geocodeLocationQuery,
   loadGoogleMapsSdk,
   optimizeTourOrder,
   scanAreaForNewShops,
 } from './services/mapService';
 import {
-  fetchAndMergeShopsDatabase,
+  fetchShopsDatabase,
   loadGoogleApiKey,
   loadUserPreferencesFromStorage,
-  persistCustomShops,
-  persistDeletedShopId,
-  persistEditedShopPatch,
   saveGoogleApiKey,
   saveUserPreferencesToStorage,
 } from './services/storageService';
+import { calculateRoute, getDepartureDate } from './services/routeService';
 import { HeaderBar } from './components/HeaderBar';
 import { OptionsPanel } from './components/OptionsPanel';
 import { MapCanvas } from './components/MapCanvas';
 import { ShopListPanel } from './components/ShopListPanel';
-import { ApiKeyModal, ShopEditModal, type ShopFormSubmitData } from './components/Modals';
+import { ApiKeyModal } from './components/Modals';
 import type {
   ActiveRouteInfo,
   AreaPreset,
@@ -76,7 +71,7 @@ interface ToastItem {
 /**
  * スマートフォン表示時の下部タブ識別子型。
  */
-type MobileTabType = 'options' | 'map' | 'list';
+type MobileTabType = 'options' | 'split' | 'map' | 'list';
 
 /**
  * メインアプリケーションコンポーネント。
@@ -98,11 +93,6 @@ export const App: React.FC = () => {
   /** Google Directions Renderer の参照 */
   const googleDirRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
 
-  /** 現在の地図中心座標 */
-  const [center, setCenter] = useState<{ lat: number; lng: number }>({
-    lat: initialPrefs.origin.lat,
-    lng: initialPrefs.origin.lng,
-  });
   /** 地図カメラをプログラムから移動させるための命令オブジェクト */
   const [cameraTarget, setCameraTarget] = useState<{
     lat: number;
@@ -136,9 +126,10 @@ export const App: React.FC = () => {
     Boolean(initialPrefs.hideClosedOnArrival)
   );
   /** 出発時刻の基準モード（`'now'`: 現在時刻でリアルタイム判定 / `'custom'`: 任意時刻指定） */
-  const [departureTimeMode, setDepartureTimeMode] = useState<'now' | 'custom'>('now');
+  const [departureTimeMode, setDepartureTimeMode] = useState<'now' | 'custom'>(initialPrefs.departureTimeMode || 'now');
   /** 任意指定の出発時刻文字列（`"HH:MM"` 形式） */
   const [customDepartureTime, setCustomDepartureTime] = useState<string>(() => {
+    if (initialPrefs.customDepartureTime) return initialPrefs.customDepartureTime;
     const d = new Date();
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   });
@@ -174,8 +165,8 @@ export const App: React.FC = () => {
   /** 全国店舗データベースの全店舗リスト */
   const [allShops, setAllShops] = useState<Shop[]>([]);
   /** 実ルート検索結果のキャッシュ（キー: `${originLat},${originLng}->${shopId}:${mode}`） */
-  const [exactRouteCache, setExactRouteCache] = useState<
-    Map<string, { minutes: number; distanceKm: number }>
+  const [routeCache, setRouteCache] = useState<
+    Map<string, { minutes: number; distanceKm: number; trafficConsidered: boolean; calculatedAt: number }>
   >(() => new Map());
 
   /** 現在選択中の店舗ID */
@@ -183,7 +174,7 @@ export const App: React.FC = () => {
   /** 巡回（ハシゴ）ルートに追加された店舗ID配列 */
   const [tourShopIds, setTourShopIds] = useState<string[]>([]);
   /** ルート案内カードに表示する情報 */
-  const [activeRouteInfo, setActiveRouteInfo] = useState<ActiveRouteInfo | null>(null);
+  const [rawActiveRouteInfo, setActiveRouteInfo] = useState<ActiveRouteInfo | null>(null);
   /** 地図上に描画するカスタムルートポリライン座標（OSRM/直線用） */
   const [customRoutePath, setCustomRoutePath] = useState<{
     path: Array<[number, number]>;
@@ -193,19 +184,19 @@ export const App: React.FC = () => {
   /** 左オプションパネルの折りたたみ状態（デスクトップ用） */
   const [isOptionsCollapsed, setIsOptionsCollapsed] = useState<boolean>(false);
   /** モバイル表示時のアクティブタブ */
-  const [mobileTab, setMobileTab] = useState<MobileTabType>('map');
+  const [mobileTab, setMobileTab] = useState<MobileTabType>('split');
+  /** オプションを閉じた際に、直前の閲覧レイアウトへ戻すための記録 */
+  const lastMobileBrowseTab = useRef<Exclude<MobileTabType, 'options'>>('split');
+  if (mobileTab !== 'options') lastMobileBrowseTab.current = mobileTab;
   /** パネル開閉時に地図のリサイズを促すトリガーカウンタ */
   const [resizeTrigger, setResizeTrigger] = useState<number>(0);
 
   /** APIキー設定モーダルの開閉状態 */
   const [isApiModalOpen, setIsApiModalOpen] = useState<boolean>(false);
-  /** 店舗編集モーダルの開閉状態 */
-  const [isShopModalOpen, setIsShopModalOpen] = useState<boolean>(false);
-  /** 店舗編集モーダルで編集中の対象店舗（新規作成時は `null`） */
-  const [editingShop, setEditingShop] = useState<Shop | null>(null);
-
   /** トースト通知の配列状態 */
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  /** 現在検索する店舗ID。effectのcleanupにより古い検索の表示更新を中止します。 */
+  const [routeRequest, setRouteRequest] = useState<{ ids: string[]; isTour: boolean } | null>(null);
 
   // 現在時刻の分数（nowMinutesOfDay）を30秒ごとに自動更新し、リアルタイム閉店判定を最新に保つ
   useEffect(() => {
@@ -228,6 +219,14 @@ export const App: React.FC = () => {
     }
     return nowMinutesOfDay;
   }, [departureTimeMode, customDepartureTime, nowMinutesOfDay]);
+
+  /** 到着予測は現在の出発時刻と取得済み時間から導出し、一覧との不一致を避けます。 */
+  const activeRouteInfo = useMemo<ActiveRouteInfo | null>(() => {
+    if (!rawActiveRouteInfo) return null;
+    return { ...rawActiveRouteInfo, arrivalText: rawActiveRouteInfo.minutes !== undefined && rawActiveRouteInfo.destination
+      ? evaluateClosingFeasibility(rawActiveRouteInfo.destination.hours, rawActiveRouteInfo.minutes, effectiveDepartureMinutes).badgeLabel
+      : '到着予測を計算中...' };
+  }, [rawActiveRouteInfo, effectiveDepartureMinutes]);
 
   /**
    * 画面右下にトースト通知を3.4秒間表示します。
@@ -255,6 +254,7 @@ export const App: React.FC = () => {
       enabledSubCategories: Array.from(enabledSubCategories),
       categoryMatchMode,
       hideClosedOnArrival,
+      departureTimeMode, customDepartureTime,
     });
   }, [
     origin,
@@ -266,7 +266,7 @@ export const App: React.FC = () => {
     enabledCategories,
     enabledSubCategories,
     categoryMatchMode,
-    hideClosedOnArrival,
+    hideClosedOnArrival, departureTimeMode, customDepartureTime,
   ]);
 
   /**
@@ -278,9 +278,11 @@ export const App: React.FC = () => {
   const activateGoogleMapsEngine = useCallback(
     async (apiKey: string): Promise<void> => {
       try {
-        await loadGoogleMapsSdk(apiKey);
+        await loadGoogleMapsSdk(apiKey, () => {
+          setMapEngine('leaflet');
+          showToast('Google Mapsの認証に失敗したため内蔵マップへ切り替えました');
+        });
         setMapEngine('google');
-        showToast('本家 Google Maps API モードで起動しました！');
       } catch (err) {
         console.error('Google Maps API 初期化エラー（内蔵マップへフォールバック）:', err);
         showToast('Google Maps APIキーの認証に失敗したため、内蔵マップで表示します');
@@ -295,7 +297,7 @@ export const App: React.FC = () => {
   // 拒否・非対応・タイムアウトの場合は現在の初期位置（東京・秋葉原駅周辺など）をそのまま維持する。
   useEffect(() => {
     let isMounted = true;
-    fetchAndMergeShopsDatabase().then((shops) => {
+    fetchShopsDatabase().then((shops) => {
       if (isMounted) {
         setAllShops(shops);
       }
@@ -310,7 +312,6 @@ export const App: React.FC = () => {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           setOrigin({ lat, lng, name: '現在地 (GPS)' });
-          setCenter({ lat, lng });
           setCameraTarget((prev) => ({
             lat,
             lng,
@@ -347,21 +348,16 @@ export const App: React.FC = () => {
       const hasChain = shopChains.some((cid) => enabledChains.has(cid));
       if (!hasChain) return acc;
 
+      shop = scopeShopAssortment(shop, enabledChains);
+
       // 2. 詳細サブジャンル（27区分）フィルタ
-      if (enabledSubCategories.size === 0) return acc;
-      const shopSubs = getEffectiveShopSubCategories(shop);
-      if (categoryMatchMode === 'AND') {
-        for (const reqSub of enabledSubCategories) {
-          if (!shopSubs.includes(reqSub)) return acc;
-        }
-      } else {
-        const hasSub = shopSubs.some((sid) => enabledSubCategories.has(sid));
-        if (!hasSub) return acc;
-      }
+      if (!matchesShopCategories(shop, enabledSubCategories, categoryMatchMode)) return acc;
 
       // 3. 所要時間と距離の算出（実ルートキャッシュがあれば優先利用、なければ速度モデル推計）
-      const cacheKey = `${oLat.toFixed(4)},${oLng.toFixed(4)}->${shop.id}:${travelMode}`;
-      const exact = exactRouteCache.get(cacheKey);
+      const cacheKey = `${oLat},${oLng}->${shop.id}:${shop.lat},${shop.lng}:${travelMode}:${mapEngine}:${departureTimeMode}:${customDepartureTime}`;
+      /** 交通情報の古い値を使い続けないためキャッシュを5分で失効させます。 */
+      const cached = routeCache.get(cacheKey);
+      const exact = cached && Date.now() - cached.calculatedAt < 300000 ? cached : undefined;
       const est = estimateTravelInfo(oLat, oLng, shop.lat, shop.lng, travelMode);
 
       const baseTravel = exact
@@ -373,7 +369,7 @@ export const App: React.FC = () => {
               exact.distanceKm < 10
                 ? `${exact.distanceKm.toFixed(1)}km`
                 : `${Math.round(exact.distanceKm)}km`,
-            isExact: true,
+            trafficConsidered: exact.trafficConsidered,
           }
         : est;
 
@@ -411,7 +407,7 @@ export const App: React.FC = () => {
     enabledChains,
     enabledSubCategories,
     categoryMatchMode,
-    exactRouteCache,
+    routeCache, mapEngine, departureTimeMode, customDepartureTime,
     effectiveDepartureMinutes,
     hideClosedOnArrival,
   ]);
@@ -464,6 +460,8 @@ export const App: React.FC = () => {
    * 地図上に表示中のルートラインとルート案内カードを消去します。
    */
   const clearActiveRoute = useCallback((): void => {
+    setRouteRequest(null);
+    setSelectedShopId(null);
     setActiveRouteInfo(null);
     setCustomRoutePath(null);
     if (googleDirRendererRef.current) {
@@ -472,196 +470,66 @@ export const App: React.FC = () => {
   }, []);
 
   /**
-   * 単一店舗への実道路ルートを計算して地図およびルート案内カードに表示します。
-   *
-   * @param shop - 目的地となる店舗オブジェクト
-   * @param currentOrigin - 出発地情報
-   * @param currentModeId - アクセス手段ID
+   * 単一店舗への検索要求を更新します。
+   * @param shop - 選択された店舗
    */
-  const calculateAndDisplaySingleRoute = useCallback(
-    async (
-      shop: Shop,
-      currentOrigin: OriginLocation,
-      currentModeId: TravelModeId
-    ): Promise<void> => {
-      const mode = TRAVEL_MODE_MAP[currentModeId] || TRAVEL_MODES[0];
-      const gmapsMode = mode.googleMode.toLowerCase();
-      const dirFlg = mode.id === 'DRIVING_NO_TOLL' ? '&dirflg=t' : '';
-      const navUrl = `https://www.google.com/maps/dir/?api=1&origin=${currentOrigin.lat},${currentOrigin.lng}&destination=${shop.lat},${shop.lng}&travelmode=${gmapsMode}${dirFlg}`;
-
-      // まずは概算値でルート案内カードを即座に開く
-      const initClosing = evaluateClosingFeasibility(
-        shop.hours,
-        shop._travel?.estMinutes ?? 20,
-        effectiveDepartureMinutes
-      );
-      setActiveRouteInfo({
-        modeBadge: `${mode.icon} ${mode.name}`,
-        title: `${currentOrigin.name} ➔ ${shop.name}`,
-        durationText: `約${shop._travel?.formattedTime || '--'}`,
-        distanceText: shop._travel?.formattedDist || '--',
-        engineText: `${initClosing.badgeLabel} (ルート検索中...)`,
-        googleMapsNavUrl: navUrl,
-        waypoints: [],
-      });
-
-      const cacheKey = `${currentOrigin.lat.toFixed(4)},${currentOrigin.lng.toFixed(4)}->${shop.id}:${currentModeId}`;
-
-      // 1. Google Maps Directions API が利用可能な場合
-      if (mapEngine === 'google' && googleDirServiceRef.current && window.google?.maps) {
-        const req: google.maps.DirectionsRequest = {
-          origin: { lat: currentOrigin.lat, lng: currentOrigin.lng },
-          destination: { lat: shop.lat, lng: shop.lng },
-          travelMode: google.maps.TravelMode[mode.googleMode],
-          avoidHighways: Boolean(mode.avoidHighways),
-          avoidTolls: Boolean(mode.avoidTolls),
-        };
-
-        googleDirServiceRef.current.route(req, async (result, status) => {
-          if (status === google.maps.DirectionsStatus.OK && result?.routes?.[0]?.legs?.[0]) {
-            setCustomRoutePath(null);
-            googleDirRendererRef.current?.setDirections(result);
-            const leg = result.routes[0].legs[0];
-            const mins = Math.max(1, Math.round((leg.duration?.value || 60) / 60));
-            const distKm = (leg.distance?.value || 1000) / 1000;
-
-            setExactRouteCache((prev) => {
-              const next = new Map(prev);
-              next.set(cacheKey, { minutes: mins, distanceKm: distKm });
-              return next;
-            });
-
-            const exactClosing = evaluateClosingFeasibility(
-              shop.hours,
-              mins,
-              effectiveDepartureMinutes
-            );
-            setActiveRouteInfo({
-              modeBadge: `${mode.icon} ${mode.name}`,
-              title: `${currentOrigin.name} ➔ ${shop.name}`,
-              durationText: formatDurationMinutes(mins),
-              distanceText: `${distKm.toFixed(1)}km`,
-              engineText: `${exactClosing.badgeLabel}`,
-              googleMapsNavUrl: navUrl,
-              waypoints: [],
-            });
-          } else {
-            // 日本のTRANSIT等でGoogle Directionsがルートを返さない場合はOSRMへフォールバック
-            const osrmRes = await fetchOsrmOrFallbackRouteData(currentOrigin, [shop], mode);
-            setCustomRoutePath({ path: osrmRes.latLngPath, isDashed: !osrmRes.isRoadRoute });
-            if (osrmRes.isRoadRoute) {
-              setExactRouteCache((prev) => {
-                const next = new Map(prev);
-                next.set(cacheKey, { minutes: osrmRes.minutes, distanceKm: osrmRes.distanceKm });
-                return next;
-              });
-            }
-            const osrmClosing = evaluateClosingFeasibility(
-              shop.hours,
-              osrmRes.minutes,
-              effectiveDepartureMinutes
-            );
-            setActiveRouteInfo({
-              modeBadge: `${mode.icon} ${mode.name}`,
-              title: `${currentOrigin.name} ➔ ${shop.name}`,
-              durationText: formatDurationMinutes(osrmRes.minutes),
-              distanceText: `${osrmRes.distanceKm.toFixed(1)}km`,
-              engineText: `${osrmClosing.badgeLabel}`,
-              googleMapsNavUrl: navUrl,
-              waypoints: [],
-            });
-          }
-        });
-        return;
-      }
-
-      // 2. Leaflet + OSRM ルート計算
-      const osrmRes = await fetchOsrmOrFallbackRouteData(currentOrigin, [shop], mode);
-      setCustomRoutePath({ path: osrmRes.latLngPath, isDashed: !osrmRes.isRoadRoute });
-      if (osrmRes.isRoadRoute) {
-        setExactRouteCache((prev) => {
-          const next = new Map(prev);
-          next.set(cacheKey, { minutes: osrmRes.minutes, distanceKm: osrmRes.distanceKm });
-          return next;
-        });
-      }
-      const osrmClosing = evaluateClosingFeasibility(
-        shop.hours,
-        osrmRes.minutes,
-        effectiveDepartureMinutes
-      );
-      setActiveRouteInfo({
-        modeBadge: `${mode.icon} ${mode.name}`,
-        title: `${currentOrigin.name} ➔ ${shop.name}`,
-        durationText: formatDurationMinutes(osrmRes.minutes),
-        distanceText: `${osrmRes.distanceKm.toFixed(1)}km`,
-        engineText: `${osrmClosing.badgeLabel}`,
-        googleMapsNavUrl: navUrl,
-        waypoints: [],
-      });
-    },
-    [mapEngine, effectiveDepartureMinutes]
-  );
+  const calculateAndDisplaySingleRoute = useCallback((shop: Shop): void => {
+    setRouteRequest({ ids: [shop.id], isTour: false });
+  }, []);
 
   /**
-   * 巡回（ハシゴ）リストに登録された複数店舗を最適順序に並べ替え、一括ルートを計算・描画します。
-   *
-   * @param targetIds - 巡回対象の店舗ID配列
-   * @param currentOrigin - 出発地情報
-   * @param currentModeId - アクセス手段ID
+   * 最近傍順で巡回ルートを計算する要求を登録します。
+   * @param ids - 巡回対象の店舗ID
    */
-  const calculateAndDisplayTourRoute = useCallback(
-    async (
-      targetIds: readonly string[],
-      currentOrigin: OriginLocation,
-      currentModeId: TravelModeId
-    ): Promise<void> => {
-      const shops = targetIds
-        .map((id) => allShops.find((s) => s.id === id))
-        .filter((s): s is Shop => Boolean(s));
-      if (shops.length === 0) return;
+  const calculateAndDisplayTourRoute = useCallback((ids: readonly string[]): void => {
+    setRouteRequest({ ids: [...ids], isTour: true });
+  }, []);
 
-      const ordered = optimizeTourOrder(currentOrigin, shops);
-      const mode = TRAVEL_MODE_MAP[currentModeId] || TRAVEL_MODES[0];
-      const dest = ordered[ordered.length - 1];
-      const waypointsParam =
-        ordered.length > 1
-          ? '&waypoints=' +
-            ordered
-              .slice(0, -1)
-              .map((w) => `${w.lat},${w.lng}`)
-              .join('|')
-          : '';
-      const gmapsMode = mode.googleMode.toLowerCase();
-      const navUrl = `https://www.google.com/maps/dir/?api=1&origin=${currentOrigin.lat},${currentOrigin.lng}&destination=${dest.lat},${dest.lng}${waypointsParam}&travelmode=${gmapsMode}`;
-
-      setActiveRouteInfo({
-        modeBadge: `${mode.icon} ${ordered.length}店舗ハシゴ巡回ルート`,
-        title: `${currentOrigin.name} 発 ➔ ${ordered.length}店舗巡回`,
-        durationText: '計算中...',
-        distanceText: '--',
-        engineText: '巡回ルート計算中...',
-        googleMapsNavUrl: navUrl,
-        waypoints: ordered,
+  // 条件変更時にも再検索し、cleanupで前の応答を破棄する。時計更新だけでは課金APIを再呼出ししない。
+  useEffect(() => {
+    if (!routeRequest) return;
+    /** 古い応答の反映と通信を中止する制御 */
+    const controller = new AbortController();
+    /** 最新DBから取得した訪問対象 */
+    const targets = routeRequest.ids.map(id => allShops.find(shop => shop.id === id)).filter((shop): shop is Shop => Boolean(shop));
+    if (!targets.length) { setActiveRouteInfo(null); setCustomRoutePath(null); return; }
+    /** 訪問順。単一店舗選択では余計な最適化を行いません。 */
+    const ordered = routeRequest.isTour ? optimizeTourOrder(origin, targets) : targets;
+    /** 最終到着店舗 */
+    const destination = ordered[ordered.length - 1];
+    /** 選択した移動手段 */
+    const mode = TRAVEL_MODE_MAP[travelMode];
+    /** URLの経由地はパラメータとして正しくエンコードします。 */
+    const params = new URLSearchParams({ api: '1', origin: origin.lat + ',' + origin.lng,
+      destination: destination.lat + ',' + destination.lng, travelmode: mode.googleMode.toLowerCase() });
+    if (ordered.length > 1) params.set('waypoints', ordered.slice(0, -1).map(shop => shop.lat + ',' + shop.lng).join('|'));
+    if (mode.avoidTolls) params.set('avoid', 'tolls,highways');
+    /** 検索中・結果で共有するカード情報 */
+    const card = { modeBadge: mode.icon + ' ' + mode.name, title: origin.name + ' ➔ ' + (ordered.length > 1 ? ordered.length + '店舗巡回' : destination.name),
+      googleMapsNavUrl: 'https://www.google.com/maps/dir/?' + params.toString(), waypoints: routeRequest.isTour ? ordered : [], destination };
+    setCustomRoutePath(null);
+    googleDirRendererRef.current?.set('directions', null);
+    setActiveRouteInfo({ ...card, durationText: '計算中...', distanceText: '--', engineText: 'ルート検索中...' });
+    /** APIの出発日時。過去の指定時刻は翌日に補正します。 */
+    const departure = getDepartureDate(departureTimeMode, customDepartureTime);
+    calculateRoute(origin, ordered, travelMode, departure, mapEngine === 'google' ? googleDirServiceRef.current : null, controller.signal)
+      .then(result => {
+        if (controller.signal.aborted) return;
+        setCustomRoutePath({ path: result.path, isDashed: !result.isRoadRoute });
+        setActiveRouteInfo({ ...card, minutes: result.minutes, durationText: '約' + formatDurationMinutes(result.minutes),
+          distanceText: result.distanceKm.toFixed(1) + 'km', engineText: result.description + '（' +
+            new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) + '取得）' + (ordered.length > 1 ? '・店内滞在時間は含みません' : '') });
+        if (!routeRequest.isTour) {
+          /** 出発条件と目的地座標を含め、別条件の推計値を流用しません。 */
+          const key = origin.lat + ',' + origin.lng + '->' + destination.id + ':' + destination.lat + ',' + destination.lng + ':' + travelMode + ':' + mapEngine + ':' + departureTimeMode + ':' + customDepartureTime;
+          setRouteCache(previous => new Map(previous).set(key, { minutes: result.minutes, distanceKm: result.distanceKm,
+            trafficConsidered: result.trafficConsidered, calculatedAt: Date.now() }));
+        }
+      }).catch(error => {
+        if (!controller.signal.aborted) { console.error(error); showToast('ルート検索に失敗しました。再度店舗を選択してください。'); setActiveRouteInfo(null); }
       });
-
-      const osrmRes = await fetchOsrmOrFallbackRouteData(currentOrigin, ordered, mode);
-      if (googleDirRendererRef.current) {
-        googleDirRendererRef.current.set('directions', null);
-      }
-      setCustomRoutePath({ path: osrmRes.latLngPath, isDashed: !osrmRes.isRoadRoute });
-      setActiveRouteInfo({
-        modeBadge: `${mode.icon} ${ordered.length}店舗ハシゴ巡回ルート`,
-        title: `${currentOrigin.name} 発 ➔ ${ordered.length}店舗巡回`,
-        durationText: formatDurationMinutes(osrmRes.minutes),
-        distanceText: `${osrmRes.distanceKm.toFixed(1)}km`,
-        engineText: osrmRes.isRoadRoute ? '実道路ルート計算済' : '概算ルート',
-        googleMapsNavUrl: navUrl,
-        waypoints: ordered,
-      });
-    },
-    [allShops]
-  );
+    return () => controller.abort();
+  }, [routeRequest, origin, travelMode, mapEngine, departureTimeMode, customDepartureTime, allShops, showToast]);
 
   /**
    * 出発地を新しい座標・名称に更新し、必要に応じて地図カメラを移動させます。
@@ -682,7 +550,6 @@ export const App: React.FC = () => {
     ): void => {
       setOrigin({ lat, lng, name });
       if (panMap) {
-        setCenter({ lat, lng });
         setCameraTarget((prev) => ({
           lat,
           lng,
@@ -702,13 +569,15 @@ export const App: React.FC = () => {
    */
   const handleSelectShop = useCallback(
     (shop: Shop): void => {
+      // 一覧だけを見ている場合も、選択した経路がその場で見える同時表示へ戻す。
+      setMobileTab(current => current === 'list' ? 'split' : current);
       setSelectedShopId(shop.id);
       setCameraTarget((prev) => ({
         lat: shop.lat,
         lng: shop.lng,
         seq: prev.seq + 1,
       }));
-      calculateAndDisplaySingleRoute(shop, origin, travelMode);
+      calculateAndDisplaySingleRoute(shop);
     },
     [calculateAndDisplaySingleRoute, origin, travelMode]
   );
@@ -719,29 +588,9 @@ export const App: React.FC = () => {
    *
    * @param modeId - 新しく選択されたアクセス手段ID
    */
-  const handleSelectTravelMode = useCallback(
-    (modeId: TravelModeId): void => {
-      if (!TRAVEL_MODE_MAP[modeId]) return;
-      setTravelMode(modeId);
-
-      if (tourShopIds.length > 0) {
-        calculateAndDisplayTourRoute(tourShopIds, origin, modeId);
-      } else if (selectedShopId) {
-        const shop = filteredShops.find((s) => s.id === selectedShopId);
-        if (shop) {
-          calculateAndDisplaySingleRoute(shop, origin, modeId);
-        }
-      }
-    },
-    [
-      tourShopIds,
-      selectedShopId,
-      filteredShops,
-      origin,
-      calculateAndDisplayTourRoute,
-      calculateAndDisplaySingleRoute,
-    ]
-  );
+  const handleSelectTravelMode = useCallback((modeId: TravelModeId): void => {
+    if (TRAVEL_MODE_MAP[modeId]) setTravelMode(modeId);
+  }, []);
 
   /**
    * 巡回（ハシゴ）リストへの店舗追加・解除をトグルするハンドラ。
@@ -750,6 +599,7 @@ export const App: React.FC = () => {
    */
   const handleToggleTourShop = useCallback(
     (shopId: string): void => {
+      clearActiveRoute();
       setTourShopIds((prev) => {
         const idx = prev.indexOf(shopId);
         let next: string[];
@@ -763,15 +613,10 @@ export const App: React.FC = () => {
           next = [...prev, shopId];
         }
 
-        if (next.length > 0) {
-          calculateAndDisplayTourRoute(next, origin, travelMode);
-        } else {
-          clearActiveRoute();
-        }
         return next;
       });
     },
-    [showToast, calculateAndDisplayTourRoute, origin, travelMode, clearActiveRoute]
+    [showToast, clearActiveRoute]
   );
 
   /**
@@ -827,160 +672,18 @@ export const App: React.FC = () => {
     showToast('🔍 表示中エリアの中古ショップをリアルタイム探索中...');
     const newlyFound = await scanAreaForNewShops(mapBounds, allShops, googleMapRef.current);
     if (newlyFound.length > 0) {
-      setAllShops((prev) => {
-        const updated = [...prev, ...newlyFound];
-        persistCustomShops(updated);
-        return updated;
-      });
-      showToast(`✨ 新たに ${newlyFound.length} 店舗を発見してマップに追加しました！`);
+      // 探索結果は閲覧中だけ補完し、次回起動時は自動更新された配布DBを基準にします。
+      setAllShops((prev) => [...prev, ...newlyFound]);
+      showToast(`✨ 新たに ${newlyFound.length} 店舗を一時表示しました（再読み込みで解除）`);
     } else {
       showToast('このエリアの該当店舗はすでにすべて表示されています！');
     }
   }, [mapBounds, allShops, showToast]);
 
-  /**
-   * 店舗追加・編集モーダルからの保存処理ハンドラ。
-   *
-   * @param formData - 入力された店舗フォームデータ
-   */
-  const handleSaveShopModal = useCallback(
-    (formData: ShopFormSubmitData): void => {
-      if (!formData.name || Number.isNaN(formData.lat) || Number.isNaN(formData.lng)) {
-        showToast('店舗名と緯度・経度を正しく入力してください');
-        return;
-      }
-
-      const inferred = classifyShopByName(formData.name);
-      const chains = Array.from(new Set<ChainId>([formData.chain, ...inferred.chains]));
-
-      if (formData.id) {
-        // 既存店舗の更新
-        const patch: Partial<Shop> = {
-          name: formData.name,
-          chain: formData.chain,
-          chains,
-          brands: inferred.brands,
-          categories: formData.categories,
-          subCategories: formData.subCategories,
-          lat: formData.lat,
-          lng: formData.lng,
-          address: formData.address,
-          hours: formData.hours,
-        };
-        persistEditedShopPatch(formData.id, patch);
-        setAllShops((prev) =>
-          prev.map((s) => (s.id === formData.id ? { ...s, ...patch } : s))
-        );
-        showToast(`「${formData.name}」の情報を更新しました`);
-      } else {
-        // 新規店舗の追加
-        const newShop: Shop = {
-          id: `user_${Date.now()}`,
-          name: formData.name,
-          chain: formData.chain,
-          chains,
-          brands: inferred.brands,
-          subBrand: CHAIN_MAP[formData.chain]?.shortName || '',
-          categories: formData.categories,
-          subCategories: formData.subCategories,
-          lat: formData.lat,
-          lng: formData.lng,
-          address: formData.address,
-          hours: formData.hours,
-          isCustom: true,
-        };
-        setAllShops((prev) => {
-          const updated = [...prev, newShop];
-          persistCustomShops(updated);
-          return updated;
-        });
-        showToast(`「${formData.name}」を追加しました！`);
-      }
-
-      setIsShopModalOpen(false);
-    },
-    [showToast]
-  );
-
-  /**
-   * 店舗編集モーダルからの削除処理ハンドラ。
-   *
-   * @param shopId - 削除する店舗ID
-   */
-  const handleDeleteShopModal = useCallback(
-    (shopId: string): void => {
-      persistDeletedShopId(shopId);
-      setAllShops((prev) => {
-        const updated = prev.filter((s) => s.id !== shopId);
-        persistCustomShops(updated);
-        return updated;
-      });
-      setIsShopModalOpen(false);
-      showToast('店舗データを削除しました');
-    },
-    [showToast]
-  );
-
-  /**
-   * 現在の全店舗データをJSONファイルとしてダウンロード書き出しするハンドラ。
-   */
-  const handleExportJson = useCallback((): void => {
-    const cleanData = allShops.map(({ _travel, ...rest }) => rest);
-    const blob = new Blob([JSON.stringify(cleanData, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `reuse_shops_japan_${cleanData.length}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast(`全国 ${cleanData.length} 店舗のデータをJSON書き出ししました`);
-  }, [allShops, showToast]);
-
-  /**
-   * JSONファイルから店舗データをインポートするハンドラ。
-   *
-   * @param file - ユーザーが選択したJSONファイル
-   */
-  const handleImportJsonFile = useCallback(
-    async (file: File): Promise<void> => {
-      try {
-        const text = await file.text();
-        const imported = JSON.parse(text) as Shop[];
-        if (!Array.isArray(imported)) {
-          throw new Error('Invalid JSON array');
-        }
-        let addedCount = 0;
-        setAllShops((prev) => {
-          const existingIds = new Set(prev.map((s) => s.id));
-          const next = [...prev];
-          for (const item of imported) {
-            if (item.name && typeof item.lat === 'number' && typeof item.lng === 'number') {
-              if (!existingIds.has(item.id)) {
-                next.push({ ...item, isCustom: true });
-                existingIds.add(item.id);
-                addedCount += 1;
-              }
-            }
-          }
-          persistCustomShops(next);
-          return next;
-        });
-        showToast(`${addedCount} 件の店舗データをインポートしました！`);
-      } catch {
-        showToast('JSONファイルの形式が正しくありません');
-      }
-    },
-    [showToast]
-  );
-
   return (
     <>
       {/* 1. 上部ヘッダーバー */}
       <HeaderBar
-        mapEngine={mapEngine}
-        isGoogleConnected={mapEngine === 'google'}
         totalDbCount={allShops.length}
         travelMode={travelMode}
         onSelectTravelMode={handleSelectTravelMode}
@@ -990,26 +693,29 @@ export const App: React.FC = () => {
         onScanArea={handleScanCurrentArea}
         onToggleOptionsPanel={() => {
           setIsOptionsCollapsed((prev) => !prev);
-          setMobileTab('options');
+          setMobileTab(mobileTab === 'options' ? lastMobileBrowseTab.current : 'options');
           setTimeout(() => setResizeTrigger((c) => c + 1), 280);
         }}
         onOpenApiModal={() => setIsApiModalOpen(true)}
       />
 
       {/* 2. メインワークスペース（3カラム：左オプション / 中央マップ / 右リスト） */}
-      <main className="app-workspace">
+      <main className={`app-workspace mobile-view-${mobileTab}`}>
         <OptionsPanel
           isCollapsed={isOptionsCollapsed}
           isMobileVisible={mobileTab === 'options'}
           onClosePanel={() => {
             setIsOptionsCollapsed(true);
-            setMobileTab('map');
+            setMobileTab(lastMobileBrowseTab.current);
             setTimeout(() => setResizeTrigger((c) => c + 1), 280);
           }}
           origin={origin}
           isPickingOrigin={isPickingOrigin}
           onUseGpsOrigin={handleUseGpsOrigin}
-          onTogglePickOriginMap={() => setIsPickingOrigin((prev) => !prev)}
+          onTogglePickOriginMap={() => {
+            setIsPickingOrigin((prev) => !prev);
+            setMobileTab('map');
+          }}
           onSearchOrigin={handleSearchOrigin}
           travelMode={travelMode}
           onSelectTravelMode={handleSelectTravelMode}
@@ -1081,12 +787,7 @@ export const App: React.FC = () => {
           categoryMatchMode={categoryMatchMode}
           onChangeCategoryMatchMode={setCategoryMatchMode}
           allShops={allShops}
-          onOpenAddShopModal={() => {
-            setEditingShop(null);
-            setIsShopModalOpen(true);
-          }}
-          onExportJson={handleExportJson}
-          onImportJsonFile={handleImportJsonFile}
+
         />
 
         <MapCanvas
@@ -1105,8 +806,7 @@ export const App: React.FC = () => {
             setIsPickingOrigin(false);
             showToast('クリックした地点を出発地に設定しました！');
           }}
-          onViewportChanged={(newCenter, _newZoom, newBounds) => {
-            setCenter(newCenter);
+          onViewportChanged={(_newCenter, _newZoom, newBounds) => {
             setMapBounds(newBounds);
           }}
           viewportShops={viewportShops}
@@ -1130,7 +830,7 @@ export const App: React.FC = () => {
         />
 
         <ShopListPanel
-          isMobileVisible={mobileTab === 'list'}
+          isMobileVisible={mobileTab === 'list' || mobileTab === 'split'}
           onBackToMapMobile={() => {
             setMobileTab('map');
             setResizeTrigger((c) => c + 1);
@@ -1140,6 +840,7 @@ export const App: React.FC = () => {
           tourShopIds={tourShopIds}
           travelMode={travelMode}
           enabledSubCategories={enabledSubCategories}
+          enabledChains={enabledChains}
           listSearchText={listSearchText}
           onChangeListSearchText={setListSearchText}
           sortBy={sortBy}
@@ -1150,11 +851,11 @@ export const App: React.FC = () => {
             setTourShopIds([]);
             clearActiveRoute();
           }}
-          onCalculateTourRoute={() => calculateAndDisplayTourRoute(tourShopIds, origin, travelMode)}
-          onOpenEditShopModal={(shop) => {
-            setEditingShop(shop);
-            setIsShopModalOpen(true);
+          onCalculateTourRoute={() => {
+            setMobileTab(current => current === 'list' ? 'split' : current);
+            calculateAndDisplayTourRoute(tourShopIds);
           }}
+
         />
       </main>
 
@@ -1164,6 +865,7 @@ export const App: React.FC = () => {
           type="button"
           id="mob-btn-options"
           className={`mob-nav-btn ${mobileTab === 'options' ? 'active' : ''}`}
+          aria-pressed={mobileTab === 'options'}
           onClick={() => {
             setIsOptionsCollapsed(false);
             setMobileTab('options');
@@ -1172,27 +874,34 @@ export const App: React.FC = () => {
           <span>⚙️</span>
           <span>オプション</span>
         </button>
+        <button type="button" id="mob-btn-split"
+          className={`mob-nav-btn ${mobileTab === 'split' ? 'active' : ''}`}
+          aria-pressed={mobileTab === 'split'} onClick={() => setMobileTab('split')}>
+          <span>▤</span><span>地図＋一覧</span>
+        </button>
         <button
           type="button"
           id="mob-btn-map"
           className={`mob-nav-btn ${mobileTab === 'map' ? 'active' : ''}`}
+          aria-pressed={mobileTab === 'map'}
           onClick={() => {
             setMobileTab('map');
             setResizeTrigger((c) => c + 1);
           }}
         >
           <span>🗺️</span>
-          <span>マップ</span>
+          <span>地図のみ</span>
         </button>
         <button
           type="button"
           id="mob-btn-list"
           className={`mob-nav-btn ${mobileTab === 'list' ? 'active' : ''}`}
+          aria-pressed={mobileTab === 'list'}
           onClick={() => setMobileTab('list')}
         >
           <span>📋</span>
           <span>
-            店舗一覧 (<b id="mob-shop-count">{viewportShops.length.toLocaleString()}</b>)
+            一覧 (<b id="mob-shop-count">{viewportShops.length.toLocaleString()}</b>)
           </span>
         </button>
       </nav>
@@ -1210,7 +919,8 @@ export const App: React.FC = () => {
           setGoogleApiKey(key);
           saveGoogleApiKey(key);
           setIsApiModalOpen(false);
-          await activateGoogleMapsEngine(key);
+          if (window.google?.maps) window.location.reload();
+          else await activateGoogleMapsEngine(key);
         }}
         onClearApiKey={() => {
           setGoogleApiKey('');
@@ -1220,17 +930,7 @@ export const App: React.FC = () => {
         }}
       />
 
-      {/* 5. 店舗情報の追加・編集モーダル */}
-      <ShopEditModal
-        isOpen={isShopModalOpen}
-        editingShop={editingShop}
-        defaultCenter={center}
-        onClose={() => setIsShopModalOpen(false)}
-        onSaveShop={handleSaveShopModal}
-        onDeleteShop={handleDeleteShopModal}
-      />
-
-      {/* 6. トースト通知コンテナ */}
+      {/* 5. トースト通知コンテナ */}
       <div id="toast-container" className="toast-container" aria-live="polite">
         {toasts.map((t) => (
           <div key={t.id} className="toast-msg">

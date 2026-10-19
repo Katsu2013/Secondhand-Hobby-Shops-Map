@@ -19,5 +19,7 @@ export default defineConfig({
   server: {
     port: 8080,
     strictPort: false,
+    /** 店舗データ調査用のキャッシュは画面のホットリロードを必要としません。 */
+    watch: { ignored: ['**/scripts/research-cache/**'] },
   },
 });

@@ -2,19 +2,22 @@
  * @file src/components/ShopListPanel.tsx
  * @description 画面右側に配置される「表示エリア内の店舗一覧」パネルコンポーネント。
  * 現在地図の画面内に収まっているフィルタ済み店舗を所要時間が短い順などに並べて表示し、
- * ワンクリックでのルート表示、複数店舗の巡回（ハシゴ）ルート追加、店舗情報の編集機能を提供します。
+ * ワンクリックでのルート表示、複数店舗の巡回（ハシゴ）ルート追加機能を提供します。
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   CHAIN_GROUPS,
   CHAIN_MAP,
+  CATEGORY_MAP,
   getEffectiveShopSubCategories,
+  getShopActivePlates,
+  getGeoAssortmentNotice,
   SUB_CATEGORY_MAP,
   TRAVEL_MODE_MAP,
   TRAVEL_MODES,
 } from '../config/shopMaster';
-import type { Shop, SortByMode, SubCategoryId, TravelModeId } from '../types/shop';
+import type { ChainId, Shop, SortByMode, SubCategoryId, TravelModeId } from '../types/shop';
 
 /**
  * `ShopListPanel` コンポーネントのPropsインターフェース。
@@ -34,6 +37,8 @@ export interface ShopListPanelProps {
   travelMode: TravelModeId;
   /** 現在ONになっている詳細サブジャンルIDのSet（店舗カード上のタグ強調表示用） */
   enabledSubCategories?: ReadonlySet<SubCategoryId>;
+  /** マップと同じ業態のロゴだけを表示するための有効チェーン */
+  enabledChains: ReadonlySet<ChainId>;
   /** リスト内キーワード絞り込みテキスト */
   listSearchText: string;
   /** リスト内キーワード変更時のコールバック */
@@ -50,8 +55,6 @@ export interface ShopListPanelProps {
   onClearTour: () => void;
   /** 巡回リストの全店舗を通る最適ハシゴルートを計算・描画するコールバック */
   onCalculateTourRoute: () => void;
-  /** 店舗カードの「編集」ボタンをクリックした際のコールバック */
-  onOpenEditShopModal: (shop: Shop) => void;
 }
 
 /**
@@ -72,6 +75,7 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
   tourShopIds,
   travelMode,
   enabledSubCategories,
+  enabledChains,
   listSearchText,
   onChangeListSearchText,
   sortBy,
@@ -80,12 +84,16 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
   onToggleTourShop,
   onClearTour,
   onCalculateTourRoute,
-  onOpenEditShopModal,
 }) => {
   /** 現在の移動手段オブジェクト */
   const currentMode = TRAVEL_MODE_MAP[travelMode] || TRAVEL_MODES[0];
   /** パフォーマンス維持のため上位120件に切り出した店舗配列 */
-  const listItems = viewportShops.slice(0, 120);
+  /** 続きを表示することで120件以降も選択可能にします。 */
+  const [displayLimit, setDisplayLimit] = useState(120);
+  /** スマホで一覧性を保ちつつ、必要な店舗の詳細だけ展開する状態 */
+  const [expandedDetails, setExpandedDetails] = useState<ReadonlySet<string>>(new Set());
+  /** 現在表示するカード */
+  const listItems = viewportShops.slice(0, displayLimit);
 
   return (
     <aside
@@ -104,7 +112,7 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
           className="panel-close-btn show-mobile-only"
           onClick={onBackToMapMobile}
         >
-          地図へ戻る
+          地図のみ
         </button>
       </div>
 
@@ -114,7 +122,8 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
           type="text"
           id="input-list-filter"
           className="list-search-input"
-          placeholder="表示中の店名・市区町村で絞り込み..."
+          placeholder="店名・市区町村"
+          aria-label="店舗一覧を店名・市区町村で絞り込み"
           value={listSearchText}
           onChange={(e) => onChangeListSearchText(e.target.value)}
         />
@@ -176,10 +185,11 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
         ) : (
           listItems.map((shop) => {
             const primaryChain = CHAIN_MAP[shop.chain] || CHAIN_GROUPS[0];
-            const shopChains = shop.chains && shop.chains.length > 0 ? shop.chains : [shop.chain];
             const isSelected = shop.id === selectedShopId;
             const inTour = tourShopIds.includes(shop.id);
             const travel = shop._travel;
+            /** モバイルの詳細を閉じても、通常ゲオの取得範囲の制限は常に読めるようにします。 */
+            const assortmentNotice = getGeoAssortmentNotice(shop);
 
             return (
               <div
@@ -188,36 +198,31 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
                 style={{ '--card-chain-color': primaryChain.color } as React.CSSProperties}
                 onClick={() => onSelectShop(shop)}
               >
+                <div className="shop-brand-plates" aria-label="店舗ブランド">
+                  {getShopActivePlates(shop, enabledChains).map((plate, index) => (
+                    <div key={`${plate.chainId}-${index}`} className={`brand-plate ${plate.cls}`}
+                      dangerouslySetInnerHTML={{ __html: plate.html }} />
+                  ))}
+                </div>
                 <div className="shop-card-top">
                   <div className="shop-card-title-group">
-                    <div className="shop-chain-pills">
-                      {shopChains.map((cid) => {
-                        const c = CHAIN_MAP[cid];
-                        if (!c) return null;
-                        return (
-                          <span key={cid} className="chain-tag" style={{ background: c.color }}>
-                            {c.icon} {c.shortName}
-                          </span>
-                        );
-                      })}
-                    </div>
                     <div className="shop-card-name">{shop.name}</div>
                   </div>
 
                   <div
-                    className={`shop-time-box ${travel?.isExact ? 'exact' : ''}`}
+                    className={`shop-time-box ${travel?.trafficConsidered ? 'exact' : ''}`}
                     title={
-                      travel?.isExact
-                        ? '実ルート計算済みの所要時間'
-                        : '直線距離と移動手段からの概算所要時間（クリックで正確ルート表示）'
+                      travel?.trafficConsidered
+                        ? 'Googleの渋滞を考慮した予測時間'
+                        : '直線距離と移動手段からの概算所要時間（クリックでルートを検索）'
                     }
                   >
                     <span className="shop-time-main">
-                      {currentMode.icon} {travel?.isExact ? '' : '約'}
+                      {currentMode.icon} {travel?.trafficConsidered ? '約(渋滞考慮)' : '約'}
                       {travel?.formattedTime || '--分'}
                     </span>
                     <span className="shop-dist-sub">
-                      {travel?.formattedDist || ''} {travel?.isExact ? '(実ルート)' : '(目安)'}
+                      {travel?.formattedDist || ''} {travel?.trafficConsidered ? '(交通予測)' : '(概算・渋滞未考慮)'}
                     </span>
                   </div>
                 </div>
@@ -228,7 +233,24 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
                   </div>
                 )}
 
+                {assortmentNotice && <p className="shop-assortment-warning">{assortmentNotice}</p>}
+                <button type="button" className="card-details-toggle show-mobile-only"
+                  aria-expanded={expandedDetails.has(shop.id)} aria-controls={`shop-details-${shop.id}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setExpandedDetails(previous => {
+                      const next = new Set(previous);
+                      if (next.has(shop.id)) next.delete(shop.id); else next.add(shop.id);
+                      return next;
+                    });
+                  }}>
+                  {expandedDetails.has(shop.id) ? '取扱商品・店舗情報を閉じる ▲' : '取扱商品・住所・営業時間 ▼'}
+                </button>
+                <div id={`shop-details-${shop.id}`} className={`shop-card-details ${expandedDetails.has(shop.id) ? 'expanded' : ''}`}>
                 <div className="shop-cat-tags">
+                  {shop.categories.filter((cat) => !getEffectiveShopSubCategories(shop).some((sub) => SUB_CATEGORY_MAP[sub].parentId === cat)).map((cat) => (
+                    <span className="cat-pill" key={cat}>{CATEGORY_MAP[cat].shortName}（詳細未確認）</span>
+                  ))}
                   {(() => {
                     const allSubs = getEffectiveShopSubCategories(shop);
                     const sortedSubs = [...allSubs].sort((a, b) => {
@@ -273,6 +295,17 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
                   })()}
                 </div>
 
+                <div className="shop-assortment-note">
+                  {shop.assortmentStatus === 'user_edited' ? '取扱商品：ユーザー設定' :
+                    shop.assortmentStatus === 'unverified' || !shop.assortmentSources?.length ? '取扱商品：未確認' :
+                      shop.assortmentStatus === 'partial' ? '取扱商品：一部のみ公式情報で確認' : '取扱商品：店舗別の公式掲載情報'}
+                  {shop.assortmentSources?.map((source) => (
+                    <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}
+                      title={source.labels.join(' / ')}>{source.name}の公式情報（{source.checkedAt}確認）</a>
+                  ))}
+                  <span>掲載品目は現在の在庫を保証しません。</span>
+                </div>
+
                 {(shop.address || shop.hours) && (
                   <div className="shop-meta-text">
                     {shop.address && <span>📍 {shop.address}</span>}
@@ -280,6 +313,7 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
                   </div>
                 )}
 
+                </div>
                 <div className="shop-card-actions">
                   <button
                     type="button"
@@ -301,21 +335,15 @@ export const ShopListPanel: React.FC<ShopListPanelProps> = ({
                   >
                     <span>🚩</span> {inTour ? '巡回追加済' : '+巡回ハシゴ'}
                   </button>
-                  <button
-                    type="button"
-                    className="card-btn"
-                    title="取扱カテゴリやメモを編集"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenEditShopModal(shop);
-                    }}
-                  >
-                    <span>✏️</span> 編集
-                  </button>
                 </div>
               </div>
             );
           })
+        )}
+        {viewportShops.length > displayLimit && (
+          <button type="button" className="opt-btn" onClick={() => setDisplayLimit(limit => limit + 120)}>
+            続きを表示（{listItems.length} / {viewportShops.length}店舗）
+          </button>
         )}
       </div>
     </aside>

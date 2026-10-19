@@ -3,7 +3,7 @@
  * @description 画面左側に配置されるオプション設定パネルコンポーネント。
  * 出発地の設定（GPS・地図クリック・駅名検索）、アクセス手段の選択、所要時間上限スライダー、
  * 店舗チェーン別のON/OFF、扱っている商品カテゴリ別のON/OFF（OR/AND切替対応）、
- * および店舗データの手動追加・JSONインポート/エクスポート機能を提供します。
+ * などの閲覧条件を設定します。店舗データは自動更新される配布DBを参照します。
  */
 
 import React, { useMemo, useState } from 'react';
@@ -101,12 +101,7 @@ export interface OptionsPanelProps {
   onChangeCategoryMatchMode: (mode: CategoryMatchMode) => void;
   /** 全店舗データ配列（各チェーン・各カテゴリの該当店舗数カウント表示に使用） */
   allShops: readonly Shop[];
-  /** 新規店舗追加モーダルを開くコールバック */
-  onOpenAddShopModal: () => void;
-  /** 店舗データベースをJSONファイルとしてエクスポートするコールバック */
-  onExportJson: () => void;
-  /** JSONファイルから店舗データをインポートするコールバック */
-  onImportJsonFile: (file: File) => void;
+
 }
 
 /**
@@ -152,9 +147,6 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
   categoryMatchMode,
   onChangeCategoryMatchMode,
   allShops,
-  onOpenAddShopModal,
-  onExportJson,
-  onImportJsonFile,
 }) => {
   /** 出発地検索テキストボックスの入力状態 */
   const [originQuery, setOriginQuery] = useState<string>('');
@@ -260,19 +252,6 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
     if (originQuery.trim()) {
       onSearchOrigin(originQuery.trim());
     }
-  };
-
-  /**
-   * JSONインポート用のファイル選択変更ハンドラ。
-   *
-   * @param e - ファイル入力要素の変更イベント
-   */
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const file = e.target.files?.[0];
-    if (file) {
-      onImportJsonFile(file);
-    }
-    e.target.value = '';
   };
 
   return (
@@ -442,6 +421,7 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
               )}
             </div>
 
+            {departureTimeMode === 'custom' && <p className="section-desc">過去の時刻を指定した場合は翌日の出発として計算します。</p>}
             <label className="checkbox-row" style={{ marginTop: '6px' }}>
               <input
                 type="checkbox"
@@ -559,7 +539,7 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
             </div>
           </div>
           <p className="section-desc">
-            大分類の一括ON/OFFはもちろん、「▼詳細」を開いてガンプラ・レトロゲーム・工具・同人誌など27種類の詳細ジャンルで絞り込めます。
+            公式掲載で確認できた品目で絞り込みます。未確認店も全選択のORでは表示します。大分類だけの公表では詳細を推測しません。
           </p>
 
           <div className="match-mode-bar">
@@ -689,45 +669,7 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = ({
           </div>
         </section>
 
-        {/* 5. カスタム店舗追加・データ管理 */}
-        <section className="option-section">
-          <div className="section-title-row">
-            <h3>🛠️ 店舗データの追加・カスタマイズ</h3>
-          </div>
-          <p className="section-desc">
-            お気に入りの店舗の手動登録や、各店舗の取扱カテゴリの微調整・保存が可能です。
-          </p>
-          <div className="data-manage-btns">
-            <button
-              id="btn-add-shop"
-              type="button"
-              className="opt-btn"
-              onClick={onOpenAddShopModal}
-            >
-              ➕ 新規店舗を手動で追加
-            </button>
-            <div className="origin-btn-grid">
-              <button
-                id="btn-export-json"
-                type="button"
-                className="opt-btn-sm"
-                onClick={onExportJson}
-              >
-                💾 JSON書き出し
-              </button>
-              <label className="opt-btn-sm file-label">
-                📂 JSON読み込み
-                <input
-                  type="file"
-                  id="input-import-json"
-                  accept=".json"
-                  hidden
-                  onChange={handleFileChange}
-                />
-              </label>
-            </div>
-          </div>
-        </section>
+
       </div>
     </aside>
   );

@@ -26,10 +26,30 @@ import type {
 } from '../types/shop';
 
 /**
- * 店舗チェーン大分類（8グループ）のマスター配列。
+ * 店舗チェーン大分類（12グループ）のマスター配列。
  * オプション画面の店舗ON/OFFリストの描画順序および初期設定として使用します。
  */
 export const CHAIN_GROUPS: readonly ChainGroup[] = [
+  {
+    id: 'iosys', name: 'イオシス', shortName: 'イオシス',
+    color: '#008341', bgLight: '#dcfce7', icon: '📱', badgeText: 'イ',
+    subBrands: ['イオシス'], defaultCategories: ['pc_junk'], keywords: ['イオシス', 'IOSYS'],
+  },
+  {
+    id: 'janpara', name: 'じゃんぱら', shortName: 'じゃんぱら',
+    color: '#123485', bgLight: '#dbeafe', icon: '💻', badgeText: 'じ',
+    subBrands: ['じゃんぱら'], defaultCategories: ['pc_junk'], keywords: ['じゃんぱら', 'JANPARA'],
+  },
+  {
+    id: 'pc_koubou', name: 'パソコン工房 / グッドウィル（中古販売店）', shortName: 'パソコン工房',
+    color: '#1d78be', bgLight: '#dbeafe', icon: '🖥️', badgeText: '工',
+    subBrands: ['パソコン工房', 'グッドウィル'], defaultCategories: ['pc_junk'], keywords: ['パソコン工房', 'グッドウィル', 'GoodWill'],
+  },
+  {
+    id: 'inverse', name: 'ショップインバース', shortName: 'ショップインバース',
+    color: '#0080cb', bgLight: '#e0f2fe', icon: '💻', badgeText: 'IN',
+    subBrands: ['ショップインバース'], defaultCategories: ['pc_junk'], keywords: ['ショップインバース', 'SHOP INVERSE'],
+  },
   {
     id: 'hardoff',
     name: 'ハードオフ (HARD OFF)',
@@ -113,8 +133,8 @@ export const CHAIN_GROUPS: readonly ChainGroup[] = [
   },
   {
     id: 'general_game',
-    name: 'ゲオ / 古本市場 / お宝創庫 / 万代・マンガ倉庫',
-    shortName: '総合・ゲーム系',
+    name: 'ゲオ・ゲオモバイル / 古本市場 / お宝創庫 / 万代・マンガ倉庫',
+    shortName: 'ゲオ・古本市場ほか',
     color: '#192a59',
     bgLight: '#fef3c7',
     icon: '🎮',
@@ -168,129 +188,43 @@ export const CHAIN_MAP: Readonly<Record<ChainId, ChainGroup>> = Object.fromEntri
 ) as Record<ChainId, ChainGroup>;
 
 /**
- * 各社の公式ロゴ配色・タイポグラフィを忠実に再現した看板プレート定義マップ。
- *
- * 【ユーザー指定の厳密なブランドカラー仕様】
- * - ハードオフ (HARD・OFF): 青背景 `#004098` / 黄色文字・中点 `#fff000`
- * - オフハウス (OFF HOUSE): 緑背景 `#007440` / 白文字 `#ffffff`
- * - ホビーオフ (Hobby OFF): 赤背景 `#e50012` / 黄色文字 `#fff100`
- * - モードオフ (MODE OFF): 赤背景 `#e50012` / 白文字 `#ffffff`
- * - リカーオフ (Liquor OFF): ワインレッド背景 `#a72642` / 白文字 `#ffffff`
- * - ガレージオフ (Garage OFF): 青背景 `#004098` / 黄色文字 `#fff000`
- * - ブックオフ通常店 (BOOK・OFF): 黄色背景 `#fff000` / 青文字・中点 `#003894`
- * - ブックオフ スーパーバザー (BOOK・OFF SUPER BAZAAR): オレンジ背景 `#ee7a00` / 濃紺文字・中点 `#043459`（下部左に濃紺帯＋オレンジ文字 `SUPER`、右に濃紺文字 `BAZAAR`）
- * - ブックオフ プラス (BOOK・OFF PLUS+): オレンジ背景 `#ee7a00` / 濃紺文字・中点 `#043459`（下部に濃紺帯＋オレンジ文字 `PLUS+`）
- * - 駿河屋: 青背景 `#1d2089` / 白文字 `#ffffff`
- * - らしんばん: 水色背景 `#00b8ee` / 白文字 `#ffffff`
- * - まんだらけ: 白背景 `#ffffff` / 赤ロゴマーク `#fe0000` + 黒文字 `#000000`
- * - メロンブックス: 白背景 `#ffffff` / 緑文字 `#18bd67`
- * - アニメイト: 青背景 `#335eac` / 白文字 `#ffffff`（`i` のみ黄色 `#fcc900`）
- * - ゲオ: 黄色背景 `#fed600` / 濃紺幾何学ロゴ＆文字 `#192a59`
- * - 古本市場: 黄色背景 `#f6b020` / 赤文字 `#e50024`
- * - お宝創庫: 白背景 `#ffffff` / 黒文字 `#000000`
- * - 鑑定団: 黒背景 `#000000` / 白文字 `#ffffff`
+ * 参照画像と指定配色を使う看板定義。原本・表示用SVGの出典と変換内容はsources.jsonに記録します。
+ * 地域や運営会社によって看板が異なり確証がないブランドは、名称を通常の文字で表示します。
  */
 export const BRAND_PLATES: Readonly<Record<BrandPlateId, BrandPlateSpec>> = {
-  hardoff: {
-    chainId: 'hardoff',
-    cls: 'plate-hardoff',
-    html: `<span class="plate-dots-row"><i class="arch-dots">•••</i><i class="arch-dots">•••</i></span><span class="plate-main">HARD<i class="dot-yellow"></i>OFF</span>`,
-  },
-  bookoff: {
-    chainId: 'bookoff',
-    cls: 'plate-bookoff',
-    html: `<span class="plate-dots-row"><i class="arch-dots">•••</i><i class="arch-dots">•••</i></span><span class="plate-main">BOOK<i class="dot-blue"></i>OFF</span>`,
-  },
-  bookoff_plus: {
-    chainId: 'bookoff',
-    cls: 'plate-bookoff-plus',
-    html: `<span class="plate-main">BOOK<i class="dot-sb"></i>OFF</span><span class="plus-sub-bar">PLUS<sup>+</sup></span>`,
-  },
-  bookoff_sb: {
-    chainId: 'bookoff',
-    cls: 'plate-bookoff-sb',
-    html: `<span class="plate-main">BOOK<i class="dot-sb"></i>OFF</span><span class="sb-sub-row"><em class="sb-super-box">SUPER</em><b class="sb-bazaar-txt">BAZAAR</b></span>`,
-  },
-  offhouse: {
-    chainId: 'offhouse',
-    cls: 'plate-offhouse',
-    html: `<span class="plate-dots-row"><i class="arch-dots">•••</i><i class="arch-dots">•••</i></span><span class="plate-main">OFF HOUSE</span>`,
-  },
-  modeoff: {
-    chainId: 'offhouse',
-    cls: 'plate-modeoff',
-    html: `<span class="plate-main">MODE OFF</span>`,
-  },
-  garageoff: {
-    chainId: 'offhouse',
-    cls: 'plate-garageoff',
-    html: `<span class="plate-dots-row"><i class="arch-dots">•••</i><i class="arch-dots">•••</i></span><span class="plate-main">Garage OFF</span>`,
-  },
-  liquoroff: {
-    chainId: 'offhouse',
-    cls: 'plate-liquoroff',
-    html: `<span class="plate-main">Liquor OFF</span>`,
-  },
-  hobbyoff: {
-    chainId: 'hobbyoff',
-    cls: 'plate-hobbyoff',
-    html: `<span class="plate-dots-row"><i class="arch-dots">•••</i><i class="arch-dots">•••</i></span><span class="plate-main">Hobby OFF</span>`,
-  },
-  surugaya: {
-    chainId: 'surugaya',
-    cls: 'plate-surugaya',
-    html: `<span class="plate-arch">SURUGAYA</span><span class="plate-main">駿 河 屋</span>`,
-  },
-  lashinbang: {
-    chainId: 'anime_shop',
-    cls: 'plate-lashinbang',
-    html: `<span class="plate-arch">LASHINBANG</span><span class="plate-main">らしんばん</span>`,
-  },
-  mandarake: {
-    chainId: 'anime_shop',
-    cls: 'plate-mandarake',
-    html: `<span class="plate-main"><i class="mandarake-mark">●</i>まんだらけ</span>`,
-  },
-  melonbooks: {
-    chainId: 'anime_shop',
-    cls: 'plate-melonbooks',
-    html: `<span class="plate-arch-melon">MELONBOOKS</span><span class="plate-main">メロンブックス</span>`,
-  },
-  animate: {
-    chainId: 'anime_shop',
-    cls: 'plate-animate',
-    html: `<span class="plate-main animate-logo">an<em class="animate-i">i</em>mate</span>`,
-  },
-  geo: {
-    chainId: 'general_game',
-    cls: 'plate-geo',
-    html: `<span class="plate-main geo-logo"><svg class="geo-mark" viewBox="0 0 44 20" width="28" height="13"><path d="M10 2 L2 10 L10 18 L17 11 L13 7 L9 11 M22 2 L14 10 L22 18 L29 11 M20 12 L24 8 M34 2 L26 10 L34 18 L42 10 Z" fill="none" stroke="#192a59" stroke-width="3.2" stroke-linecap="square"/></svg><span>GEO</span></span>`,
-  },
-  furuichi: {
-    chainId: 'general_game',
-    cls: 'plate-furuichi',
-    html: `<span class="plate-main">古本市場</span>`,
-  },
-  otakarasouko: {
-    chainId: 'general_game',
-    cls: 'plate-otakarasouko',
-    html: `<span class="plate-main">お宝創庫</span>`,
-  },
-  mandai: {
-    chainId: 'general_game',
-    cls: 'plate-mandai',
-    html: `<span class="plate-main">万 代</span>`,
-  },
-  mangasouko: {
-    chainId: 'general_game',
-    cls: 'plate-mangasouko',
-    html: `<span class="plate-main">マンガ倉庫</span>`,
-  },
-  kanteidan: {
-    chainId: 'kanteidan',
-    cls: 'plate-kanteidan',
-    html: `<span class="plate-main">鑑 定 団</span>`,
-  },
+  iosys: { chainId: 'iosys', cls: 'plate-official plate-iosys', html: `<img class="brand-official-logo" src="brands/iosys-display.svg" alt="イオシス" loading="eager" decoding="async" />` },
+  janpara: { chainId: 'janpara', cls: 'plate-official plate-janpara', html: `<img class="brand-official-logo" src="brands/janpara-display.svg" alt="じゃんぱら" loading="eager" decoding="async" />` },
+  pc_koubou: { chainId: 'pc_koubou', cls: 'plate-official plate-pc-koubou', html: `<img class="brand-official-logo" src="brands/pc_koubou-display.svg" alt="パソコン工房" loading="eager" decoding="async" />` },
+  goodwill: { chainId: 'pc_koubou', cls: 'plate-official plate-goodwill', html: `<img class="brand-official-logo" src="brands/goodwill-display.svg" alt="グッドウィル" loading="eager" decoding="async" />` },
+  inverse: { chainId: 'inverse', cls: 'plate-official plate-inverse', html: `<img class="brand-official-logo" src="brands/inverse-display.svg" alt="ショップインバース" loading="eager" decoding="async" />` },
+  hardoff: { chainId: 'hardoff', cls: 'plate-official plate-hardoff', html: `<img class="brand-official-logo" src="brands/hardoff-display.svg" alt="ハードオフ" loading="eager" decoding="async" />` },
+  bookoff: { chainId: 'bookoff', cls: 'plate-official plate-bookoff', html: `<img class="brand-official-logo" src="brands/bookoff-display.svg" alt="BOOKOFF" loading="eager" decoding="async" />` },
+  bookoff_plus: { chainId: 'bookoff', cls: 'plate-official plate-bookoff-plus', html: `<img class="brand-official-logo" src="brands/bookoff_plus-display.svg" alt="BOOKOFF PLUS" loading="eager" decoding="async" />` },
+  bookoff_sb: { chainId: 'bookoff', cls: 'plate-official plate-bookoff-sb', html: `<img class="brand-official-logo" src="brands/bookoff_sb-display.svg" alt="BOOKOFF SUPER BAZAAR" loading="eager" decoding="async" />` },
+  offhouse: { chainId: 'offhouse', cls: 'plate-official plate-offhouse', html: `<img class="brand-official-logo" src="brands/offhouse-display.svg" alt="オフハウス" loading="eager" decoding="async" />` },
+  modeoff: { chainId: 'offhouse', cls: 'plate-official plate-modeoff', html: `<img class="brand-official-logo" src="brands/modeoff-display.svg" alt="モードオフ" loading="eager" decoding="async" />` },
+  garageoff: { chainId: 'offhouse', cls: 'plate-official plate-garageoff', html: `<img class="brand-official-logo" src="brands/garageoff-display.svg" alt="ガレージオフ" loading="eager" decoding="async" />` },
+  liquoroff: { chainId: 'offhouse', cls: 'plate-official plate-liquoroff', html: `<img class="brand-official-logo" src="brands/liquoroff-display.svg" alt="リカーオフ" loading="eager" decoding="async" />` },
+  hobbyoff: { chainId: 'hobbyoff', cls: 'plate-official plate-hobbyoff', html: `<img class="brand-official-logo" src="brands/hobbyoff-display.svg" alt="ホビーオフ" loading="eager" decoding="async" />` },
+  surugaya: { chainId: 'surugaya', cls: 'plate-official plate-surugaya', html: `<img class="brand-official-logo" src="brands/surugaya-display.svg" alt="駿河屋" loading="eager" decoding="async" />` },
+  lashinbang: { chainId: 'anime_shop', cls: 'plate-official plate-lashinbang', html: `<img class="brand-official-logo" src="brands/lashinbang-display.svg" alt="らしんばん" loading="eager" decoding="async" />` },
+  mandarake: { chainId: 'anime_shop', cls: 'plate-official plate-mandarake', html: `<img class="brand-official-logo" src="brands/mandarake-display.svg" alt="まんだらけ" loading="eager" decoding="async" />` },
+  melonbooks: { chainId: 'anime_shop', cls: 'plate-official plate-melonbooks', html: `<img class="brand-official-logo" src="brands/melonbooks-display.svg" alt="メロンブックス" loading="eager" decoding="async" />` },
+  animate: { chainId: 'anime_shop', cls: 'plate-official plate-animate', html: `<img class="brand-official-logo" src="brands/animate-display.svg" alt="アニメイト" loading="eager" decoding="async" />` },
+  geo: { chainId: 'general_game', cls: 'plate-official plate-geo', html: `<span class="plate-main geo-logo"><img class="geo-mark" src="brands/geo-display.svg" width="48" height="20" alt="" decoding="async" /><span>GEO</span></span>` },
+  furuichi: { chainId: 'general_game', cls: 'plate-official plate-furuichi', html: `<img class="brand-official-logo" src="brands/furuichi-display.svg" alt="古本市場" loading="eager" decoding="async" />` },
+  otakarasouko: { chainId: 'general_game', cls: 'plate-official plate-otakarasouko', html: `<img class="brand-official-logo" src="brands/otakarasouko.svg" alt="お宝創庫" loading="eager" decoding="async" />` },
+  mandaishoten: { chainId: 'general_game', cls: 'plate-official plate-name plate-mandaishoten', html: `<span class="plate-main">万代書店</span>` },
+  mandai: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/mandai.svg" alt="万代" loading="eager" decoding="async" />` },
+  mangasouko: { chainId: 'general_game', cls: 'plate-official plate-name plate-mangasouko', html: `<span class="plate-main">マンガ倉庫</span>` },
+  kanteidan: { chainId: 'kanteidan', cls: 'plate-official plate-kanteidan', html: `<span class="plate-main">鑑定団</span>` },
+  geo_mobile: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/geo_mobile-display.svg" alt="ゲオモバイル" loading="eager" decoding="async" />` },
+  furuiti: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/furuiti-display.svg" alt="ふるいち" loading="eager" decoding="async" />` },
+  torekapark: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/torekapark-display.svg" alt="トレカパーク" loading="eager" decoding="async" />` },
+  preyz: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/preyz.svg" alt="プレイズ" loading="eager" decoding="async" />` },
+  ecotool: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/ecotool.svg" alt="エコツール" loading="eager" decoding="async" />` },
+  ojamakan: { chainId: 'general_game', cls: 'plate-official plate-monochrome', html: `<img class="brand-official-logo" src="brands/ojamakan.svg" alt="おじゃま館" loading="eager" decoding="async" />` },
+  medio: { chainId: 'general_game', cls: 'plate-official', html: `<img class="brand-official-logo" src="brands/medio.svg" alt="メディオ！" loading="eager" decoding="async" />` },
 };
 
 /**
@@ -654,9 +588,7 @@ export function deriveParentCategoriesFromSubCategories(
  * 店舗オブジェクトから有効な詳細サブジャンル配列（`SubCategoryId[]`）を取得します。
  *
  * 【なぜこのヘルパー関数が必要か】
- * 公式店舗マスター（`data/shops.json`）には全店舗分の `subCategories` が格納されていますが、
- * ユーザーが過去に `localStorage` に保存したカスタム店舗など `categories`（親カテゴリ）しか持たないデータに対しても、
- * 親カテゴリから自動的に配下の詳細サブジャンルを展開して後方互換性を100%保証するためです。
+ * 親カテゴリだけの公表を、すべての詳細商品の取扱いへ拡大解釈しないためです。
  *
  * @param shop - `categories` および任意の `subCategories` を持つ店舗オブジェクト
  * @returns 店舗が取り扱っている詳細サブジャンルIDの配列
@@ -664,19 +596,40 @@ export function deriveParentCategoriesFromSubCategories(
 export function getEffectiveShopSubCategories(
   shop: Pick<Shop, 'categories' | 'subCategories'>
 ): SubCategoryId[] {
-  if (Array.isArray(shop.subCategories) && shop.subCategories.length > 0) {
-    return shop.subCategories;
-  }
-  const expanded = new Set<SubCategoryId>();
-  for (const catId of shop.categories || []) {
-    const catInfo = CATEGORY_MAP[catId];
-    if (catInfo) {
-      for (const subId of catInfo.subCategories) {
-        expanded.add(subId);
-      }
-    }
-  }
-  return Array.from(expanded);
+  return Array.isArray(shop.subCategories) ? shop.subCategories : [];
+}
+
+/**
+ * 有効チェーンに属する構成店の品目だけを表示・絞り込みへ渡します。
+ * @param shop - 統合された店舗
+ * @param chains - 有効チェーン
+ * @returns 別チェーンの販売情報が混入しない店舗表示データ
+ */
+export function scopeShopAssortment(shop: Shop, chains: ReadonlySet<ChainId>): Shop {
+  if (shop.assortmentStatus === 'user_edited') return shop;
+  /** 公式出典ごとのチェーンを使い、併設店の他系列を除外します。 */
+  const sources = (shop.assortmentSources || []).filter((source) => chains.has(source.chain));
+  return { ...shop, assortmentSources: sources,
+    assortmentStatus: sources.length ? shop.assortmentStatus : 'unverified',
+    categories: [...new Set(sources.flatMap((source) => source.categories))],
+    subCategories: [...new Set(sources.flatMap((source) => source.subCategories))] };
+}
+
+/**
+ * 公表精度に合わせてジャンルを絞り込みます。全選択ORでは未確認店も表示します。
+ * @param shop - 店舗別の確認済み分類
+ * @param selected - 選択中の詳細分類
+ * @param mode - 一致条件
+ * @returns 公表情報から条件に一致すると判断できるか
+ */
+export function matchesShopCategories(shop: Shop, selected: ReadonlySet<SubCategoryId>, mode: 'OR' | 'AND'): boolean {
+  if (!selected.size) return false;
+  if (mode === 'OR' && SUB_CATEGORIES.every((sub) => selected.has(sub.id))) return true;
+  /** 世代や商品種別が公表されていない親分類は、親全体が選ばれた場合にのみ一致させます。 */
+  const subs = getEffectiveShopSubCategories(shop);
+  if (mode === 'AND') return [...selected].every((sub) => subs.includes(sub));
+  return subs.some((sub) => selected.has(sub)) || shop.categories.some((cat) =>
+    CATEGORY_MAP[cat].subCategories.every((sub) => selected.has(sub)));
 }
 
 /**
@@ -911,7 +864,7 @@ export function estimateTravelInfo(
     estMinutes: roundedMinutes,
     formattedTime: formatDurationMinutes(roundedMinutes),
     formattedDist: estRoadKm < 10 ? `${estRoadKm.toFixed(1)}km` : `${Math.round(estRoadKm)}km`,
-    isExact: false,
+    trafficConsidered: false,
   };
 }
 
@@ -920,7 +873,7 @@ export function estimateTravelInfo(
  *
  * 【なぜこの処理が必要か】
  * 「ハードオフ・オフハウス・ホビーオフ・ブックオフ ◯◯店」のような複合店舗や、
- * 外部スキャン（Places API / Overpass API）やユーザー手動追加で登録された店舗でも、
+ * 外部スキャン（Places API / Overpass API）で一時表示された店舗でも、
  * 適切なブランド看板の縦積みバルーンと取扱カテゴリを自動設定できるようにするためです。
  *
  * @param name - 判定対象の店舗名称文字列
@@ -1356,6 +1309,15 @@ export function classifyShopByName(name: string): ShopClassification {
     ).forEach((s) => subCategories.add(s));
   }
 
+  // PC専門チェーンは看板だけを判定し、商品は店舗別の公式出典で確認する。
+  for (const chain of CHAIN_GROUPS.filter((group) => ['iosys', 'janpara', 'pc_koubou', 'inverse'].includes(group.id))) {
+    if (chain.keywords.some((keyword) => normalizedName.toLowerCase().includes(keyword.toLowerCase()))) {
+      matchedChains.push(chain.id);
+      brands.push(chain.id === 'pc_koubou' && /グッドウィル|goodwill/i.test(normalizedName) ? 'goodwill' : chain.id as BrandPlateId);
+      subBrand = chain.shortName;
+    }
+  }
+
   // どのキーワードにも一致しなかった場合のフォールバック（デフォルトでハードオフ扱い）
   if (matchedChains.length === 0) {
     matchedChains.push('hardoff');
@@ -1381,14 +1343,14 @@ export function classifyShopByName(name: string): ShopClassification {
   /** 優先順位に基づき決定されたメインチェーンID */
   const primaryChain = priorityOrder.find((p) => matchedChains.includes(p)) || matchedChains[0];
   /** 詳細サブジャンルの配列 */
-  const subCatArray = Array.from(subCategories);
+  const subCatArray: SubCategoryId[] = []; // 店名から商品取扱いは断定できないため自動付与しません。
 
   return {
     chain: primaryChain,
     chains: Array.from(new Set(matchedChains)),
-    brands: Array.from(new Set(brands)),
+    brands: Array.from(new Set(brands.map((brand) => brand === 'mandai' && /万代書店/.test(name) ? 'mandaishoten' : brand === 'geo' && /ゲオモバイル/.test(name) ? 'geo_mobile' : brand === 'furuichi' && /トレカパーク/.test(name) ? 'torekapark' : brand === 'furuichi' && /ふるいち/.test(name) ? 'furuiti' : brand === 'otakarasouko' ? /プレイズ/.test(name) ? 'preyz' : /エコツール/.test(name) ? 'ecotool' : /おじゃま館/.test(name) ? 'ojamakan' : /メディオ/.test(name) ? 'medio' : brand : brand))),
     subBrand,
-    categories: deriveParentCategoriesFromSubCategories(subCatArray),
+    categories: [],
     subCategories: subCatArray,
   };
 }
@@ -1463,11 +1425,29 @@ export function getShopActivePlates(
   // 万一すべてフィルタで除外された場合でも空バルーンにならないよう代表チェーンの看板を1枚入れる
   if (activePlates.length === 0) {
     const fallbackSpec =
-      BRAND_PLATES[shop.chain as unknown as BrandPlateId] || BRAND_PLATES.hardoff;
+      BRAND_PLATES[shop.chain as unknown as BrandPlateId] || { chainId: shop.chain, cls: 'plate-official', html: `<span class="plate-main">${escapeHtml(shop.name)}</span>` };
     activePlates.push(fallbackSpec);
   }
 
   return activePlates;
+}
+
+/**
+ * 通常ゲオのモバイル部門の確認を、店舗全体の品目確認と誤認させない説明を返します。
+ * @param shop - 出典と確認状態を持つ店舗。複合店では同じ構成店舗の出典を照合します。
+ * @returns 一部取得・未確認の案内。該当しない場合はnull。
+ */
+export function getGeoAssortmentNotice(shop: Shop): string | null {
+  if (shop.assortmentStatus === 'user_edited') return null;
+  /** 通常ゲオの出典だけを対象にし、併設された別店舗の情報では確認済みにしません。 */
+  const sources = shop.assortmentSources || [];
+  /** 同じ通常店の全体情報がなく、モバイル部門の出典だけがある状態 */
+  const incomplete = sources.some(source => source.name.includes('ゲオ') && !source.name.includes('ゲオモバイル') &&
+    /^https:\/\/geo-mobile\.jp\/store\//.test(source.url) &&
+    !sources.some(other => other.name === source.name && /^https:\/\/geo-online\.co\.jp\/store\/\d+\//.test(other.url)));
+  if (incomplete) return '通常ゲオ：モバイル部門のみ確認。ゲーム・映像商品などは未確認です。';
+  if (shop.brands?.includes('geo') && shop.assortmentStatus === 'unverified') return '通常ゲオの取扱商品は未確認です。';
+  return null;
 }
 
 /**
@@ -1525,7 +1505,7 @@ export function evaluateClosingFeasibility(
   departureMinutesOfDay: number
 ): ClosingStatusInfo {
   const arrivalMinutesRaw = departureMinutesOfDay + Math.max(0, Math.round(travelMinutes));
-  const arrivalTimeText = `${formatClockTimeFromMinutes(arrivalMinutesRaw, false)}着`;
+  const arrivalTimeText = `${arrivalMinutesRaw >= 1440 ? Math.floor(arrivalMinutesRaw / 1440) + '日後 ' : ''}${formatClockTimeFromMinutes(arrivalMinutesRaw, false)}着`;
   const raw = (hoursStr || '').normalize('NFKC').trim();
 
   // 1. 営業時間データが空の場合
@@ -1581,16 +1561,23 @@ export function evaluateClosingFeasibility(
     closeH += 24;
   }
 
-  const openMinutes = openH * 60 + openM;
-  const closeMinutes = closeH * 60 + closeM;
-  const closingTimeText = `${formatClockTimeFromMinutes(closeMinutes, true)}閉店`;
-  const openingTimeText = `${formatClockTimeFromMinutes(openMinutes, false)}開店`;
-
-  // 深夜0:00〜3:59に出発し、かつ前日営業が24時超え（例: 25:00閉店）の店舗へ向かう場合の補正
-  let effectiveArrival = arrivalMinutesRaw;
-  if (departureMinutesOfDay < 240 && closeMinutes > 1440 && arrivalMinutesRaw + 1440 <= closeMinutes + 120) {
-    effectiveArrival = arrivalMinutesRaw + 1440;
+  /** 到着日の0:00を基点に比較し、翌日到着を当日の閉店後と誤認しない。 */
+  const arrivalDayStart = Math.floor(arrivalMinutesRaw / 1440) * 1440;
+  /** 到着日の営業開始（通算分数） */
+  let openMinutes = arrivalDayStart + openH * 60 + openM;
+  /** 到着日の営業終了（通算分数） */
+  let closeMinutes = arrivalDayStart + closeH * 60 + closeM;
+  // 深夜営業中なら前日から続く営業枠を使う。4:00等の固定境界は設けない。
+  if (closeH >= 24 && arrivalMinutesRaw < closeMinutes - 1440) {
+    openMinutes -= 1440;
+    closeMinutes -= 1440;
   }
+  /** 閉店と開店の画面表示 */
+  const closingTimeText = formatClockTimeFromMinutes(closeH * 60 + closeM, true) + '閉店';
+  /** 開店の画面表示 */
+  const openingTimeText = formatClockTimeFromMinutes(openH * 60 + openM, false) + '開店';
+  /** 日付を含む累積到着分数 */
+  const effectiveArrival = arrivalMinutesRaw;
 
   // 開店前到着の判定（朝に出発して開店時刻より前に着く場合）
   if (effectiveArrival < openMinutes) {
@@ -1681,9 +1668,9 @@ export function buildShopBalloonHtml(
 
   /** バルーン上部に表示する所要時間＋閉店判定ピルバッジのHTML（非表示設定時は空文字） */
   const timePillHtml = showPinTime
-    ? `<div class="balloon-time-pill ${shop._travel?.isExact ? 'exact' : ''} ${closingStatusCls}">
+    ? `<div class="balloon-time-pill ${shop._travel?.trafficConsidered ? 'exact' : ''} ${closingStatusCls}">
         <span>${modeIcon}</span>
-        <span>${shop._travel?.isExact ? '✓' : '約'}${shop._travel?.formattedTime || '--分'}</span>
+        <span>${shop._travel?.trafficConsidered ? '約(渋滞考慮)' : '約'}${shop._travel?.formattedTime || '--分'}</span>
         ${closingPinBadgeHtml}
        </div>`
     : '';

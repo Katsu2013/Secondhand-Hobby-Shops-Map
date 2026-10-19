@@ -8,8 +8,15 @@
  * UIコンポーネントから分離し、APIキー未設定時やレート制限時にも確実にフォールバック動作させるためです。
  */
 
-import { classifyShopByName } from '../config/shopMaster';
+import { classifyShopByName, estimateTravelInfo, calcStraightDistanceKm } from '../config/shopMaster';
 import type { MapBounds, OriginLocation, Shop, TravelModeInfo } from '../types/shop';
+
+/** StrictMode等から同時に要求されてもSDKを二重ロードしないためのPromise。 */
+let googleSdkPromise: Promise<void> | null = null;
+/** 現在ロードしているキー。キー変更時はページ再読込で切り替えます。 */
+let googleSdkKey = '';
+/** 認証失敗時に最新のアプリインスタンスへ通知するコールバック。 */
+let notifyGoogleAuthFailure: () => void = () => {};
 
 /**
  * Google Maps JavaScript API のスクリプトタグを動的に `<head>` へ挿入してロードします。
@@ -21,37 +28,33 @@ import type { MapBounds, OriginLocation, Shop, TravelModeInfo } from '../types/s
  * @param apiKey - ユーザーが設定したGoogle Maps JavaScript APIキー
  * @returns スクリプトの読み込み完了時に解決されるPromise
  */
-export function loadGoogleMapsSdk(apiKey: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    // すでに読み込み済みの場合は即座に完了とする
-    if (window.google && window.google.maps) {
-      resolve();
-      return;
-    }
-
-    // Google Maps APIキー認証エラー時のグローバルコールバックをフックして検知する
-    (window as unknown as { gm_authFailure?: () => void }).gm_authFailure = () => {
+export function loadGoogleMapsSdk(apiKey: string, onAuthFailure: () => void = () => {}): Promise<void> {
+  // 認証はscript.onload後に失敗することもあるため、Promiseとは独立してアプリへ通知する。
+  notifyGoogleAuthFailure = onAuthFailure;
+  if (googleSdkPromise && googleSdkKey === apiKey) return googleSdkPromise;
+  googleSdkKey = apiKey;
+  googleSdkPromise = new Promise((resolve, reject) => {
+    /** 応答がないSDKのロードを打ち切るタイマー */
+    const timer = setTimeout(() => reject(new Error('Google Maps SDK timeout')), 20000);
+    window.gm_authFailure = () => {
+      clearTimeout(timer);
+      notifyGoogleAuthFailure();
       reject(new Error('Google Maps API Authentication Failure'));
     };
-
-    // 既存のscriptタグがあれば一度除去してから再挿入する
+    if (window.google?.maps) { clearTimeout(timer); resolve(); return; }
+    /** 既存のSDKタグ */
     const existing = document.getElementById('google-maps-sdk');
-    if (existing) {
-      existing.remove();
-    }
-
-    /** 動的に生成する `<script>` 要素 */
+    existing?.remove();
+    /** SDK読み込み用script */
     const script = document.createElement('script');
     script.id = 'google-maps-sdk';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
-      apiKey
-    )}&libraries=places,geometry&language=ja&region=JP`;
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(apiKey) + '&libraries=places,geometry&language=ja&region=JP';
     script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = (err) => reject(err);
+    script.onload = () => { clearTimeout(timer); resolve(); };
+    script.onerror = () => { clearTimeout(timer); reject(new Error('Google Maps SDK load failed')); };
     document.head.appendChild(script);
   });
+  return googleSdkPromise;
 }
 
 /**
@@ -129,6 +132,8 @@ export interface OsrmRouteResult {
   latLngPath: Array<[number, number]>;
   /** 実道路ルート計算に成功したか（失敗時は直線フォールバック） */
   isRoadRoute: boolean;
+  /** 交通予測・道路回避への対応状況を示す説明 */
+  description: string;
 }
 
 /**
@@ -143,91 +148,90 @@ export interface OsrmRouteResult {
  * @param mode - 選択されているアクセス手段の定義オブジェクト
  * @returns 所要時間・距離・ポリライン座標配列を含む `OsrmRouteResult`
  */
+/** 公開OSRMサービスへの検索開始時刻。過剰な連続リクエストを避けます。 */
+let nextOsrmRequestAt = 0;
+/** 中止済みの検索が待ち行列の時間枠を占有しないための開始待ち列 */
+let osrmQueue: Promise<void> = Promise.resolve();
+
+/**
+ * 公開経路サービスの開始間隔を守り、中止時は待機を解除します。
+ * @param signal - 通信と共通の中止シグナル
+ * @returns 開始可能になったとき解決するPromise
+ */
+function waitForOsrmSlot(signal: AbortSignal): Promise<void> {
+  /** 直前の開始待ちが完了してから次の枠を確認します。 */
+  const slot = osrmQueue.then(async () => {
+    if (signal.aborted) throw new DOMException('中止', 'AbortError');
+    /** 次の開始までに必要な待機時間 */
+    const delay = Math.max(0, nextOsrmRequestAt - Date.now());
+    if (delay > 0) await new Promise<void>((resolve, reject) => {
+      /** 待機中の中止処理 */
+      const abort = (): void => { clearTimeout(timer); reject(new DOMException('中止', 'AbortError')); };
+      /** 待機完了時はイベントを除去します。 */
+      const timer = setTimeout(() => { signal.removeEventListener('abort', abort); resolve(); }, delay);
+      signal.addEventListener('abort', abort, { once: true });
+    });
+    if (signal.aborted) throw new DOMException('中止', 'AbortError');
+    nextOsrmRequestAt = Date.now() + 1100;
+  });
+  osrmQueue = slot.catch(() => {});
+  return slot;
+}
+
 export async function fetchOsrmOrFallbackRouteData(
-  origin: OriginLocation,
-  shopsList: readonly Shop[],
-  mode: TravelModeInfo
+  origin: OriginLocation, shopsList: readonly Shop[], mode: TravelModeInfo, signal?: AbortSignal
 ): Promise<OsrmRouteResult> {
-  /** OSRM API に指定するプロファイル名（徒歩・自転車・自動車） */
-  const osrmProfile =
-    mode.googleMode === 'WALKING'
-      ? 'foot'
-      : mode.googleMode === 'BICYCLING'
-        ? 'bike'
-        : 'driving';
-
-  /** OSRM API 形式の経度・緯度連結文字列（`lng,lat;lng,lat`） */
-  const coordsStr = [
-    `${origin.lng},${origin.lat}`,
-    ...shopsList.map((s) => `${s.lng},${s.lat}`),
-  ].join(';');
-
-  try {
-    const url = `https://router.project-osrm.org/route/v1/${osrmProfile}/${coordsStr}?overview=full&geometries=geojson`;
-    const response = await fetch(url);
-    const data = (await response.json()) as {
-      code?: string;
-      routes?: Array<{
-        distance: number;
-        geometry: { coordinates: Array<[number, number]> };
-      }>;
-    };
-
-    if (data.code === 'Ok' && data.routes && data.routes[0]) {
-      const route = data.routes[0];
-      /** 実測された道路距離（km） */
-      const distKm = route.distance / 1000;
-
-      /** 移動手段の速度特性に合わせて補正した所要時間（分） */
-      let mins = 0;
-      if (mode.id === 'DRIVING_TOLL') {
-        const localKm = Math.min(distKm, 8);
-        const hwKm = Math.max(0, distKm - 8);
-        mins = Math.round(
-          mode.startupMinutes +
-            (localKm / mode.baseSpeedKmh) * 60 +
-            (hwKm / mode.highwaySpeedKmh) * 60
-        );
-      } else if (mode.id === 'DRIVING_NO_TOLL') {
-        mins = Math.round(mode.startupMinutes + (distKm / mode.baseSpeedKmh) * 60);
-      } else if (mode.id === 'TRANSIT') {
-        mins = Math.round(mode.startupMinutes + (distKm / mode.baseSpeedKmh) * 60);
-      } else if (mode.id === 'BICYCLING') {
-        mins = Math.round(1 + (distKm / 15) * 60);
-      } else {
-        mins = Math.round((distKm / 4.5) * 60);
+  // 公共交通や道路回避を非対応のサービスへ送って、別の移動手段の経路と誤表示しない。
+  if (mode.id !== 'TRANSIT' && mode.id !== 'DRIVING_NO_TOLL' && shopsList.length > 0) {
+    /** 選択手段に対応する経路サーバー */
+    const endpoint = mode.id === 'WALKING' ? 'https://routing.openstreetmap.de/routed-foot/route/v1/foot'
+      : mode.id === 'BICYCLING' ? 'https://routing.openstreetmap.de/routed-bike/route/v1/bike'
+      : 'https://router.project-osrm.org/route/v1/driving';
+    /** APIに指定する経度・緯度列 */
+    const coords = [origin, ...shopsList].map(p => p.lng + ',' + p.lat).join(';');
+    /** 実通信の中止とタイムアウトをまとめる制御 */
+    const controller = new AbortController();
+    /** 呼出し側の中止を通信にも伝える処理 */
+    const abort = (): void => controller.abort();
+    signal?.addEventListener('abort', abort, { once: true });
+    /** 開始待ちも含めた応答待ちの上限 */
+    const timer = setTimeout(abort, 15000);
+    try {
+      if (signal?.aborted) throw new DOMException('中止', 'AbortError');
+      await waitForOsrmSlot(controller.signal);
+      /** APIの道路距離・推計所要時間・形状 */
+      const response = await fetch(endpoint + '/' + coords + '?overview=full&geometries=geojson', { signal: controller.signal });
+      if (!response.ok) throw new Error('OSRM HTTP ' + response.status);
+      /** 経路レスポンス。交通情報は含みません。 */
+      const data = await response.json() as { code?: string; routes?: Array<{ duration: number; distance: number; geometry: { coordinates: Array<[number, number]> } }> };
+      /** 最初の推奨経路 */
+      const route = data.routes?.[0];
+      if (data.code === 'Ok' && route && Number.isFinite(route.duration) && Number.isFinite(route.distance) && route.geometry.coordinates.length > 0) {
+        return { minutes: Math.max(1, Math.ceil(route.duration / 60)), distanceKm: route.distance / 1000,
+          latLngPath: route.geometry.coordinates.map(p => [p[1], p[0]]), isRoadRoute: true,
+          description: mode.googleMode === 'DRIVING' ? 'OSRM道路ルートの概算・渋滞未考慮' : 'OSRM経路に基づく概算' };
       }
-      mins = Math.max(1, mins);
-
-      /** GeoJSONの `[lng, lat]` 配列を地図描画用の `[lat, lng]` 配列へ変換 */
-      const latLngPath: Array<[number, number]> = route.geometry.coordinates.map((c) => [
-        c[1],
-        c[0],
-      ]);
-
-      return {
-        minutes: mins,
-        distanceKm: distKm,
-        latLngPath,
-        isRoadRoute: true,
-      };
-    }
-  } catch (err) {
-    console.warn('OSRM ルート検索に失敗したため直線フォールバックを使用します:', err);
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      console.warn('OSRMを取得できないため距離から概算します:', error);
+    } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
   }
-
-  // OSRMが応答しない場合のフォールバック（出発地と各店舗を直線で結ぶ）
-  const fallbackPath: Array<[number, number]> = [
-    [origin.lat, origin.lng],
-    ...shopsList.map((s): [number, number] => [s.lat, s.lng]),
-  ];
-  const firstShop = shopsList[0];
-  return {
-    minutes: firstShop?._travel?.estMinutes || 15,
-    distanceKm: firstShop?._travel?.estRoadKm || 5,
-    latLngPath: fallbackPath,
-    isRoadRoute: false,
-  };
+  /** 区間ごとに積算する概算時間 */
+  let minutes = 0;
+  /** 区間ごとに積算する概算距離 */
+  let distanceKm = 0;
+  /** 次の区間の始点 */
+  let previous = origin;
+  for (const shop of shopsList) {
+    /** 出発地と各区間の移動手段から求め直した推計 */
+    const estimate = estimateTravelInfo(previous.lat, previous.lng, shop.lat, shop.lng, mode.id);
+    minutes += estimate.estMinutes;
+    distanceKm += estimate.estRoadKm;
+    previous = { lat: shop.lat, lng: shop.lng, name: shop.name };
+  }
+  return { minutes: Math.max(1, minutes), distanceKm,
+    latLngPath: [[origin.lat, origin.lng], ...shopsList.map((s): [number, number] => [s.lat, s.lng])], isRoadRoute: false,
+    description: mode.id === 'TRANSIT' ? '距離からの概算・乗換や時刻表は未取得' : mode.id === 'DRIVING_NO_TOLL' ? '一般道の速度モデルによる概算・経路と渋滞は未確認' : '距離からの概算・経路未取得・渋滞未考慮' };
 }
 
 /**
@@ -303,7 +307,7 @@ export async function scanAreaForNewShops(
     idPrefix: string
   ): void => {
     const isDuplicate = allKnown.some(
-      (s) => Math.abs(s.lat - lat) < 0.0008 && Math.abs(s.lng - lng) < 0.0008 && s.name === name
+      (s) => calcStraightDistanceKm(s.lat, s.lng, lat, lng) < 0.12
     );
     if (isDuplicate) return;
 
@@ -321,6 +325,8 @@ export async function scanAreaForNewShops(
       address: address || '',
       hours: '',
       isCustom: true,
+      assortmentStatus: 'unverified',
+      assortmentSources: [],
     };
 
     allKnown.push(newShop);
@@ -391,6 +397,10 @@ export async function scanAreaForNewShops(
       for (const el of data.elements || []) {
         const tags = el.tags || {};
         const name = tags['name:ja'] || tags.name || '';
+        // 店名キーワードだけでバス停・橋・閉店施設を新規店舗にしない。
+        if (!tags.shop || ['no', 'vacant', 'supermarket', 'convenience'].includes(tags.shop) ||
+          tags['disused:shop'] || tags['abandoned:shop'] || tags.closed || tags.highway ||
+          /閉店|万代橋|万代シティ|万代島|万代町|アニメイトカフェ/.test(name)) continue;
         const lat = el.lat ?? el.center?.lat;
         const lng = el.lon ?? el.center?.lon;
         if (name && typeof lat === 'number' && typeof lng === 'number') {

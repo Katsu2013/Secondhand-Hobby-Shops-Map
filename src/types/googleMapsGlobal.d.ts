@@ -9,6 +9,38 @@
  */
 
 declare namespace google.maps {
+  /** 現行Routesライブラリの動的ロード。 */
+  function importLibrary(name: 'routes'): Promise<{ Route: typeof routes.Route }>;
+  namespace routes {
+    /** 現行Routes APIへ送る条件。必要な取得項目だけを指定します。 */
+    interface ComputeRoutesRequest {
+      /** 出発地 */
+      origin: DirectionsRequest['origin'];
+      /** 目的地 */
+      destination: DirectionsRequest['destination'];
+      /** 移動手段 */
+      travelMode: string;
+      /** 取得する項目 */
+      fields: string[];
+      /** 出発日時 */
+      departureTime?: Date;
+      /** 自動車での交通予測 */
+      routingPreference?: 'TRAFFIC_AWARE_OPTIMAL';
+      /** 道路回避設定 */
+      routeModifiers?: { avoidHighways: boolean; avoidTolls: boolean };
+    }
+    /** 現行Routes APIの取得結果。 */
+    class Route {
+      /** 移動時間（交通予測を指定した場合は交通状況込み、ミリ秒） */
+      durationMillis?: number;
+      /** 距離（m） */
+      distanceMeters?: number;
+      /** 経路形状 */
+      path?: Array<LatLng | { lat: number; lng: number }>;
+      /** 予測条件を指定して経路を取得します。 */
+      static computeRoutes(request: ComputeRoutesRequest): Promise<{ routes?: Route[]; fallbackInfo?: unknown }>;
+    }
+  }
   class LatLng {
     constructor(lat: number, lng: number);
     lat(): number;
@@ -157,15 +189,23 @@ declare namespace google.maps {
     travelMode: TravelMode;
     avoidHighways?: boolean;
     avoidTolls?: boolean;
+    /** 現在または未来の出発時刻と交通予測方式 */
+    drivingOptions?: { departureTime: Date; trafficModel: 'bestguess' };
+    /** 公共交通の出発時刻 */
+    transitOptions?: { departureTime: Date };
   }
 
   interface DirectionsLeg {
     duration?: { text: string; value: number };
     distance?: { text: string; value: number };
+    /** 交通状況を考慮した予測所要時間（取得可能な自動車区間のみ） */
+    duration_in_traffic?: { text: string; value: number };
   }
 
   interface DirectionsRoute {
     legs: DirectionsLeg[];
+    /** 全体の経路形状 */
+    overview_path?: LatLng[];
   }
 
   interface DirectionsResult {

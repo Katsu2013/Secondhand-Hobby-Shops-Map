@@ -6,7 +6,7 @@ import json
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-ctx = ssl._create_unverified_context()
+ctx = ssl.create_default_context()
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
 def fetch_url(url, timeout=20):

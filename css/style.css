@@ -140,7 +140,7 @@ html, body {
   background: #d1fae5;
 }
 
-.engine-badge-wrap {
+.header-db-count {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -256,15 +256,9 @@ html, body {
 }
 
 .api-btn {
-  background: #fefce8;
-  border-color: #fde047;
-  color: #854d0e;
-}
-
-.api-btn.connected {
-  background: #ecfdf5;
-  border-color: #6ee7b7;
-  color: #065f46;
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #334155;
 }
 
 /* ============================================================================
@@ -960,12 +954,13 @@ html, body {
 .shop-balloon-box {
   background: #ffffff;
   border-radius: 6px;
-  padding: 5px;
+  padding: 3px;
   box-shadow: 0 3px 10px rgba(15, 23, 42, 0.32), 0 0 0 1px rgba(15, 23, 42, 0.12);
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 78px;
+  gap: 3px;
+  min-width: 0;
+  align-items: center;
 }
 
 .shop-balloon-wrapper.selected .shop-balloon-box {
@@ -2232,7 +2227,7 @@ html, body {
   }
   .app-subtitle,
   .btn-label-desktop,
-  .engine-badge-wrap,
+  .header-db-count,
   #api-btn-text,
   .header-center {
     display: none !important;
@@ -2294,3 +2289,121 @@ html, body {
     background: var(--primary-light);
   }
 }
+
+/* 当初の74:25を全業態で共有。余白は色付きで残し、元画像はcontainで変形させない。 */
+.brand-plate.plate-official { background: #fff; color: #172033; border: 1px solid #dbe2ea; padding: 3px 6px; width: 96px; height: auto; aspect-ratio: 74 / 25; box-sizing: border-box; min-width: 0; min-height: 0; flex: none; }
+.plate-official .brand-official-logo { display: block; width: 100%; height: 100%; flex: none; object-fit: contain; }
+.plate-official .plate-main { color: #172033; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.shop-assortment-note { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 7px 0; color: #64748b; font-size: 10px; line-height: 1.5; }
+.shop-assortment-note a { color: #2563eb; }
+.shop-assortment-note > span { width: 100%; }
+
+/* 公式の白抜き・黄文字ロゴには背景を付け、マークが消えないようにする。 */
+.brand-plate.plate-official.plate-hardoff, .brand-plate.plate-official.plate-garageoff { background: #004098; }
+.brand-plate.plate-official.plate-offhouse { background: #007440; }
+.brand-plate.plate-official.plate-hobbyoff, .brand-plate.plate-official.plate-modeoff { background: #e50012; }
+.brand-plate.plate-official.plate-liquoroff { background: #a72642; }
+.brand-plate.plate-official.plate-monochrome { background: #263238; }
+
+/* 表示範囲は共通寸法。2段・正方形のロゴも元の形を保って枠内へ収める。 */
+.brand-logo-viewport { overflow: hidden; }
+.brand-plate.plate-official.plate-bookoff { background: #fff000; }
+.brand-plate.plate-official.plate-bookoff-sb { background: #ef7a00; }
+.brand-plate.plate-official.plate-bookoff-plus { background: #ee7a00; }
+.brand-plate.plate-official.plate-surugaya { background: #1d2089; }
+.brand-plate.plate-official.plate-lashinbang { background: #00b8ee; }
+.brand-plate.plate-official.plate-melonbooks { background: #ffffff; border-color: #18bd67; }
+.brand-plate.plate-official.plate-animate { background: #335eac; }
+.brand-plate.plate-official.plate-geo { background: #fed600; }
+.brand-plate.plate-official.plate-geo .plate-main { color: #192a59; font-size: 13px; font-weight: 900; gap: 4px; }
+.plate-geo .geo-mark { display: block; object-fit: contain; flex: none; }
+/* 名称表記もロゴと同じ面積で読みやすくし、共通枠を狭めず文字サイズで調整する。 */
+.brand-plate.plate-official.plate-name .plate-main { font-size: 16px; font-weight: 900; letter-spacing: -0.04em; }
+.brand-plate.plate-official.plate-mandaishoten .plate-main { font-size: 18px; }
+.brand-plate.plate-official.plate-furuichi { background: #f6b020; }
+.brand-plate.plate-official.plate-otakarasouko { background: #ffffff; border-color: #000000; }
+.brand-plate.plate-official.plate-kanteidan { background: #000000; }
+.brand-plate.plate-official.plate-kanteidan .plate-main { color: #ffffff; font-size: 14px; }
+
+/* 一覧と地図は同じ業態ロゴ・同じ74:25の表示枠を使用する。 */
+.shop-brand-plates { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.shop-assortment-warning { margin: 8px 0; padding: 7px 9px; border: 1px solid #fcd34d; border-radius: 5px; background: #fffbeb; color: #92400e; font-size: 12px; line-height: 1.5; }
+.card-details-toggle { width: 100%; border: 0; background: transparent; color: #1d4ed8; font-size: 12px; text-align: left; padding: 8px 0; cursor: pointer; }
+
+/* 中間幅でもAPI設定などの操作がヘッダーの外へ押し出されないようにする。 */
+@media (min-width: 769px) and (max-width: 1400px) {
+  .header-left { flex: 1; min-width: 0; }
+  .brand-block, .brand-block > div { min-width: 0; }
+  .app-title { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .app-subtitle, .header-db-count, .area-jump-wrap, .btn-label-desktop,
+  .header-right .hide-sm, #api-btn-text { display: none; }
+  .header-center { flex: 0 1 420px; min-width: 0; }
+  .quick-mode-bar { max-width: 100%; }
+}
+
+@media (max-width: 768px) {
+  /* ブラウザーのアドレスバー・下端の安全領域を除いた高さに追従する。 */
+  #root { height: 100dvh; }
+  .app-header { height: 56px; min-height: 56px; }
+  .brand-block > div { min-width: 0; }
+  .app-title { font-size: 0.8rem; }
+  .header-left { gap: 6px; }
+  .app-header .icon-btn, .app-header .action-btn { min-width: 44px; min-height: 44px; justify-content: center; padding: 8px; }
+  .mobile-bottom-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); height: calc(58px + env(safe-area-inset-bottom, 0px)); }
+  .mob-nav-btn { min-height: 56px; min-width: 0; flex-direction: column; gap: 3px; font-size: 11px; }
+  .mob-nav-btn > span:first-child { font-size: 17px; }
+
+  /* 地図を作り直さず、同時表示と単独表示を切り替える。 */
+  .app-workspace.mobile-view-split { display: grid; grid-template-rows: minmax(180px, 44%) minmax(0, 1fr); }
+  .mobile-view-split .map-stage { grid-row: 1; width: 100%; min-height: 0; }
+  .mobile-view-split .right-panel { position: relative; inset: auto; grid-row: 2; width: 100%; min-height: 0; border-left: 0; border-top: 2px solid #cbd5e1; }
+  .mobile-view-options .map-stage, .mobile-view-list .map-stage { visibility: hidden; pointer-events: none; }
+  .side-panel { min-height: 0; }
+  .left-panel:not(.mob-hidden) { width: 100%; }
+  .right-panel .panel-header { padding: 8px 12px; min-height: 52px; gap: 8px; }
+  .right-panel .panel-sub-caption { display: none; }
+  .panel-close-btn { min-width: 44px; min-height: 44px; padding: 8px; font-size: 13px; white-space: nowrap; flex: none; }
+  .list-toolbar { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 6px; padding: 8px 10px; }
+  .list-toolbar input, .list-toolbar select { min-width: 0; width: 100%; }
+  .shop-list-container { min-height: 0; overscroll-behavior: contain; }
+  .shop-card-top { gap: 8px; }
+  .shop-card-name { font-size: 14px; }
+  .shop-time-box { flex: none; }
+  .shop-card-details:not(.expanded) { display: none; }
+  .shop-card-actions { gap: 6px; }
+  .shop-card-actions .card-btn { font-size: 12px; padding: 8px 4px; min-width: 0; }
+  .shop-assortment-note { font-size: 12px; }
+  .shop-assortment-note a { display: flex; align-items: center; min-height: 44px; }
+  .shop-meta-text { font-size: 12px; line-height: 1.6; }
+
+  /* 見た目の大きさだけでなく、ラベルを含むタップ範囲を確保する。 */
+  .side-panel button, .modal-dialog button, .route-info-card button, .floating-scan-pill { min-height: 44px; min-width: 44px; }
+  .side-panel input:not([type=checkbox]):not([type=radio]), .side-panel select,
+  .modal-dialog input:not([type=checkbox]):not([type=radio]), .modal-dialog select { min-height: 44px; font-size: 16px; }
+  .side-panel input[type=checkbox], .side-panel input[type=radio] { width: 22px; height: 22px; flex: none; }
+  .side-panel label { min-height: 44px; }
+  .side-panel .section-actions { gap: 8px; flex-wrap: wrap; }
+  .side-panel .cat-parent-row { flex-wrap: wrap; }
+  .side-panel .cat-parent-label { flex: 1 1 100%; font-size: 14px; }
+  .side-panel .cat-parent-actions { width: 100%; justify-content: flex-end; gap: 8px; }
+  .side-panel .cat-sub-label { font-size: 13px; }
+  .side-panel .cat-sub-item { display: grid; grid-template-columns: minmax(0, 1fr) 52px; gap: 8px; }
+  .side-panel .cat-sub-label { min-width: 0; align-items: flex-start; gap: 5px; }
+  .side-panel .sub-cat-name { min-width: 0; overflow-wrap: anywhere; }
+  .side-panel .cat-sub-right { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+  .side-panel .sub-filter-count { white-space: nowrap; font-size: 11px; }
+  .side-panel .solo-filter-btn, .side-panel .cat-expand-btn { font-size: 12px; padding: 8px; }
+  .side-panel .filter-item { min-height: 52px; }
+  .leaflet-touch .leaflet-bar a { width: 44px; height: 44px; line-height: 44px; }
+  .map-floating-top { top: 8px; left: 8px; right: 8px; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .map-stat-pill { max-width: 100%; font-size: 11px; gap: 5px; }
+  .map-stat-pill > span { white-space: nowrap; }
+  .map-stat-pill > span:nth-child(3), .map-stat-pill > span:nth-child(4) { display: none; }
+  .floating-scan-pill { font-size: 12px; padding: 8px 12px; }
+  .mobile-view-split .route-info-card { left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 52%; overflow-y: auto; }
+  .route-info-card .route-card-close { flex: none; }
+}
+
+/* 添付看板に合わせ、工房は白地に青、インバースは青地に白文字。共通枠・余白は維持する。 */
+.brand-plate.plate-official.plate-pc-koubou, .brand-plate.plate-official.plate-goodwill { background: #ffffff; }
+.brand-plate.plate-official.plate-inverse { background: #0080cb; border-color: #0080cb; }

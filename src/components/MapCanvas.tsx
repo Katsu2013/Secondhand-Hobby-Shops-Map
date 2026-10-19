@@ -242,6 +242,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
   const onViewportChangedRef = useRef(onViewportChanged);
   onViewportChangedRef.current = onViewportChanged;
+  /** 非表示エンジンの遅延イベントで表示範囲を上書きしないための現在値 */
+  const mapEngineRef = useRef(mapEngine);
+  mapEngineRef.current = mapEngine;
 
   const onSelectShopRef = useRef(onSelectShop);
   onSelectShopRef.current = onSelectShop;
@@ -272,6 +275,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
      * Leafletの表示領域を取得して親コンポーネントへ通知する内部関数。
      */
     const notifyLeafletViewport = (): void => {
+      if (mapEngineRef.current !== 'leaflet' || !leafletContainerRef.current?.clientWidth || !leafletContainerRef.current?.clientHeight) return;
       const c = lMap.getCenter();
       const b = lMap.getBounds();
       onViewportChangedRef.current(
@@ -294,12 +298,13 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     });
 
     // 初回描画直後にサイズを確定させてから表示領域（Bounds）を通知する
-    setTimeout(() => {
+    const initialSizeTimer = setTimeout(() => {
       lMap.invalidateSize();
       notifyLeafletViewport();
     }, 60);
 
     return () => {
+      clearTimeout(initialSizeTimer);
       lMap.remove();
       leafletMapRef.current = null;
     };
@@ -338,6 +343,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       });
 
       gMap.addListener('idle', () => {
+        if (mapEngineRef.current !== 'google') return;
         const c = gMap.getCenter();
         const b = gMap.getBounds();
         if (c && b) {
@@ -384,6 +390,27 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     }
   }, [cameraTarget, mapEngine]);
 
+  /** 分割表示・回転・パネル開閉による実際の領域変化を監視する地図の外枠 */
+  const mapStageRef = useRef<HTMLElement | null>(null);
+
+  // 初期表示から分割表示へ切り替えても、両エンジンのタイル・中心・範囲を更新する。
+  useEffect(() => {
+    if (!mapStageRef.current) return;
+    /** 同じフレーム内の複数サイズ通知をまとめる描画予約 */
+    let frame = 0;
+    /** 画面回転や分割レイアウトの確定後に地図の寸法を合わせる監視 */
+    const observer = new ResizeObserver(entries => {
+      if (!entries.some(entry => entry.contentRect.width > 0 && entry.contentRect.height > 0)) return;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (mapEngine === 'leaflet') leafletMapRef.current?.invalidateSize();
+        else if (googleMapRef.current && window.google?.maps) google.maps.event.trigger(googleMapRef.current, 'resize');
+      });
+    });
+    observer.observe(mapStageRef.current);
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); };
+  }, [mapEngine]);
+
   // 4. パネル開閉時の地図サイズ再計算
   useEffect(() => {
     if (mapEngine === 'leaflet' && leafletMapRef.current) {
@@ -407,7 +434,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       return { mins, radius: straightMeters };
     });
 
-    const colors = ['#10b981', '#3b82f6', '#8b5cf6'];
+    const colors = ['#10b981', '#3b82f6', '#f59e0b'];
 
     if (mapEngine === 'google' && googleMapRef.current && window.google?.maps) {
       if (googleOriginMarkerRef.current) {
@@ -590,12 +617,12 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   const currentModeInfo = TRAVEL_MODE_MAP[travelMode] || TRAVEL_MODES[0];
 
   return (
-    <section className="map-stage" aria-label="ショップマップ">
+    <section ref={mapStageRef} className="map-stage" aria-label="ショップマップ">
       {/* 地図上部フローティング情報バー */}
       <div className="map-floating-top">
         <div className="map-stat-pill">
           <span>
-            表示中エリア内: <strong id="stat-visible-count">{viewportShops.length.toLocaleString()}</strong> 店舗
+            表示中エリア内: <strong id="stat-visible-count">{viewportShops.length.toLocaleString()}</strong> 店舗{viewportShops.length > 200 ? '（ピンは上位200件）' : ''}
           </span>
           <span className="stat-sep">|</span>
           <span>
@@ -700,6 +727,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
                 ))}
               </div>
 
+              <p className="section-desc" id="route-arrival-prediction">{activeRouteInfo.arrivalText}</p>
               <div className="route-card-actions">
                 <a
                   id="link-open-gmaps-nav"

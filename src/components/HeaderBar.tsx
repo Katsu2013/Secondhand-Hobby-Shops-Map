@@ -1,22 +1,18 @@
 /**
  * @file src/components/HeaderBar.tsx
  * @description 画面最上部に配置されるヘッダーバーコンポーネント。
- * アプリのタイトル、現在のマップエンジン状態バッジ、全国収録店舗数バッジ、
+ * アプリのタイトル、全国収録店舗数バッジ、
  * アクセス手段のクイック切替バー、主要エリアジャンプ選択、周辺店舗スキャンボタン、API設定ボタンを提供します。
  */
 
 import React from 'react';
 import { AREA_PRESETS, TRAVEL_MODES } from '../config/shopMaster';
-import type { AreaPreset, MapEngineType, TravelModeId } from '../types/shop';
+import type { AreaPreset, TravelModeId } from '../types/shop';
 
 /**
  * `HeaderBar` コンポーネントのPropsインターフェース。
  */
 export interface HeaderBarProps {
-  /** 現在稼働中のマップエンジン種別（`'google'` または `'leaflet'`） */
-  mapEngine: MapEngineType;
-  /** Google Maps APIキーが接続済みかどうか */
-  isGoogleConnected: boolean;
   /** 全国データベースに登録されている総店舗数 */
   totalDbCount: number;
   /** 現在選択されているアクセス手段ID */
@@ -44,8 +40,6 @@ export interface HeaderBarProps {
  * @returns ヘッダーバーのJSX要素
  */
 export const HeaderBar: React.FC<HeaderBarProps> = ({
-  mapEngine,
-  isGoogleConnected,
   totalDbCount,
   travelMode,
   onSelectTravelMode,
@@ -139,16 +133,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
       </div>
 
       <div className="header-right">
-        <div className="engine-badge-wrap">
-          <span
-            id="engine-status-badge"
-            className={`engine-badge ${mapEngine === 'google' ? 'google-active' : ''}`}
-            title="現在稼働中の地図エンジン"
-          >
-            {mapEngine === 'google'
-              ? 'Google Maps API 稼働中'
-              : '全国公式店舗DB内蔵マップ (APIキー不要モード)'}
-          </span>
+        <div className="header-db-count">
           <span id="total-db-count" className="db-count-badge">
             全国 {totalDbCount.toLocaleString()} 店舗収録
           </span>
@@ -168,14 +153,13 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         <button
           id="btn-api-settings"
           type="button"
-          className={`action-btn api-btn ${isGoogleConnected ? 'connected' : ''}`}
-          title="本家Google Maps JavaScript APIキーの設定"
+          className="action-btn api-btn"
+          title="地図の設定（Google Maps APIキー）"
+          aria-label="地図の設定"
           onClick={onOpenApiModal}
         >
-          <span>🔑</span>
-          <span id="api-btn-text">
-            {isGoogleConnected ? 'Google Maps 接続済' : 'Google Maps API設定'}
-          </span>
+          <span aria-hidden="true">⚙️</span>
+          <span id="api-btn-text">地図の設定</span>
         </button>
       </div>
     </header>

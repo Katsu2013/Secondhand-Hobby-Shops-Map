@@ -1,3 +1,5 @@
+from pipeline_support import stable_shop_id, validate_database, atomic_json_write
+from assortment_support import apply_assortment, correct_brand
 import json
 import os
 import re
@@ -6,7 +8,7 @@ import urllib.request
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-ctx = ssl._create_unverified_context()
+ctx = ssl.create_default_context()
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
 def clean_address_for_geocode(addr):
@@ -39,6 +41,9 @@ def geocode_gsi(addr):
         return None
     if clean in gsi_cache:
         return gsi_cache[clean]
+
+    if os.environ.get("REUSE_MAP_OFFLINE") == "1":
+        return None
 
     core = extract_core_address_key(addr)
     candidates = []
@@ -105,71 +110,21 @@ def derive_parent_categories(sub_cats):
     parents = {SUB_TO_PARENT[sc] for sc in sub_cats if sc in SUB_TO_PARENT}
     return sorted(parents)
 
-HO_LOGO_MAP = {
-    "hard_off": (
-        "hardoff",
-        "hardoff",
-        [
-            "sub_pc_junk",
-            "sub_smartphone",
-            "sub_camera",
-            "sub_tool_diy",
-            "sub_home_appliance",
-            "sub_audio",
-            "sub_instrument",
-            "sub_vinyl_record",
-            "sub_retro_game",
-            "sub_modern_game",
-        ],
-    ),
-    "hard_gakki": ("hardoff", "hardoff", ["sub_instrument", "sub_audio", "sub_vinyl_record"]),
-    "kougukan": ("hardoff", "hardoff", ["sub_tool_diy"]),
-    "hard_pc": ("hardoff", "hardoff", ["sub_pc_junk", "sub_smartphone"]),
-    "kamerakan": ("hardoff", "hardoff", ["sub_camera"]),
-    "off_house": (
-        "offhouse",
-        "offhouse",
-        [
-            "sub_apparel",
-            "sub_luxury_brand",
-            "sub_outdoor_sport",
-            "sub_furniture_zakka",
-            "sub_home_appliance",
-        ],
-    ),
-    "outdoor": ("offhouse", "offhouse", ["sub_outdoor_sport", "sub_apparel"]),
-    "mode_off": ("offhouse", "modeoff", ["sub_apparel", "sub_luxury_brand"]),
-    "mode_off_vintage": ("offhouse", "modeoff", ["sub_apparel", "sub_luxury_brand"]),
-    "garage_off": ("offhouse", "garageoff", ["sub_car_bike", "sub_tool_diy"]),
-    "liquor_off": ("offhouse", "liquoroff", ["sub_liquor"]),
-    "hobby_off": (
-        "hobbyoff",
-        "hobbyoff",
-        [
-            "sub_figure",
-            "sub_plamo",
-            "sub_minicar_rail",
-            "sub_retro_toy",
-            "sub_tcg_card",
-            "sub_board_game",
-            "sub_anime_goods",
-        ],
-    ),
-    "hobby_toreka": ("hobbyoff", "hobbyoff", ["sub_tcg_card", "sub_board_game"]),
-    "book_off": (
-        "bookoff",
-        "bookoff",
-        [
-            "sub_comic_book",
-            "sub_cd_dvd",
-            "sub_retro_game",
-            "sub_modern_game",
-            "sub_tcg_card",
-            "sub_figure",
-            "sub_plamo",
-        ],
-    ),
-}
+# 業態コードはチェーン・看板の識別専用。取扱商品は店舗別出典で設定する。
+HO_LOGO_MAP = {'hard_off': ('hardoff', 'hardoff', []),
+ 'hard_gakki': ('hardoff', 'hardoff', []),
+ 'kougukan': ('hardoff', 'hardoff', []),
+ 'hard_pc': ('hardoff', 'hardoff', []),
+ 'kamerakan': ('hardoff', 'hardoff', []),
+ 'off_house': ('offhouse', 'offhouse', []),
+ 'outdoor': ('offhouse', 'offhouse', []),
+ 'mode_off': ('offhouse', 'modeoff', []),
+ 'mode_off_vintage': ('offhouse', 'modeoff', []),
+ 'garage_off': ('offhouse', 'garageoff', []),
+ 'liquor_off': ('offhouse', 'liquoroff', []),
+ 'hobby_off': ('hobbyoff', 'hobbyoff', []),
+ 'hobby_toreka': ('hobbyoff', 'hobbyoff', []),
+ 'book_off': ('bookoff', 'bookoff', [])}
 
 BRAND_ORDER = [
     "hardoff", "bookoff", "bookoff_plus", "bookoff_sb",
@@ -178,78 +133,16 @@ BRAND_ORDER = [
     "geo", "furuichi", "otakarasouko", "mandai", "mangasouko"
 ]
 
-def map_bookoff_subcategories(item, store_cat):
-    """
-    ブックオフ公式APIの product_parents_sell コード配列と業態名から、
-    実際の店舗ごとの詳細サブジャンル（subCategories）を正確にマッピングします。
-    """
-    raw_codes = ":".join(item.get("product_parents_sell") or [])
-    parts = set(raw_codes.split(":")) if raw_codes else set()
-    sub_cats = set()
-
-    # 01:本・コミック・書籍
-    if "01" in parts or not parts:
-        sub_cats.add("sub_comic_book")
-    # 02:CD・DVD・ブルーレイ・ゲーム
-    if "02" in parts or not parts:
-        sub_cats.update(["sub_cd_dvd", "sub_modern_game", "sub_retro_game"])
-    # 03:携帯電話・スマートフォン・タブレット
-    if "03" in parts:
-        sub_cats.add("sub_smartphone")
-    # 04:デジタル家電・パソコン・AV機器
-    if "04" in parts:
-        sub_cats.update(["sub_pc_junk", "sub_home_appliance", "sub_audio", "sub_camera"])
-    # 05:生活家電
-    if "05" in parts:
-        sub_cats.add("sub_home_appliance")
-    # 06:楽器・音楽機材
-    if "06" in parts:
-        sub_cats.add("sub_instrument")
-    # 07:メンズ・レディース古着・アパレル
-    if "07" in parts:
-        sub_cats.add("sub_apparel")
-    # 08:ブランドバッグ・腕時計・貴金属
-    if "08" in parts:
-        sub_cats.add("sub_luxury_brand")
-    # 09:トレーディングカード
-    if "09" in parts:
-        sub_cats.add("sub_tcg_card")
-    # 10:フィギュア・プラモデル・おもちゃ・ミニカー・鉄道模型
-    if "10" in parts:
-        sub_cats.update(["sub_figure", "sub_plamo", "sub_minicar_rail", "sub_retro_toy"])
-    # 11:ベビー・キッズ, 14:食器・雑貨・インテリア・家具
-    if "11" in parts or "14" in parts:
-        sub_cats.add("sub_furniture_zakka")
-    # 12:スポーツ用品, 13:アウトドア・キャンプ・釣具, 15:ゴルフ用品
-    if any(k in parts for k in ("12", "13", "15")):
-        sub_cats.add("sub_outdoor_sport")
-    # 21:アニメ・キャラグッズ
-    if "21" in parts:
-        sub_cats.update(["sub_anime_goods", "sub_otome_goods"])
-    # 22:レコード・アナログ盤
-    if "22" in parts:
-        sub_cats.add("sub_vinyl_record")
-
-    # 業態別の標準保証
-    if store_cat == "BOOKOFF SUPER BAZAAR":
-        sub_cats.update([
-            "sub_comic_book", "sub_cd_dvd", "sub_retro_game", "sub_modern_game",
-            "sub_tcg_card", "sub_figure", "sub_plamo", "sub_minicar_rail", "sub_retro_toy",
-            "sub_pc_junk", "sub_smartphone", "sub_home_appliance", "sub_audio", "sub_instrument",
-            "sub_anime_goods", "sub_apparel", "sub_luxury_brand", "sub_outdoor_sport", "sub_furniture_zakka"
-        ])
-    elif store_cat == "BOOKOFF PLUS":
-        sub_cats.update([
-            "sub_comic_book", "sub_cd_dvd", "sub_retro_game", "sub_modern_game",
-            "sub_tcg_card", "sub_figure", "sub_plamo", "sub_anime_goods",
-            "sub_apparel", "sub_luxury_brand"
-        ])
-    else:
-        sub_cats.update(["sub_comic_book", "sub_cd_dvd", "sub_retro_game", "sub_modern_game"])
-
-    return sorted(sub_cats)
-
 def build_master_database():
+    # 台帳は既存IDの移行に必要な入力。欠落時に再採番せず、更新を止める。
+    with open("scripts/shop_id_registry.json", "r", encoding="utf-8") as handle:
+        registry = json.load(handle)
+    with open("data/shops.json", "r", encoding="utf-8") as handle:
+        previous_shops = json.load(handle)
+    previous_ids = {}
+    for previous in previous_shops:
+        for source_id in previous.get("sourceIds", [previous["id"]]):
+            previous_ids[source_id] = previous["id"]
     with open("scripts/official_surugaya.json", "r", encoding="utf-8") as f:
         su_real = json.load(f)
     with open("scripts/official_surugaya_friendly.json", "r", encoding="utf-8") as f:
@@ -268,6 +161,11 @@ def build_master_database():
         lash_official = json.load(f)
     with open("scripts/official_kanteidan.json", "r", encoding="utf-8") as f:
         kanteidan_official = json.load(f)
+    # PC専門店は買取専用店を除いた公式スナップショットを必須入力にする。
+    pc_official = []
+    for kind in ('iosys', 'janpara', 'pc_koubou', 'inverse'):
+        with open(f'scripts/official_{kind}.json', encoding='utf-8') as handle:
+            pc_official.extend(dict(item, chain=kind) for item in json.load(handle))
 
     # Extract official Furuichi hours from scripts/furuichi.html
     furu_hours_map = {}
@@ -289,14 +187,14 @@ def build_master_database():
         key = extract_core_address_key(item["address"])
         chain_id, brand_id, sub_cats = HO_LOGO_MAP.get(
             item["logo_type"],
-            ("hardoff", "hardoff", ["sub_pc_junk", "sub_retro_game", "sub_modern_game"]),
+            ("hardoff", "hardoff", []),
         )
         park_str = item.get("parking", "").strip()
-        base_ho_hours = "11:00～20:00" if ("秋葉原" in item["name"] or "上野" in item["name"]) else "10:00～20:00"
-        ho_hours = f"{base_ho_hours} ({park_str})" if park_str else base_ho_hours
+        ho_hours = (item.get("hours") or "").strip()  # 未取得の営業時間を固定値で創作しない
         if key not in ho_grouped:
             ho_grouped[key] = {
                 "id": item["id"],
+                "sourceIds": [item["id"]],
                 "names": [item["name"]],
                 "chains": [chain_id],
                 "brands": [brand_id],
@@ -306,6 +204,8 @@ def build_master_database():
             }
         else:
             g = ho_grouped[key]
+            if item["id"] not in g["sourceIds"]:
+                g["sourceIds"].append(item["id"])
             if item["name"] not in g["names"]:
                 g["names"].append(item["name"])
             if chain_id not in g["chains"]:
@@ -317,7 +217,7 @@ def build_master_database():
                     g["subCategories"].append(sc)
 
     all_addresses = set()
-    for s in su_real + su_friendly + furu_official + ota_official + lash_official + geo_official + kanteidan_official:
+    for s in su_real + su_friendly + furu_official + ota_official + lash_official + geo_official + kanteidan_official + pc_official:
         all_addresses.add(s["address"])
     for b in bo_official:
         sc = b.get("store_category", "")
@@ -334,8 +234,7 @@ def build_master_database():
         for _ in as_completed(futures):
             pass
 
-    with open(GSI_CACHE_FILE, "w", encoding="utf-8") as f:
-        json.dump(gsi_cache, f, ensure_ascii=False)
+    atomic_json_write(GSI_CACHE_FILE, gsi_cache)
     print("GSI geocoding complete!")
 
     final_shops = []
@@ -347,26 +246,11 @@ def build_master_database():
         if not coords:
             continue
         name = s["name"]
-        sub_cats = [
-            "sub_retro_game", "sub_modern_game", "sub_tcg_card", "sub_board_game",
-            "sub_figure", "sub_plamo", "sub_minicar_rail", "sub_retro_toy",
-            "sub_comic_book", "sub_doujin", "sub_anime_goods", "sub_otome_goods",
-            "sub_cd_dvd", "sub_pc_junk"
-        ]
-        if "プラモデル" in name:
-            sub_cats = ["sub_plamo", "sub_minicar_rail", "sub_figure"]
-        elif "トレカ" in name or "ボードゲーム" in name:
-            sub_cats = ["sub_tcg_card", "sub_board_game"]
-        elif "ゲーム館" in name:
-            sub_cats = ["sub_retro_game", "sub_modern_game", "sub_pc_junk"]
-        elif "乙女" in name or "キャラ" in name:
-            sub_cats = ["sub_otome_goods", "sub_anime_goods", "sub_doujin", "sub_comic_book", "sub_figure"]
-        elif "アニメ・ホビー" in name:
-            sub_cats = ["sub_figure", "sub_plamo", "sub_anime_goods", "sub_doujin", "sub_cd_dvd"]
+        sub_cats = []
 
-        su_hours = (s.get("hours") or "").strip() or "10:00～21:00"
+        su_hours = (s.get("hours") or "").strip()
         final_shops.append({
-            "id": f"surugaya_off_{idx+1}",
+            "id": stable_shop_id("surugaya", s, registry),
             "name": name,
             "chain": "surugaya",
             "chains": ["surugaya"],
@@ -391,6 +275,7 @@ def build_master_database():
         sub_cats = sorted(g["subCategories"])
         final_shops.append({
             "id": g["id"],
+            "sourceIds": sorted(g.get("sourceIds", [g["id"]])),
             "name": display_name,
             "chain": primary_chain,
             "chains": g["chains"],
@@ -440,7 +325,7 @@ def build_master_database():
         hours_str = hours_list[0] if isinstance(hours_list, list) and hours_list else ""
         hours_str = re.sub(r'<[^>]+>', ' ', hours_str).strip()
 
-        sub_cats = map_bookoff_subcategories(b, sc)
+        sub_cats = []
 
         final_shops.append({
             "id": f"bookoff_off_{b.get('id')}",
@@ -468,13 +353,10 @@ def build_master_database():
         coords = geocode_gsi(g["address"])
         if not coords:
             continue
-        geo_subs = [
-            "sub_modern_game", "sub_retro_game", "sub_smartphone",
-            "sub_home_appliance", "sub_pc_junk", "sub_cd_dvd",
-            "sub_comic_book", "sub_tcg_card"
-        ]
+        geo_subs = []
         final_shops.append({
             "id": g["id"],
+            "sourceIds": sorted(g.get("sourceIds", [g["id"]])),
             "name": g["name"],
             "chain": "general_game",
             "chains": ["general_game"],
@@ -496,13 +378,9 @@ def build_master_database():
         coords = geocode_gsi(s["address"])
         if not coords:
             continue
-        lash_subs = [
-            "sub_figure", "sub_plamo", "sub_tcg_card", "sub_comic_book",
-            "sub_doujin", "sub_anime_goods", "sub_otome_goods", "sub_cd_dvd",
-            "sub_retro_game", "sub_modern_game"
-        ]
+        lash_subs = []
         final_shops.append({
-            "id": f"lashin_off_{idx+1}",
+            "id": stable_shop_id("lashinbang", s, registry),
             "name": s["name"],
             "chain": "anime_shop",
             "chains": ["anime_shop"],
@@ -521,17 +399,10 @@ def build_master_database():
         coords = geocode_gsi(s["address"])
         if not coords:
             continue
-        f_hours = (s.get("hours") or "").strip() or furu_hours_map.get(s["name"], "10:00～22:00")
-        if "トレカパーク" in s["name"]:
-            furu_subs = ["sub_tcg_card", "sub_board_game"]
-        else:
-            furu_subs = [
-                "sub_comic_book", "sub_retro_game", "sub_modern_game",
-                "sub_tcg_card", "sub_board_game", "sub_figure",
-                "sub_plamo", "sub_anime_goods", "sub_cd_dvd", "sub_smartphone"
-            ]
+        f_hours = (s.get("hours") or "").strip() or furu_hours_map.get(s["name"], "")
+        furu_subs = []
         final_shops.append({
-            "id": f"furu_off_{idx+1}",
+            "id": stable_shop_id("furuichi", s, registry),
             "name": s["name"],
             "chain": "general_game",
             "chains": ["general_game"],
@@ -551,32 +422,10 @@ def build_master_database():
         if not coords:
             continue
         ota_h = (s.get("hours") or "").strip()
-        if not ota_h:
-            ota_h = "10:00～21:00" if ("イオン" in s["name"] or "アピタ" in s["name"] or "ららぽーと" in s["name"]) else "10:00～24:00"
         oname = s["name"]
-        if "エコツール" in oname:
-            ota_subs = ["sub_tool_diy"]
-        elif "プレイズ" in oname:
-            ota_subs = ["sub_tcg_card", "sub_board_game", "sub_retro_game", "sub_modern_game"]
-        elif "おじゃま館" in oname:
-            ota_subs = ["sub_retro_game", "sub_modern_game", "sub_tcg_card"]
-        elif "メディオ" in oname:
-            ota_subs = [
-                "sub_plamo", "sub_figure", "sub_minicar_rail",
-                "sub_retro_game", "sub_modern_game", "sub_tcg_card",
-                "sub_pc_junk", "sub_anime_goods"
-            ]
-        else:
-            ota_subs = [
-                "sub_retro_game", "sub_modern_game", "sub_tcg_card", "sub_board_game",
-                "sub_figure", "sub_plamo", "sub_minicar_rail", "sub_retro_toy",
-                "sub_pc_junk", "sub_smartphone", "sub_camera", "sub_tool_diy",
-                "sub_home_appliance", "sub_audio", "sub_instrument",
-                "sub_comic_book", "sub_anime_goods", "sub_cd_dvd",
-                "sub_apparel", "sub_luxury_brand", "sub_outdoor_sport"
-            ]
+        ota_subs = []
         final_shops.append({
-            "id": f"ota_off_{idx+1}",
+            "id": stable_shop_id("otakarasouko", s, registry),
             "name": oname,
             "chain": "general_game",
             "chains": ["general_game"],
@@ -592,14 +441,7 @@ def build_master_database():
 
     # Add Official Kanteidan Group (22 active stores across Chiba, Ibaraki, Shizuoka, Tochigi, Gunma)
     kantei_added = 0
-    kantei_subs = [
-        "sub_retro_game", "sub_modern_game", "sub_tcg_card", "sub_board_game",
-        "sub_figure", "sub_plamo", "sub_minicar_rail", "sub_retro_toy",
-        "sub_pc_junk", "sub_smartphone", "sub_camera", "sub_tool_diy",
-        "sub_home_appliance", "sub_audio", "sub_instrument", "sub_vinyl_record",
-        "sub_comic_book", "sub_doujin", "sub_anime_goods", "sub_cd_dvd",
-        "sub_apparel", "sub_luxury_brand", "sub_outdoor_sport", "sub_car_bike", "sub_liquor"
-    ]
+    kantei_subs = []
     for idx, s in enumerate(kanteidan_official):
         coords = geocode_gsi(s["address"])
         if not coords:
@@ -616,7 +458,7 @@ def build_master_database():
             "lat": coords["lat"],
             "lng": coords["lng"],
             "address": clean_address_for_geocode(s["address"]),
-            "hours": s.get("hours", "10:00～24:00"),
+            "hours": s.get("hours", ""),
             "verified": True
         })
         kantei_added += 1
@@ -624,8 +466,9 @@ def build_master_database():
 
     # Add remaining chains from OSM (Animate, Melonbooks, Mandarake, Mandai, Mangasouko)
     # Note: Bookoff, HardOff, Surugaya, Lashinbang, Furuichi, Otakarasouko, GEO, Kanteidan are 100% official now!
-    with open("scripts/raw_overpass.json", "r", encoding="utf-8") as f:
-        raw_osm = json.load(f).get("elements", [])
+    # クリーンなCIでも使える追跡対象の補完スナップショット。
+    with open("scripts/osm_supplement.json", "r", encoding="utf-8") as f:
+        raw_osm = json.load(f)["elements"]
 
     OTHER_REGEX = re.compile(
         r"(まんだらけ|MANDARAKE|"
@@ -646,6 +489,8 @@ def build_master_database():
     osm_added = 0
     for el in raw_osm:
         tags = el.get("tags", {})
+        if tags.get("shop") in ("no", "vacant", "supermarket", "convenience") or tags.get("highway"):
+            continue
         if tags.get("disused:shop") or tags.get("abandoned:shop") or tags.get("closed"):
             continue
         name = tags.get("name:ja") or tags.get("name") or tags.get("brand:ja") or tags.get("brand") or ""
@@ -675,33 +520,7 @@ def build_master_database():
         hours = (tags.get("opening_hours") or "").strip()
         if hours == "24/7":
             hours = "24時間営業"
-        elif not hours:
-            if "mandarake" in info["brands"]:
-                hours = "12:00～20:00"
-            elif "melonbooks" in info["brands"]:
-                hours = "11:00～20:00"
-            elif "animate" in info["brands"]:
-                hours = "10:00～21:00"
-            elif "mandai" in info["brands"] or "mangasouko" in info["brands"]:
-                hours = "10:00～24:00"
-            else:
-                hours = "10:00～21:00"
-
-        osm_subs = set()
-        if "mandarake" in info["brands"]:
-            osm_subs.update([
-                "sub_figure", "sub_plamo", "sub_minicar_rail", "sub_retro_toy",
-                "sub_retro_game", "sub_tcg_card", "sub_comic_book", "sub_doujin",
-                "sub_anime_goods", "sub_otome_goods", "sub_cd_dvd", "sub_vinyl_record"
-            ])
-        if "melonbooks" in info["brands"]:
-            osm_subs.update(["sub_doujin", "sub_comic_book", "sub_anime_goods", "sub_otome_goods", "sub_cd_dvd"])
-        if "animate" in info["brands"]:
-            osm_subs.update(["sub_comic_book", "sub_anime_goods", "sub_otome_goods", "sub_cd_dvd", "sub_figure", "sub_tcg_card"])
-        if "mandai" in info["brands"] or "mangasouko" in info["brands"]:
-            osm_subs.update(kantei_subs)
-
-        osm_sub_list = sorted(osm_subs) if osm_subs else ["sub_comic_book", "sub_anime_goods"]
+        osm_sub_list = []
 
         final_shops.append({
             "id": f"osm_{el.get('type','n')[0]}_{el.get('id')}",
@@ -720,12 +539,41 @@ def build_master_database():
 
     print(f"Added {osm_added} supplemental stores from OSM (Mandarake / Animate / Melonbooks / Kanteidan / Mandai).")
 
+    for item in pc_official:
+        coords = geocode_gsi(item['address'])
+        if not coords:
+            raise ValueError(f"PC販売店舗の座標を取得できません: {item['name']}")
+        kind = item['chain']
+        brand = 'goodwill' if kind == 'pc_koubou' and 'グッドウィル' in item['name'] else kind
+        final_shops.append(dict(id=item['id'], sourceIds=[item['id']], name=item['name'], chain=kind,
+            chains=[kind], brands=[brand], categories=[], subCategories=[], **coords,
+            address=clean_address_for_geocode(item['address']), hours=item['hours'], verified=True))
+
+    # 看板は店名から判別できるが、販売商品は系列名から断定しない。
+    for shop in final_shops:
+        correct_brand(shop)
+
+    # 品目の出典を構成店に対応付け、系列OFF時に別店舗の取扱いを混入させない。
+    source_details = {sid: dict(name=shop['name'], chain=shop['chain'])
+        for shop in final_shops for sid in shop.get('sourceIds', [shop['id']])}
+    for item in ho_official:
+        if item['id'] in source_details:
+            source_details[item['id']] = dict(name=item['name'], chain=HO_LOGO_MAP.get(item['logo_type'], ('hardoff',))[0])
+
     # Merge co-located stores within ~65m
     merged = []
     for s in final_shops:
+        s["sourceIds"] = s.get("sourceIds", [s["id"]])
         found = False
         for m in merged:
+            # 秋葉原などでは別住所の専門店が近接する。新規PC店は距離だけで複合店にしない。
+            if any(chain in ('iosys', 'janpara', 'pc_koubou', 'inverse') for chain in s['chains'] + m['chains']):
+                continue
             if abs(s["lat"] - m["lat"]) < 0.0006 and abs(s["lng"] - m["lng"]) < 0.0006:
+                m["sourceIds"] = sorted(set(m["sourceIds"] + s["sourceIds"]))
+                # 異なる店の営業時間を、複合店全体の営業保証として使わない。
+                if m["hours"] != s["hours"]:
+                    m["hours"] = ""
                 for ch in s["chains"]:
                     if ch not in m["chains"]:
                         m["chains"].append(ch)
@@ -753,8 +601,6 @@ def build_master_database():
                         m["name"] = f"{m['name']} ({s['name']})"
                 if not m["address"] and s["address"]:
                     m["address"] = s["address"]
-                if not m["hours"] and s["hours"]:
-                    m["hours"] = s["hours"]
                 m["brands"].sort(key=lambda b: BRAND_ORDER.index(b) if b in BRAND_ORDER else 99)
                 m["chain"] = next((p for p in priority_chains if p in m["chains"]), m["chains"][0])
                 found = True
@@ -763,12 +609,22 @@ def build_master_database():
             s["brands"].sort(key=lambda b: BRAND_ORDER.index(b) if b in BRAND_ORDER else 99)
             merged.append(s)
 
-    os.makedirs("data", exist_ok=True)
+    # 統合の代表が変わっても、前回と共有する更新元IDがあれば既存のピンIDを維持する。
+    for shop in merged:
+        candidates = sorted({previous_ids[source_id] for source_id in shop["sourceIds"] if source_id in previous_ids})
+        if candidates:
+            shop["id"] = candidates[0]
+    # 生成途中の従来推測タグを破棄し、確認済み店舗別情報だけを公開する。
+    with open("scripts/assortment_evidence.json", encoding="utf-8") as handle:
+        evidence = json.load(handle)
+    for shop in merged:
+        apply_assortment(shop, evidence, source_details)
+    merged.sort(key=lambda shop: shop["id"])
+    validate_database(merged, len(previous_shops))
     os.makedirs("public/data", exist_ok=True)
-    with open("data/shops.json", "w", encoding="utf-8") as f:
-        json.dump(merged, f, ensure_ascii=False, separators=(",", ":"))
-    with open("public/data/shops.json", "w", encoding="utf-8") as f:
-        json.dump(merged, f, ensure_ascii=False, separators=(",", ":"))
+    # 両方とも同じデータを保存し、検証失敗時には公開DBを上書きしない。
+    atomic_json_write("data/shops.json", merged)
+    atomic_json_write("public/data/shops.json", merged)
 
     print(f"Successfully built data/shops.json and public/data/shops.json with {len(merged)} verified locations!")
 

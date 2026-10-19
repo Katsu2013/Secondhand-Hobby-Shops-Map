@@ -10,7 +10,7 @@
 
 /**
  * 店舗チェーン大分類の識別子型。
- * オプション画面の店舗ON/OFFフィルタで使用される8大グループを表します。
+ * オプション画面の店舗ON/OFFフィルタで使用される12グループを表します。
  */
 export type ChainId =
   | 'hardoff'
@@ -20,7 +20,11 @@ export type ChainId =
   | 'surugaya'
   | 'anime_shop'
   | 'general_game'
-  | 'kanteidan';
+  | 'kanteidan'
+  | 'iosys'
+  | 'janpara'
+  | 'pc_koubou'
+  | 'inverse';
 
 /**
  * バルーンマーカー内に表示する個別ブランド看板プレートの識別子型。
@@ -43,11 +47,24 @@ export type BrandPlateId =
   | 'melonbooks'
   | 'animate'
   | 'geo'
+  | 'geo_mobile'
   | 'furuichi'
+  | 'furuiti'
+  | 'torekapark'
   | 'otakarasouko'
+  | 'preyz'
+  | 'ecotool'
+  | 'ojamakan'
+  | 'medio'
+  | 'mandaishoten'
   | 'mandai'
   | 'mangasouko'
-  | 'kanteidan';
+  | 'kanteidan'
+  | 'iosys'
+  | 'janpara'
+  | 'pc_koubou'
+  | 'goodwill'
+  | 'inverse';
 
 /**
  * 店舗が取り扱っている商品カテゴリ（親カテゴリ大分類）の識別子型。
@@ -156,8 +173,8 @@ export interface ChainGroup {
 }
 
 /**
- * 地図上の吹き出しバルーン内に描画する各社公式ロゴ風看板プレートの仕様インターフェース。
- * ユーザー指定の配色（背景色・文字色・中点色・特定文字色など）を忠実に再現するために使用します。
+ * 地図上の吹き出しバルーン内に描画するブランド看板プレートの仕様インターフェース。
+ * 公式画像の縦横比と可読性を保持し、看板を特定できないブランドは名称で表示します。
  */
 export interface BrandPlateSpec {
   /** この看板プレートが属するチェーン大分類ID（フィルタ連動用） */
@@ -313,8 +330,8 @@ export interface TravelEstimate {
   formattedTime: string;
   /** 画面表示用にフォーマットされた距離文字列（例: `"4.2km"`, `"18km"`） */
   formattedDist: string;
-  /** ルート検索API（Google Directions / OSRM）による実測値かどうか */
-  isExact: boolean;
+  /** 全区間の所要時間にGoogleの交通状況予測を使用したかどうか */
+  trafficConsidered: boolean;
   /** 出発時刻と所要時間から算出した閉店時間に対する間に合う・間に合わない判定情報 */
   closingInfo?: ClosingStatusInfo;
 }
@@ -348,10 +365,34 @@ export interface Shop {
   address?: string;
   /** 営業時間文字列 */
   hours?: string;
-  /** ユーザーがブラウザ上で追加したカスタム店舗かどうか */
+  /** 複合店舗を構成する更新元ID。統合後も店舗の識別と更新履歴を維持します。 */
+  sourceIds?: string[];
+  /** 販売品目の確認状態。partialは構成店や商品分野の一部だけを確認できた状態です。 */
+  assortmentStatus?: 'confirmed' | 'partial' | 'unverified' | 'user_edited';
+  /** 店舗別公式販売品目の出典。掲載内容は実在庫の保証ではありません。 */
+  assortmentSources?: AssortmentSource[];
+  /** エリア探索で発見した一時表示の店舗かどうか（端末への永続保存はしない） */
   isCustom?: boolean;
   /** 現在の出発地・移動手段に対する所要時間計算結果（実行時に動的に付与） */
   _travel?: TravelEstimate;
+}
+
+/** 店舗別販売品目を再確認できる、公式出典の記録。 */
+export interface AssortmentSource {
+  /** 品目を確認できた構成店舗名 */
+  name: string;
+  /** この構成店のチェーン。系列フィルタで他店の品目を混入させないために使用します。 */
+  chain: ChainId;
+  /** この出典で確認できた親分類 */
+  categories: CategoryId[];
+  /** この出典で確認できた詳細分類 */
+  subCategories: SubCategoryId[];
+  /** 店舗ページ、または店舗別データAPIの公式URL */
+  url: string;
+  /** この掲載内容を確認した日（UTC、YYYY-MM-DD） */
+  checkedAt: string;
+  /** 分類根拠になった公式の品目表記 */
+  labels: string[];
 }
 
 /**
@@ -366,9 +407,9 @@ export interface ShopClassification {
   brands: BrandPlateId[];
   /** 検出されたサブブランド名 */
   subBrand: string;
-  /** 推定される取扱親カテゴリID配列 */
+  /** 店名だけでは取扱いを判断せず、空配列で返す親分類 */
   categories: CategoryId[];
-  /** 推定される詳細サブジャンルID配列 */
+  /** 店名だけでは取扱いを判断せず、空配列で返す詳細分類 */
   subCategories: SubCategoryId[];
 }
 
@@ -416,6 +457,12 @@ export interface ActiveRouteInfo {
   googleMapsNavUrl: string;
   /** 巡回（ハシゴ）ルート時の経由店舗リスト */
   waypoints: Shop[];
+  /** 計算した移動所要時間。現在の出発時刻から到着予測を再表示するために保持します。 */
+  minutes?: number;
+  /** 最終到着店舗。営業時間の判定に使用します。 */
+  destination?: Shop;
+  /** 到着予測と閉店判定の表示文字列 */
+  arrivalText?: string;
 }
 
 /**
@@ -434,6 +481,8 @@ export interface UserPreferences {
   showTimeCircles: boolean;
   /** ONになっているチェーンIDの配列 */
   enabledChains: ChainId[];
+  /** 保存時に存在したチェーン。新規追加チェーンを初回だけONにするために保持します。 */
+  knownChains?: ChainId[];
   /** ONになっている取扱親カテゴリIDの配列 */
   enabledCategories: CategoryId[];
   /** ONになっている詳細サブジャンルIDの配列 */
@@ -442,4 +491,8 @@ export interface UserPreferences {
   categoryMatchMode: CategoryMatchMode;
   /** 到着時に閉店している（間に合わない）店舗を地図・リストから除外するかどうか */
   hideClosedOnArrival?: boolean;
+  /** 出発時刻の指定方式 */
+  departureTimeMode?: 'now' | 'custom';
+  /** 任意指定の出発時刻（HH:mm） */
+  customDepartureTime?: string;
 }

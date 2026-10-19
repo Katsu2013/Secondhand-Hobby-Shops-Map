@@ -38,6 +38,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify route and storage behavior
+        run: npm test
+
       - name: Build production bundle (TypeScript + Vite)
         run: npm run build
 
