@@ -1,9 +1,9 @@
 name: Scheduled Official Shop Data Update & Deploy
 
 on:
-  # 毎週月曜 03:00 JST (日曜 18:00 UTC) に各社公式サイト・APIから最新の店舗一覧を自動取得して更新
+  # 毎日 03:00 JST (18:00 UTC) に各社公式サイト・APIから最新の店舗一覧を自動取得して更新
   schedule:
-    - cron: "0 18 * * 0"
+    - cron: "0 18 * * *"
   # GitHub の Actions タブから手動でいつでも即時実行可能
   workflow_dispatch:
 

@@ -234,6 +234,116 @@ def fetch_all_geo() -> list:
     return stores
 
 
+# ============================================================================
+# 7. イエローサブマリン 公式店舗一覧
+# ============================================================================
+def fetch_all_yellowsubmarine() -> list:
+    """イエローサブマリン公式サイトから店舗一覧を取得する。"""
+    print("Fetching Yellow Submarine official stores...")
+    import html
+    html_top = fetch_url("https://yellowsubmarine.co.jp/", timeout=15)
+    shop_urls = []
+    for m in re.finditer(r'href=[\'"](https://yellowsubmarine\.co\.jp/shop/[^\'"]+)[\'"]', html_top):
+        u = m.group(1)
+        if u != "https://yellowsubmarine.co.jp/shop/" and u not in shop_urls:
+            shop_urls.append(u)
+    stores = []
+    for u in shop_urls:
+        try:
+            page_html = fetch_url(u, timeout=15)
+            title_m = re.search(r"<title>(.*?)</title>", page_html, re.I)
+            raw_title = title_m.group(1) if title_m else ""
+            name = raw_title.split("|")[0].split("-")[0].strip()
+            if not name.startswith("イエローサブマリン"):
+                name = f"イエローサブマリン {name}"
+            trs = re.findall(r"<tr.*?>(.*?)</tr>", page_html, flags=re.DOTALL | re.I)
+            data = {}
+            for tr in trs:
+                th = re.search(r"<th.*?>(.*?)</th>", tr, flags=re.DOTALL | re.I)
+                td = re.search(r"<td.*?>(.*?)</td>", tr, flags=re.DOTALL | re.I)
+                if th and td:
+                    th_text = re.sub(r"<[^>]+>", "", th.group(1)).strip()
+                    td_text = re.sub(r"<br\s*/?>", " / ", td.group(1))
+                    td_text = re.sub(r"<[^>]+>", " ", td_text).strip()
+                    data[th_text] = html.unescape(" ".join(td_text.split()))
+            addr = data.get("所在地", "")
+            hours = data.get("営業時間", "")
+            tel = data.get("電話番号", "") or data.get("連絡先", "")
+            if not addr:
+                m_addr = re.search(r"(&#12306;[^\n<]+(?:都|道|府|県)[^\n<]+)", page_html)
+                if m_addr:
+                    addr = html.unescape(re.sub(r"<[^>]+>", " ", m_addr.group(1)).strip())
+            addr_clean = re.sub(r"^[〒\d\- ]+", "", addr).strip()
+            categories = ["tcg", "figure_hobby"]
+            sub_categories = ["sub_tcg_card", "sub_board_game"]
+            if any(w in page_html for w in ["プラモデル", "スケールモデル", "ガンプラ", "プラモ"]):
+                sub_categories.append("sub_plamo")
+            if any(w in page_html for w in ["フィギュア", "トイ", "キャラクター"]):
+                sub_categories.append("sub_figure")
+            stores.append({
+                "name": name,
+                "chain": "yellowsubmarine",
+                "chains": ["yellowsubmarine"],
+                "brands": ["yellowsubmarine"],
+                "url": u,
+                "address": addr,
+                "clean_address": addr_clean,
+                "tel": tel,
+                "hours": hours,
+                "categories": categories,
+                "subCategories": sorted(list(set(sub_categories))),
+            })
+        except Exception as e:
+            print(f"[WARN] Yellow Submarine {u} error: {e}")
+    return stores
+
+
+# ============================================================================
+# 8. ポポンデッタ 公式店舗一覧
+# ============================================================================
+def fetch_all_popondetta() -> list:
+    """ポポンデッタ公式サイトから店舗一覧を取得する。"""
+    print("Fetching Popondetta official stores...")
+    import html
+    page_html = fetch_url("https://popondetta.com/map.html", timeout=15)
+    tables = re.findall(r"<table.*?</table>", page_html, flags=re.DOTALL | re.I)
+    if not tables:
+        return []
+    rows = re.findall(r"<tr.*?</tr>", tables[0], flags=re.DOTALL | re.I)
+    stores = []
+    current_pref = ""
+    for r in rows:
+        tds = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", r, flags=re.DOTALL | re.I)
+        cells = [html.unescape(" ".join(re.sub(r"<[^>]+>", " ", td).strip().split())) for td in tds]
+        if not cells or len(cells) <= 1 or any("店舗名" in c for c in cells):
+            continue
+        if len(cells) >= 6:
+            current_pref = cells[0]
+            name, addr, tel, hours = cells[1], cells[2], cells[3], cells[4]
+        elif len(cells) == 5:
+            name, addr, tel, hours = cells[0], cells[1], cells[2], cells[3]
+        else:
+            continue
+        name = name.strip()
+        full_name = f"ポポンデッタ {name}" if not name.startswith("ポポンデッタ") else name
+        addr_clean = re.sub(r"^[〒\d\- ]+", "", addr).strip()
+        stores.append({
+            "name": full_name,
+            "chain": "popondetta",
+            "chains": ["popondetta"],
+            "brands": ["popondetta"],
+            "pref": current_pref,
+            "address": addr,
+            "clean_address": addr_clean,
+            "tel": tel,
+            "hours": hours,
+            "categories": ["figure_hobby"],
+            "subCategories": ["sub_minicar_rail"],
+        })
+    return stores
+
+
+
 def main() -> None:
     """全チェーンの公式データを順次更新し、マスターDBをビルドするメイン処理。"""
     t0 = time.time()
@@ -295,6 +405,20 @@ def main() -> None:
         save_json_safely("scripts/official_geo.json", geo_stores, 500, "ゲオ (GEO)")
     except Exception as e:
         print(f"[WARN] GEO fetch error: {e}")
+
+    # 8. イエローサブマリン全店
+    try:
+        ys_stores = fetch_all_yellowsubmarine()
+        save_json_safely("scripts/official_yellowsubmarine.json", ys_stores, 20, "イエローサブマリン")
+    except Exception as e:
+        print(f"[WARN] Yellow Submarine fetch error: {e}")
+
+    # 9. ポポンデッタ全店
+    try:
+        popon_stores = fetch_all_popondetta()
+        save_json_safely("scripts/official_popondetta.json", popon_stores, 35, "ポポンデッタ")
+    except Exception as e:
+        print(f"[WARN] Popondetta fetch error: {e}")
 
     # 中古PC・スマホ専門店。店舗ごとの販売情報も同時に検証して保存する。
     from update_pc_shops import update_pc_shops
