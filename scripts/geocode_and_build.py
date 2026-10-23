@@ -212,6 +212,30 @@ def build_master_database():
             elif m_end:
                 furu_hours_map[fname] = f"10:00～{m_end.group(1)}"
 
+    # ブックオフ公式営業時間マップの事前構築（ハードオフFC店等への補完用）
+    bo_hours_by_name = {}
+    bo_hours_by_addr = {}
+    bo_hours_by_city = {}
+    for b in bo_official:
+        sc = b.get("store_category", "")
+        if sc in ("BOOKOFF", "BOOKOFF PLUS", "BOOKOFF SUPER BAZAAR") and "閉店" not in sc and "閉店" not in b.get("title", ""):
+            h_list = b.get("business_hours1") or []
+            h_str = h_list[0] if isinstance(h_list, list) and h_list else ""
+            h_str = re.sub(r'<[^>]+>', ' ', h_str).strip()
+            if h_str:
+                t = b.get("title", "").strip()
+                bo_hours_by_name[t] = h_str
+                bo_hours_by_name[re.sub(r'店$', '', t)] = h_str
+                raw_addr = re.sub(r'\s+', '', b.get("text", ""))
+                if raw_addr:
+                    bo_hours_by_addr[raw_addr[:12]] = h_str
+                    bo_hours_by_addr[extract_core_address_key(b.get("text", ""))] = h_str
+                cities = b.get("city") or []
+                for c in cities:
+                    c_name = c.split('_')[-1]
+                    if c_name:
+                        bo_hours_by_city[c_name] = h_str
+
     # 1. Group Hard Off official stores by core address key
     ho_grouped = {}
     for item in ho_official:
@@ -221,7 +245,17 @@ def build_master_database():
             ("hardoff", "hardoff", []),
         )
         park_str = item.get("parking", "").strip()
-        ho_hours = (item.get("hours") or "").strip()  # 未取得の営業時間を固定値で創作しない
+        ho_hours = (item.get("hours") or "").strip()
+        if not ho_hours and (chain_id == "bookoff" or "ブックオフ" in item["name"]):
+            hname = item["name"].replace("ブックオフ", "").strip()
+            haddr = re.sub(r'\s+', '', item["address"])
+            ho_hours = bo_hours_by_name.get(hname) or bo_hours_by_name.get(re.sub(r'店$', '', hname)) or bo_hours_by_addr.get(haddr[:12]) or bo_hours_by_addr.get(key) or ""
+            if not ho_hours:
+                for c_name, c_hours in bo_hours_by_city.items():
+                    if c_name in haddr:
+                        ho_hours = c_hours
+                        break
+
         if key not in ho_grouped:
             ho_grouped[key] = {
                 "id": item["id"],
@@ -246,6 +280,8 @@ def build_master_database():
             for sc in sub_cats:
                 if sc not in g["subCategories"]:
                     g["subCategories"].append(sc)
+            if not g["hours"] and ho_hours:
+                g["hours"] = ho_hours
 
     all_addresses = set()
     for s in su_real + su_friendly + furu_official + ota_official + lash_official + geo_official + kanteidan_official + pc_official + craft_official + ys_official + popon_official + otakara_official:
@@ -841,9 +877,13 @@ def build_master_database():
                 continue
             if abs(s["lat"] - m["lat"]) < 0.0006 and abs(s["lng"] - m["lng"]) < 0.0006:
                 m["sourceIds"] = sorted(set(m["sourceIds"] + s["sourceIds"]))
-                # 異なる店の営業時間を、複合店全体の営業保証として使わない。
-                if m["hours"] != s["hours"]:
-                    m["hours"] = ""
+                # 複合店マージ時、有効な営業時間を保持・引き継ぐ（未取得で消去しない）
+                if not m.get("hours") and s.get("hours"):
+                    m["hours"] = s["hours"]
+                elif m.get("hours") and s.get("hours") and m["hours"] != s["hours"]:
+                    # 両方に営業時間がある場合、主たるチェーンの営業時間を優先
+                    if s.get("chain") == m.get("chain"):
+                        m["hours"] = s["hours"]
                 for ch in s["chains"]:
                     if ch not in m["chains"]:
                         m["chains"].append(ch)

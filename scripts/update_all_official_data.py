@@ -117,11 +117,11 @@ def fetch_all_bookoff() -> list:
     print("Fetching BOOKOFF official JSON API...")
     all_docs = []
     seen_ids = set()
-    for page in range(1, 5):
-        url = f"https://as.blue.asp.appirits.com/bookoff2/search.json?cnt=500&page={page}"
+    for page in range(1, 15):
+        url = f"https://as.blue.asp.appirits.com/bookoff2/search.json?limit=100&page={page}"
         try:
             raw = json.loads(fetch_url(url, timeout=30))
-            docs = raw.get("document", [])
+            docs = raw.get("result", {}).get("items") or raw.get("document", [])
             if not docs:
                 break
             for d in docs:
@@ -129,11 +129,12 @@ def fetch_all_bookoff() -> list:
                 if did and did not in seen_ids:
                     seen_ids.add(did)
                     all_docs.append(d)
-            if len(docs) < 500:
+            if len(docs) < 100:
                 break
         except Exception as e:
             print(f"[WARN] Bookoff API page {page} failed: {e}")
             break
+    print(f"Fetched {len(all_docs)} official Bookoff stores.")
     return all_docs
 
 

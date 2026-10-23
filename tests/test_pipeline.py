@@ -82,6 +82,18 @@ class PipelineTests(unittest.TestCase):
             finally:
                 os.chdir(previous)
 
+    def test_bookoff_stores_have_hours_and_merge_preserves_hours(self):
+        """ブックオフ各店舗および併設・複合店で営業時間が空文字にならず保持されていることを検証する。"""
+        import re
+        with open(ROOT / "data/shops.json", encoding="utf-8") as handle:
+            shops = json.load(handle)
+        bo_shops = [s for s in shops if "bookoff" in s.get("chains", []) or s.get("chain") == "bookoff"]
+        self.assertGreater(len(bo_shops), 500)
+        missing_hours = [s for s in bo_shops if not s.get("hours")]
+        self.assertEqual(missing_hours, [], f"営業時間が未取得のブックオフ店舗が存在します: {missing_hours}")
+        for shop in bo_shops:
+            self.assertTrue(re.search(r"\d{1,2}:\d{2}", shop["hours"]), f"不正な営業時間表記: {shop['id']} {shop['name']} {shop['hours']}")
+
 
 if __name__ == "__main__":
     unittest.main()
