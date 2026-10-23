@@ -201,7 +201,7 @@ def fetch_all_furuichi() -> list:
 # 5. お宝創庫グループ公式店舗一覧
 # ============================================================================
 def fetch_all_otakarasouko() -> list:
-    """お宝創庫グループ公式サイトから店舗リストを取得する。"""
+    """お宝創庫グループ公式サイトから店舗リストおよび公式営業時間を取得する。"""
     print("Fetching Otakarasouko official store page...")
     html = fetch_url("https://www.otakarasouko.com/store/", timeout=30)
     with open("scripts/otakarasouko.html", "w", encoding="utf-8") as f:
@@ -209,6 +209,18 @@ def fetch_all_otakarasouko() -> list:
 
     stores = []
     seen = set()
+    card_blocks = html.split('<a href="https://www.otakarasouko.com/store/')[1:]
+    name_to_url = {}
+    for block in card_blocks:
+        url_m = re.match(r'^([^"]+)"', block)
+        if not url_m:
+            continue
+        url = f"https://www.otakarasouko.com/store/{url_m.group(1)}"
+        name_m = re.search(r'<p class="name">([^<]+)</p>', block)
+        if name_m:
+            name = name_m.group(1).strip()
+            name_to_url[name] = url
+
     items = re.findall(
         r'<p class="name">([^<]+)</p>\s*<p class="address">([^<]+)</p>', html, re.S
     )
@@ -218,6 +230,25 @@ def fetch_all_otakarasouko() -> list:
         if name and addr and name not in seen:
             seen.add(name)
             stores.append({"name": name, "address": addr, "hours": ""})
+
+    def fetch_hours(item):
+        url = name_to_url.get(item["name"])
+        if not url:
+            return
+        try:
+            detail_html = fetch_url(url, timeout=12)
+            m = re.search(r'<dt>\s*営業時間\s*</dt>\s*<dd>(.*?)</dd>', detail_html, re.S)
+            if m:
+                clean = re.sub(r'<[^>]+>', ' ', m.group(1))
+                clean = clean.replace('：', ':').replace('〜', '～')
+                item["hours"] = re.sub(r'\s+', ' ', clean).strip()
+        except Exception:
+            pass
+
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        list(ex.map(fetch_hours, stores))
+
+    print(f"Fetched {len(stores)} Otakarasouko stores with hours ({sum(1 for s in stores if s['hours'])}/{len(stores)})")
     return stores
 
 

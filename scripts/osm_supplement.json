@@ -1374,7 +1374,8 @@
       "tags": {
         "name": "万代 仙台泉店",
         "name:ja": "万代 仙台泉店",
-        "shop": "second_hand"
+        "shop": "second_hand",
+        "opening_hours": "10:00～24:00"
       }
     },
     {
@@ -1504,7 +1505,8 @@
       "tags": {
         "branch": "都城店",
         "name": "マンガ倉庫",
-        "shop": "second_hand"
+        "shop": "second_hand",
+        "opening_hours": "9:00～24:00"
       }
     },
     {
@@ -1677,7 +1679,8 @@
         "name:ja": "万代",
         "phone": "+81 22 381 8875",
         "shop": "second_hand",
-        "website": "https://mandai-s.jp/shop/sendai-minami/"
+        "website": "https://mandai-s.jp/shop/sendai-minami/",
+        "opening_hours": "10:00～翌2:00"
       }
     },
     {
@@ -1756,7 +1759,8 @@
         "name": "マンガ倉庫",
         "phone": "+81 99-299-1122",
         "shop": "second_hand",
-        "website": "http://mangasouko-kagoshima.com"
+        "website": "http://mangasouko-kagoshima.com",
+        "opening_hours": "9:30～24:00"
       }
     },
     {
@@ -5457,7 +5461,8 @@
         "name:en": "Animate",
         "name:ja": "アニメイト",
         "opening_hours:signed": "no",
-        "shop": "anime"
+        "shop": "anime",
+        "opening_hours": "11:00～20:00"
       }
     },
     {
@@ -7071,7 +7076,8 @@
         "name": "アニメイト",
         "name:en": "Animate",
         "name:ja": "アニメイト",
-        "shop": "anime"
+        "shop": "anime",
+        "opening_hours": "10:00～21:00"
       }
     },
     {
@@ -7222,7 +7228,8 @@
         "name": "animate",
         "name:ja": "アニメイト",
         "shop": "anime",
-        "source": "survey"
+        "source": "survey",
+        "opening_hours": "10:00～21:00"
       }
     },
     {
@@ -7238,7 +7245,8 @@
         "name": "アニメイト",
         "name:en": "Animate",
         "name:ja": "アニメイト",
-        "shop": "anime"
+        "shop": "anime",
+        "opening_hours": "10:00～21:00"
       }
     },
     {
@@ -7255,7 +7263,8 @@
         "name": "アニメイト",
         "name:en": "Animate",
         "name:ja": "アニメイト",
-        "shop": "anime"
+        "shop": "anime",
+        "opening_hours": "11:00～21:00"
       }
     },
     {
@@ -7292,7 +7301,8 @@
         "name:ja": "アニメイト",
         "phone": "+81 352093330",
         "shop": "anime",
-        "website": "https://www.animate.co.jp/shop/akihabara/"
+        "website": "https://www.animate.co.jp/shop/akihabara/",
+        "opening_hours": "10:00～21:00"
       }
     },
     {
@@ -7331,7 +7341,8 @@
         "name": "アニメイト",
         "name:en": "Animate",
         "name:ja": "アニメイト",
-        "shop": "anime"
+        "shop": "anime",
+        "opening_hours": "10:00～21:00"
       }
     },
     {
@@ -7349,7 +7360,8 @@
         "name": "アニメイト",
         "name:en": "Animate",
         "name:ja": "アニメイト",
-        "shop": "anime"
+        "shop": "anime",
+        "opening_hours": "10:00～21:00"
       }
     },
     {
@@ -7888,7 +7900,8 @@
         "shop": "second_hand",
         "source": "MLIT_PLATEAU 24202-bldg-206888",
         "start_date": "1971",
-        "survey:date": "2018"
+        "survey:date": "2018",
+        "opening_hours": "10:00～22:00"
       }
     },
     {
@@ -7915,7 +7928,8 @@
       "tags": {
         "building": "yes",
         "name": "マンガ倉庫",
-        "shop": "second_hand"
+        "shop": "second_hand",
+        "opening_hours": "10:00～24:00"
       }
     },
     {
@@ -7947,7 +7961,8 @@
       "tags": {
         "building": "yes",
         "name": "マンガ倉庫　富山店",
-        "shop": "second_hand"
+        "shop": "second_hand",
+        "opening_hours": "10:00～22:00"
       }
     },
     {
@@ -8209,7 +8224,8 @@
       "tags": {
         "building": "yes",
         "name": "マンガ倉庫 太宰府店",
-        "shop": "second_hand"
+        "shop": "second_hand",
+        "opening_hours": "10:00～24:00"
       }
     },
     {
@@ -8309,7 +8325,8 @@
       "tags": {
         "building": "yes",
         "name": "マンガ倉庫 佐々店",
-        "shop": "second_hand"
+        "shop": "second_hand",
+        "opening_hours": "10:00～22:00"
       }
     },
     {
@@ -8322,7 +8339,8 @@
       "tags": {
         "building": "yes",
         "name": "マンガ倉庫",
-        "shop": "second_hand"
+        "shop": "second_hand",
+        "opening_hours": "10:00～24:00"
       }
     },
     {
@@ -8335,7 +8353,8 @@
       "tags": {
         "building": "yes",
         "name": "マンガ倉庫",
-        "shop": "second_hand"
+        "shop": "second_hand",
+        "opening_hours": "10:00～24:00"
       }
     },
     {
@@ -8367,7 +8386,8 @@
       "tags": {
         "building": "retail",
         "name": "マンガ倉庫",
-        "shop": "second_hand"
+        "shop": "second_hand",
+        "opening_hours": "10:00～24:00"
       }
     },
     {

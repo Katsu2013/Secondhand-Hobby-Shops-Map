@@ -617,11 +617,21 @@ def build_master_database():
         suburb = tags.get("addr:suburb") or tags.get("addr:quarter") or ""
         block = tags.get("addr:block_number") or tags.get("addr:housenumber") or ""
         full_addr = tags.get("addr:full") or f"{pref}{city}{suburb}{block}".strip()
-        hours = (tags.get("opening_hours") or "").strip()
+        hours = (tags.get("opening_hours") or "").strip().replace("：", ":").replace("~", "～").replace("〜", "～")
         if hours == "24/7":
             hours = "24時間営業"
 
         osm_chain = info["chain"]
+        if not hours:
+            # チェーン別標準営業時間フォールバック
+            osm_defaults = {
+                "animate": "10:00～20:00",
+                "mandarake": "12:00～20:00",
+                "melonbooks": "11:00～20:00",
+                "mandai": "10:00～24:00",
+                "mangasouko": "10:00～24:00",
+            }
+            hours = osm_defaults.get(osm_chain, "")
         if osm_chain == "mandarake":
             osm_sub_list = ["sub_figure", "sub_retro_toy", "sub_comic_book", "sub_doujin", "sub_retro_game", "sub_tcg_card", "sub_cd_dvd"]
             osm_labels = ["まんだらけ", "ホビー", "コミック", "同人誌", "ゲーム"]
