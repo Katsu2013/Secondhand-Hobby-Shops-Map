@@ -245,7 +245,7 @@ def build_master_database():
             ("hardoff", "hardoff", []),
         )
         park_str = item.get("parking", "").strip()
-        ho_hours = (item.get("hours") or "").strip()
+        ho_hours = (item.get("hours") or "").strip().replace("：", ":")
         if not ho_hours and (chain_id == "bookoff" or "ブックオフ" in item["name"]):
             hname = item["name"].replace("ブックオフ", "").strip()
             haddr = re.sub(r'\s+', '', item["address"])

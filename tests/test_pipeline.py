@@ -94,6 +94,19 @@ class PipelineTests(unittest.TestCase):
         for shop in bo_shops:
             self.assertTrue(re.search(r"\d{1,2}:\d{2}", shop["hours"]), f"不正な営業時間表記: {shop['id']} {shop['name']} {shop['hours']}")
 
+    def test_hardoff_stores_and_composite_stores_have_common_hours(self):
+        """ハードオフ系列店および同住所の複合店舗で共通の営業時間が記載されていることを検証する。"""
+        import re
+        with open(ROOT / "data/shops.json", encoding="utf-8") as handle:
+            shops = json.load(handle)
+        ho_chains = {"hardoff", "offhouse", "hobbyoff"}
+        ho_shops = [s for s in shops if any(c in ho_chains for c in s.get("chains", []))]
+        self.assertGreater(len(ho_shops), 500)
+        missing_hours = [s for s in ho_shops if not s.get("hours")]
+        self.assertEqual(missing_hours, [], f"営業時間が未取得のハードオフ系列店舗が存在します: {missing_hours}")
+        for shop in ho_shops:
+            self.assertTrue(re.search(r"\d{1,2}:\d{2}", shop["hours"]), f"不正な営業時間表記: {shop['id']} {shop['name']} {shop['hours']}")
+
 
 if __name__ == "__main__":
     unittest.main()

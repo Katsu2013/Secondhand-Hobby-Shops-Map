@@ -137,7 +137,48 @@ def fetch_all_hardoff():
         for f in as_completed(futures):
             all_ho.extend(f.result())
 
-    print(f"Fetched {len(all_ho)} active Hard Off Group stores!")
+    # 各所在地（同一住所・同一建物）の代表店舗から共通の公式営業時間・閉店時間を取得
+    print("Fetching official business hours for Hard Off Group stores...")
+    def extract_core_key(addr):
+        parts = addr.split(" ")
+        core = parts[0]
+        core = re.sub(r'[0-9B]+F.*$', '', core)
+        m = re.match(r'^(.+?[都道府県].+?[市区町村郡].+?\d+(?:-\d+|\d*丁目\d*番\d*号?|\d*番地\d*))', core)
+        return m.group(1) if m else core
+
+    def fetch_detail_hours(pid):
+        url = f"https://www.hardoff.co.jp/shop/detail/?p={pid}"
+        try:
+            req = urllib.request.Request(url, headers=HEADERS)
+            html = urllib.request.urlopen(req, timeout=12, context=ctx).read().decode("utf-8")
+            m = re.search(r'<th[^>]*>.*?営業時間.*?</th>\s*<td[^>]*>(.*?)</td>', html, re.S)
+            if m:
+                clean = re.sub(r'<[^>]+>', ' ', m.group(1)).replace('：', ':')
+                return pid, re.sub(r'\s+', ' ', clean).strip()
+            return pid, ""
+        except Exception:
+            return pid, ""
+
+    key_to_pids = {}
+    for h in all_ho:
+        key = extract_core_key(h["address"])
+        pid = h["id"].replace("ho_", "")
+        key_to_pids.setdefault(key, []).append(pid)
+
+    key_hours = {}
+    with ThreadPoolExecutor(max_workers=16) as ex:
+        futures = {ex.submit(fetch_detail_hours, key_to_pids[k][0]): k for k in key_to_pids}
+        for f in as_completed(futures):
+            k = futures[f]
+            _, hours = f.result()
+            if hours:
+                key_hours[k] = hours
+
+    for h in all_ho:
+        key = extract_core_key(h["address"])
+        h["hours"] = key_hours.get(key, "")
+
+    print(f"Fetched {len(all_ho)} active Hard Off Group stores with official hours!")
     return all_ho
 
 if __name__ == "__main__":
