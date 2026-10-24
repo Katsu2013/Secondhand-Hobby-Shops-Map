@@ -479,6 +479,10 @@ export interface ActiveRouteInfo {
   engineText: string;
   /** 本家Googleマップのナビ画面を別タブで開くためのURL */
   googleMapsNavUrl: string;
+  /** Yahoo!カーナビアプリでナビを開始するための起動URL（スキーム） */
+  yahooNavUrl?: string;
+  /** Appleマップで経路案内を開くためのURL */
+  appleMapsNavUrl?: string;
   /** 巡回（ハシゴ）ルート時の経由店舗リスト */
   waypoints: Shop[];
   /** 計算した移動所要時間。現在の出発時刻から到着予測を再表示するために保持します。 */

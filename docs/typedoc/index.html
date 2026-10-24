@@ -481,7 +481,14 @@
 <ul>
 <li>各店舗カードの「➕ 巡回追加」ボタンで最大 <strong>8店舗</strong> までハシゴ候補リストに追加可能。</li>
 <li>「✨ 最適ルート計算」実行時、出発地から簡易距離が最も近い未訪問店舗を順次選択する <strong>最近傍法（Nearest Neighbor Heuristic）</strong> により訪問順序を自動で並び替えた上で、訪問順に区間を計算して合計所要時間・総移動距離を算出する。訪問順の判定には緯度・経度の差を<code>Math.hypot</code>へ渡す簡易距離を使い、区間の所要時間は並べ替え後に経路サービスで取得する。Google検索は各区間の到着予測を次区間の出発時刻にする。最短時間・最短距離の保証はなく、店内滞在時間や開店待ち時間は加算しない。</li>
-<li>ルート案内カードの「↗ Googleマップナビで開く」ボタンから、出発地・全経由地・最終目的地・移動手段パラメータ（<code>travelmode</code>）をセットした本家GoogleマップナビURL（<code>https://www.google.com/maps/dir/?api=1&amp;...</code>）を別タブまたはスマホアプリで直接起動できる。一般道優先では<code>avoid=tolls,highways</code>も付ける。指定出発日時はこのURLへ渡していないため、外部ナビの結果が本画面と一致する保証はない。</li>
+<li>ルート案内カードのアクションエリアに以下の3つの外部ナビ連携ボタンを配置し、端末や好みに応じた渋滞回避ナビアプリをワンタップで直接起動できる：
+<ol>
+<li><strong>🗺️ Googleマップ</strong>: 出発地・経由地・目的地・移動手段（<code>travelmode</code>）および一般道優先時の有料道路回避パラメータ（<code>avoid=tolls,highways</code>）をセットしたWeb/アプリ起動URL。</li>
+<li><strong>🚗 Yahoo!カーナビ</strong>: 国内最高峰のJARTIC/VICS渋滞回避ナビアプリ「Yahoo!カーナビ」を直接呼び出すURLスキーム（<code>yjcarnavi://navi/select?lat=...&amp;lon=...&amp;name=...</code>）。経由地がある場合は<code>point</code>パラメータで出発地および最大3箇所の経由地を順次引き渡す。</li>
+<li><strong>🍏 Appleマップ</strong>: iPhone / iPad / Mac等のApple端末でネイティブマップアプリが直接立ち上がるユニバーサルURL（<code>https://maps.apple.com/?saddr=...&amp;daddr=...&amp;dirflg=...</code>）。移動手段（車 <code>d</code> / 公共交通 <code>r</code> / 徒歩 <code>w</code>）に応じたフラグを自動付与。
+※指定出発日時は外部アプリへ渡していないため、外部ナビの到着予測結果が本画面の推計と完全に一致する保証はない。</li>
+</ol>
+</li>
 </ul>
 </li>
 </ul>

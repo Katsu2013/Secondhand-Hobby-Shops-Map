@@ -774,10 +774,33 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
                   href={activeRouteInfo.googleMapsNavUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="gmaps-ext-btn"
+                  className="gmaps-ext-btn nav-btn-gmaps"
+                  title="Googleマップでナビを開始"
                 >
-                  <span>🗺️</span> Googleマップ本家ナビで開く
+                  <span>🗺️</span> Googleマップ
                 </a>
+                {activeRouteInfo.yahooNavUrl && (
+                  <a
+                    id="link-open-yahoo-nav"
+                    href={activeRouteInfo.yahooNavUrl}
+                    className="gmaps-ext-btn nav-btn-yahoo"
+                    title="Yahoo!カーナビアプリを起動して渋滞回避ナビを開始"
+                  >
+                    <span>🚗</span> Yahoo!カーナビ
+                  </a>
+                )}
+                {activeRouteInfo.appleMapsNavUrl && (
+                  <a
+                    id="link-open-apple-nav"
+                    href={activeRouteInfo.appleMapsNavUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="gmaps-ext-btn nav-btn-apple"
+                    title="Appleマップでナビを開始"
+                  >
+                    <span>🍏</span> Appleマップ
+                  </a>
+                )}
               </div>
             </div>
           </>

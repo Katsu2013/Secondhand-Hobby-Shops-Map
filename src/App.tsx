@@ -529,9 +529,25 @@ export const App: React.FC = () => {
       destination: destination.lat + ',' + destination.lng, travelmode: mode.googleMode.toLowerCase() });
     if (ordered.length > 1) params.set('waypoints', ordered.slice(0, -1).map(shop => shop.lat + ',' + shop.lng).join('|'));
     if (mode.avoidTolls) params.set('avoid', 'tolls,highways');
+    /** Yahoo!カーナビ専用のURLスキーム（経由地対応） */
+    let yahooNavUrl: string;
+    if (ordered.length > 1) {
+      const pts = ['point=' + origin.lat + ',' + origin.lng];
+      for (const wp of ordered.slice(0, -1).slice(0, 3)) {
+        pts.push('point=' + wp.lat + ',' + wp.lng);
+      }
+      pts.push('point=' + destination.lat + ',' + destination.lng);
+      yahooNavUrl = 'yjcarnavi://navi/select?' + pts.join('&') + '&name=' + encodeURIComponent(destination.name);
+    } else {
+      yahooNavUrl = 'yjcarnavi://navi/select?lat=' + destination.lat + '&lon=' + destination.lng + '&name=' + encodeURIComponent(destination.name);
+    }
+    /** Appleマップ経路案内URL（iOS端末でマップアプリが直接起動） */
+    const appleModeFlag = mode.googleMode === 'TRANSIT' ? 'r' : mode.googleMode === 'WALKING' ? 'w' : 'd';
+    const appleMapsNavUrl = 'https://maps.apple.com/?saddr=' + origin.lat + ',' + origin.lng + '&daddr=' + destination.lat + ',' + destination.lng + '&dirflg=' + appleModeFlag + '&q=' + encodeURIComponent(destination.name);
+
     /** 検索中・結果で共有するカード情報 */
     const card = { modeBadge: mode.icon + ' ' + mode.name, title: origin.name + ' ➔ ' + (ordered.length > 1 ? ordered.length + '店舗巡回' : destination.name),
-      googleMapsNavUrl: 'https://www.google.com/maps/dir/?' + params.toString(), waypoints: routeRequest.isTour ? ordered : [], destination };
+      googleMapsNavUrl: 'https://www.google.com/maps/dir/?' + params.toString(), yahooNavUrl, appleMapsNavUrl, waypoints: routeRequest.isTour ? ordered : [], destination };
     setCustomRoutePath(null);
     googleDirRendererRef.current?.set('directions', null);
     setActiveRouteInfo({ ...card, durationText: '計算中...', distanceText: '--', engineText: 'ルート検索中...' });

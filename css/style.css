@@ -1465,12 +1465,14 @@ html, body {
 
 .route-card-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .gmaps-nav-btn,
 .gmaps-ext-btn {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1478,16 +1480,38 @@ html, body {
   background: var(--primary);
   color: #ffffff;
   text-decoration: none;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  padding: 8px 12px;
+  padding: 7px 10px;
   border-radius: var(--radius-sm);
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
 }
 
 .gmaps-nav-btn:hover,
 .gmaps-ext-btn:hover {
   background: var(--primary-hover);
+}
+
+.nav-btn-gmaps {
+  background: #1a73e8;
+}
+.nav-btn-gmaps:hover {
+  background: #1557b0;
+}
+
+.nav-btn-yahoo {
+  background: #eb1e28;
+}
+.nav-btn-yahoo:hover {
+  background: #cc1019;
+}
+
+.nav-btn-apple {
+  background: #1d1d1f;
+}
+.nav-btn-apple:hover {
+  background: #3a3a3c;
 }
 
 /* ============================================================================
