@@ -9,6 +9,8 @@
 interface ImportMetaEnv {
   /** Google Maps JavaScript API キー（ローカル `.env.local` またはCIビルド環境変数） */
   readonly VITE_GOOGLE_MAPS_API_KEY?: string;
+  /** Mapbox パブリックアクセストークン（CIビルド環境変数またはローカル `.env.local`） */
+  readonly VITE_MAPBOX_ACCESS_TOKEN?: string;
 }
 
 interface ImportMeta {

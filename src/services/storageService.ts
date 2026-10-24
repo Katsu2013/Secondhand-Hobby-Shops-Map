@@ -25,6 +25,8 @@ import type { CategoryId, Shop, SubCategoryId, UserPreferences } from '../types/
 export const STORAGE_KEYS = {
   /** Google Maps JavaScript API キーの保存キー */
   API_KEY: 'REUSE_MAP_GOOGLE_API_KEY',
+  /** Mapbox パブリックアクセストークンの保存キー */
+  MAPBOX_TOKEN: 'REUSE_MAP_MAPBOX_TOKEN',
   /** フィルタ・移動手段・出発地などのユーザー設定保存キー */
   USER_PREFS: 'REUSE_MAP_USER_PREFS_V1',
 } as const;
@@ -282,6 +284,40 @@ export function saveGoogleApiKey(apiKey: string): void {
     }
   } catch (err) {
     console.warn('APIキーの保存に失敗しました:', err);
+  }
+}
+
+/**
+ * 有効な Mapbox パブリックアクセストークンを返します。
+ * `localStorage` のユーザー指定値を優先し、なければ環境変数 `VITE_MAPBOX_ACCESS_TOKEN` を参照します。
+ *
+ * @returns Mapboxアクセストークン文字列（未設定時は空文字）
+ */
+export function loadMapboxToken(): string {
+  try {
+    const fromStorage = localStorage.getItem(STORAGE_KEYS.MAPBOX_TOKEN);
+    if (fromStorage?.trim()) return fromStorage.trim();
+  } catch (err) {
+    console.warn('Mapboxトークンの読み込みに失敗しました:', err);
+  }
+  return import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || '';
+}
+
+/**
+ * Mapbox パブリックアクセストークンを `localStorage` に保存または削除します。
+ *
+ * @param token - 保存するトークン（空文字列の場合は保存済みトークンを削除）
+ */
+export function saveMapboxToken(token: string): void {
+  try {
+    const trimmed = token.trim();
+    if (trimmed) {
+      localStorage.setItem(STORAGE_KEYS.MAPBOX_TOKEN, trimmed);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.MAPBOX_TOKEN);
+    }
+  } catch (err) {
+    console.warn('Mapboxトークンの保存に失敗しました:', err);
   }
 }
 

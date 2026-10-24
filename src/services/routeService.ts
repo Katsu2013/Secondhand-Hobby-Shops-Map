@@ -3,7 +3,8 @@
  * 道路形状の取得と交通予測の取得を分け、推計を実測として扱わないために使用します。
  */
 import { TRAVEL_MODE_MAP } from '../config/shopMaster';
-import { fetchOsrmOrFallbackRouteData } from './mapService';
+import { fetchMapboxRouteData, fetchOsrmOrFallbackRouteData } from './mapService';
+import { loadMapboxToken } from './storageService';
 import type { OriginLocation, Shop, TravelModeId } from '../types/shop';
 
 /** ルート描画と所要時間表示に必要な取得結果。 */
@@ -183,6 +184,27 @@ export async function calculateRoute(
       console.warn('Googleルートを取得できないため概算に切り替えます:', error);
     }
   }
+  // Mapbox アクセストークンが設定されている場合は、Mapbox Directions API（Traffic対応）を優先試行
+  const mapboxToken = loadMapboxToken();
+  if (mapboxToken && shops.length > 0) {
+    try {
+      const mb = await fetchMapboxRouteData(origin, shops, mode, mapboxToken, signal);
+      if (mb) {
+        return {
+          minutes: mb.minutes,
+          distanceKm: mb.distanceKm,
+          path: mb.latLngPath,
+          isRoadRoute: mb.isRoadRoute,
+          trafficConsidered: mb.trafficConsidered,
+          description: mb.description,
+        };
+      }
+    } catch (error) {
+      if (signal.aborted) throw error;
+      console.warn('Mapboxルートに失敗したためOSRMへフォールバックします:', error);
+    }
+  }
+
   /** 交通情報を持たないサービスからの時間は、常に概算として返します。 */
   const fallback = await fetchOsrmOrFallbackRouteData(origin, shops, mode, signal);
   return { minutes: fallback.minutes, distanceKm: fallback.distanceKm, path: fallback.latLngPath,

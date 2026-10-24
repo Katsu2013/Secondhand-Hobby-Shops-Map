@@ -178,6 +178,83 @@ function waitForOsrmSlot(signal: AbortSignal): Promise<void> {
   return slot;
 }
 
+/**
+ * Mapbox Directions API（Traffic対応プロファイル）を呼び出して、
+ * 渋滞を考慮した実道路ルート・所要時間・距離を取得します。
+ *
+ * @param origin - 出発地点
+ * @param shopsList - 訪問順の店舗リスト
+ * @param mode - 選択されている移動モード
+ * @param token - Mapbox パブリックアクセストークン
+ * @param signal - 中止シグナル
+ * @returns 取得成功時は経路結果オブジェクト、非対応モードや失敗時は null
+ */
+export async function fetchMapboxRouteData(
+  origin: OriginLocation,
+  shopsList: readonly Shop[],
+  mode: TravelModeInfo,
+  token: string,
+  signal?: AbortSignal
+): Promise<{
+  minutes: number;
+  distanceKm: number;
+  latLngPath: Array<[number, number]>;
+  isRoadRoute: boolean;
+  trafficConsidered: boolean;
+  description: string;
+} | null> {
+  if (!token || !shopsList.length) return null;
+
+  // 移動手段に応じた Mapbox プロファイルを選択
+  let profile = 'mapbox/driving-traffic';
+  if (mode.googleMode === 'WALKING') profile = 'mapbox/walking';
+  else if (mode.googleMode === 'BICYCLING') profile = 'mapbox/cycling';
+  else if (mode.googleMode === 'TRANSIT') {
+    // Mapbox Directions は公共交通（TRANSIT）非対応のためフォールバックへ委譲
+    return null;
+  }
+
+  // Mapbox API は [経度, 緯度] の順序
+  const coords = [origin, ...shopsList].map(p => `${p.lng},${p.lat}`).join(';');
+  const url = `https://api.mapbox.com/directions/v5/${profile}/${coords}?access_token=${encodeURIComponent(token)}&geometries=geojson&overview=full`;
+
+  try {
+    const response = await fetch(url, { signal });
+    if (!response.ok) throw new Error(`Mapbox HTTP ${response.status}`);
+    const data = await response.json() as {
+      code?: string;
+      routes?: Array<{
+        duration: number;
+        distance: number;
+        geometry: { coordinates: Array<[number, number]> };
+      }>;
+    };
+
+    const route = data.routes?.[0];
+    if (data.code === 'Ok' && route && Number.isFinite(route.duration) && Number.isFinite(route.distance) && route.geometry?.coordinates?.length) {
+      const minutes = Math.max(1, Math.ceil(route.duration / 60));
+      const distanceKm = route.distance / 1000;
+      // coordinates は [lng, lat] なので [lat, lng] に変換
+      const latLngPath: Array<[number, number]> = route.geometry.coordinates.map(p => [p[1], p[0]]);
+      const isTraffic = profile === 'mapbox/driving-traffic';
+
+      return {
+        minutes,
+        distanceKm,
+        latLngPath,
+        isRoadRoute: true,
+        trafficConsidered: isTraffic,
+        description: isTraffic ? 'Mapbox交通予測・渋滞考慮' : 'Mapbox経路に基づく概算',
+      };
+    }
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    console.warn('Mapboxルート取得に失敗したためOSRMへフォールバックします:', error);
+  }
+
+  return null;
+}
+
 export async function fetchOsrmOrFallbackRouteData(
   origin: OriginLocation, shopsList: readonly Shop[], mode: TravelModeInfo, signal?: AbortSignal
 ): Promise<OsrmRouteResult> {

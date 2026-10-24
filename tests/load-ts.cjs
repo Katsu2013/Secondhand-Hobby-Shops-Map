@@ -16,7 +16,9 @@ exports.createLoader = function createLoader(overrides = {}) {
     if (cache.has(file)) return cache.get(file);
     const exports = {};
     cache.set(file, exports);
-    const source = fs.readFileSync(file, 'utf8').replaceAll('import.meta.env.VITE_GOOGLE_MAPS_API_KEY', "''");
+    const source = fs.readFileSync(file, 'utf8')
+      .replaceAll('import.meta.env.VITE_GOOGLE_MAPS_API_KEY', "''")
+      .replaceAll('import.meta.env.VITE_MAPBOX_ACCESS_TOKEN', "''");
     const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
     vm.runInNewContext(code, { ...environment, exports,
       require: specifier => load(path.resolve(path.dirname(file), specifier + '.ts')) }, { filename: file });
