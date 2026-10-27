@@ -524,26 +524,41 @@ export const App: React.FC = () => {
     const destination = ordered[ordered.length - 1];
     /** 選択した移動手段 */
     const mode = TRAVEL_MODE_MAP[travelMode];
+    /**
+     * マップアプリの施設POI・正面入口・駐車場特定用テキスト。
+     * 数値座標（lat,lng）だけを渡すと、建物の幾何学的中心や裏路地・搬入口へ案内される問題があるため、
+     * 「代表店舗名 + 住所」を渡すことで、マップアプリ側の施設DBと照合して正面玄関・お客様駐車場へ案内させます。
+     */
+    const primaryName = destination.name.split('/')[0].trim();
+    const destinationQuery = destination.address ? primaryName + ' ' + destination.address : destination.lat + ',' + destination.lng;
+
     /** URLの経由地はパラメータとして正しくエンコードします。 */
     const params = new URLSearchParams({ api: '1', origin: origin.lat + ',' + origin.lng,
-      destination: destination.lat + ',' + destination.lng, travelmode: mode.googleMode.toLowerCase() });
-    if (ordered.length > 1) params.set('waypoints', ordered.slice(0, -1).map(shop => shop.lat + ',' + shop.lng).join('|'));
+      destination: destinationQuery, travelmode: mode.googleMode.toLowerCase() });
+    if (ordered.length > 1) {
+      params.set('waypoints', ordered.slice(0, -1).map(shop => {
+        const pName = shop.name.split('/')[0].trim();
+        return shop.address ? pName + ' ' + shop.address : shop.lat + ',' + shop.lng;
+      }).join('|'));
+    }
     if (mode.avoidTolls) params.set('avoid', 'tolls,highways');
+
     /** Yahoo!カーナビ専用のURLスキーム（経由地対応） */
     let yahooNavUrl: string;
+    const yahooDisplayName = destination.address ? primaryName + ' (' + destination.address + ')' : primaryName;
     if (ordered.length > 1) {
       const pts = ['point=' + origin.lat + ',' + origin.lng];
       for (const wp of ordered.slice(0, -1).slice(0, 3)) {
         pts.push('point=' + wp.lat + ',' + wp.lng);
       }
       pts.push('point=' + destination.lat + ',' + destination.lng);
-      yahooNavUrl = 'yjcarnavi://navi/select?' + pts.join('&') + '&name=' + encodeURIComponent(destination.name);
+      yahooNavUrl = 'yjcarnavi://navi/select?' + pts.join('&') + '&name=' + encodeURIComponent(yahooDisplayName);
     } else {
-      yahooNavUrl = 'yjcarnavi://navi/select?lat=' + destination.lat + '&lon=' + destination.lng + '&name=' + encodeURIComponent(destination.name);
+      yahooNavUrl = 'yjcarnavi://navi/select?lat=' + destination.lat + '&lon=' + destination.lng + '&name=' + encodeURIComponent(yahooDisplayName);
     }
     /** Appleマップ経路案内URL（iOS端末でマップアプリが直接起動） */
     const appleModeFlag = mode.googleMode === 'TRANSIT' ? 'r' : mode.googleMode === 'WALKING' ? 'w' : 'd';
-    const appleMapsNavUrl = 'https://maps.apple.com/?saddr=' + origin.lat + ',' + origin.lng + '&daddr=' + destination.lat + ',' + destination.lng + '&dirflg=' + appleModeFlag + '&q=' + encodeURIComponent(destination.name);
+    const appleMapsNavUrl = 'https://maps.apple.com/?saddr=' + origin.lat + ',' + origin.lng + '&daddr=' + encodeURIComponent(destinationQuery) + '&dirflg=' + appleModeFlag + '&q=' + encodeURIComponent(primaryName);
 
     /** 検索中・結果で共有するカード情報 */
     const card = { modeBadge: mode.icon + ' ' + mode.name, title: origin.name + ' ➔ ' + (ordered.length > 1 ? ordered.length + '店舗巡回' : destination.name),
