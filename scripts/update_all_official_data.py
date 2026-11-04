@@ -255,15 +255,154 @@ def fetch_all_otakarasouko() -> list:
 # ============================================================================
 # 6. ゲオ (GEO) 公式店舗検索（47都道府県）
 # ============================================================================
+GEO_PREFECTURE_CODES = [
+    # 北海道・東北
+    "hokkaido", "aomoriken", "iwateken", "miyagiken", "akitaken", "yamagataken", "fukushimaken",
+    # 関東
+    "tochigiken", "ibarakiken", "gunmaken", "saitamaken", "chibaken", "tokyoto", "kanagawaken",
+    # 北陸
+    "niigataken", "toyamaken", "ishikawaken", "fukuiken",
+    # 中部
+    "naganoken", "yamanashiken", "gifuken", "shizuokaken", "aichiken", "mieken",
+    # 近畿
+    "shigaken", "kyotofu", "oosakafu", "naraken", "wakayamaken", "hyogoken",
+    # 中国
+    "tottoriken", "shimaneken", "okayamaken", "hiroshimaken", "yamaguchiken",
+    # 四国
+    "kagawaken", "tokushimaken", "ehimeken", "kochiken",
+    # 九州・沖縄
+    "fukuokaken", "sagaken", "nagasakiken", "kumamotoken", "ooitaken", "miyazakiken", "kagoshimaken", "okinawaken"
+]
+
+GEO_BROWSER_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+    "Sec-Ch-Ua": '"Google Chrome";v="129", "Not=A?Brand";v="8", "Chromium";v="129"',
+    "Sec-Ch-Ua-Mobile": "?0",
+    "Sec-Ch-Ua-Platform": '"Windows"',
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "same-origin",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1",
+}
+
+
+def parse_geo_pref_page(html: str):
+    """ゲオ公式サイトの都道府県別一覧ページから店舗情報を抽出する。"""
+    import unicodedata
+    stores = []
+    # 次ページ番号の判定: <li class="next"><a href="?p=2">
+    next_page_m = re.search(r'<li[^>]*class=["\']next["\'][^>]*>\s*<a[^>]+href=["\']\?p=(\d+)["\']', html)
+    next_page = int(next_page_m.group(1)) if next_page_m else None
+
+    units = re.findall(
+        r'<div class="store_pref_unit clearfix">(.*?)(?=<div class="store_pref_unit clearfix">|<div class="pager"|$)',
+        html,
+        re.S,
+    )
+    for u in units:
+        href_m = re.search(r'href=["\'](?:https://geo-online\.co\.jp)?/store/(\d+)/?["\']', u)
+        if not href_m:
+            continue
+        store_num = href_m.group(1)
+        sid = f"geo_off_{store_num}"
+
+        name_m = re.search(r'<h2 class="store_pref_name">(.*?)</h2>', u, re.S)
+        raw_name = name_m.group(1) if name_m else ""
+        name = unicodedata.normalize("NFKC", re.sub(r"<[^>]+>", "", raw_name)).strip()
+
+        addr_m = re.search(r"<dt>[^<]*住\s*所[^<]*</dt>\s*<dd>(.*?)</dd>", u, re.S)
+        raw_addr = addr_m.group(1) if addr_m else ""
+        addr = unicodedata.normalize("NFKC", re.sub(r"<[^>]+>", "", raw_addr)).strip()
+        addr = re.sub(r"^〒?\s*\d{3}-?\d{4}\s*", "", addr).strip()
+
+        hours_m = re.search(r"<dt>[^<]*営業時間[^<]*</dt>\s*<dd>(.*?)</dd>", u, re.S)
+        raw_hours = hours_m.group(1) if hours_m else ""
+        hours = unicodedata.normalize("NFKC", re.sub(r"<[^>]+>", "", raw_hours)).strip()
+        # 朝9:00〜夜23:00 / 朝9:00〜深夜0:00 等のプレフィックスを除去し波ダッシュを全角チルダへ正規化
+        hours = re.sub(r"[朝昼夜]", "", hours).replace("深夜", "").replace("〜", "～").strip()
+
+        if name and addr:
+            stores.append({
+                "id": sid,
+                "name": name,
+                "address": addr,
+                "hours": hours,
+            })
+
+    return stores, next_page
+
+
 def fetch_all_geo() -> list:
-    """現行の全国一覧から店舗番号を取得し、既存IDを保持する。"""
-    from update_assortments import parse_geo_index
-    stores = parse_geo_index(fetch_url("https://geo-mobile.jp/store/index.html"))
-    with open("scripts/official_geo.json", encoding="utf-8") as handle:
-        previous = {int(item['id'].removeprefix('geo_off_')): item['id'] for item in json.load(handle)}
-    for item in stores:
-        item['id'] = previous.get(int(item['id'].removeprefix('geo_off_')), item['id'])
-    return stores
+    """ゲオ公式サイト（geo-online.co.jp）から全国47都道府県の全店舗一覧を取得する。"""
+    import http.cookiejar
+    print("Fetching GEO official store list from geo-online.co.jp...")
+    cj = http.cookiejar.CookieJar()
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+
+    area_url = "https://geo-online.co.jp/store/area/"
+    req = urllib.request.Request(area_url, headers=GEO_BROWSER_HEADERS)
+    pref_codes = []
+    try:
+        resp = opener.open(req, timeout=20)
+        html_area = resp.read().decode("utf-8", errors="ignore")
+        pref_codes = re.findall(r'<a[^>]+name="([a-z]+)"', html_area)
+    except Exception as e:
+        print(f"[WARN] Failed to fetch dynamic GEO area list ({e}), using default 47 prefectures.")
+
+    if not pref_codes:
+        pref_codes = list(GEO_PREFECTURE_CODES)
+
+    print(f"Fetching GEO stores across {len(pref_codes)} prefectures...")
+    all_stores = []
+    seen_ids = set()
+
+    for pref in pref_codes:
+        page = 1
+        while page:
+            if page == 1:
+                url = f"https://geo-online.co.jp/store/{pref}/"
+                headers = dict(GEO_BROWSER_HEADERS)
+                headers["Referer"] = area_url
+            else:
+                url = f"https://geo-online.co.jp/store/{pref}/?p={page}"
+                headers = dict(GEO_BROWSER_HEADERS)
+                headers["Referer"] = f"https://geo-online.co.jp/store/{pref}/"
+
+            req = urllib.request.Request(url, headers=headers)
+            try:
+                resp = opener.open(req, timeout=20)
+                html = resp.read().decode("utf-8", errors="ignore")
+                stores, next_page = parse_geo_pref_page(html)
+                for s in stores:
+                    if s["id"] not in seen_ids:
+                        seen_ids.add(s["id"])
+                        all_stores.append(s)
+                page = next_page
+            except Exception as e:
+                print(f"[WARN] Error fetching GEO pref {pref} p={page}: {e}")
+                break
+            time.sleep(0.12)
+
+    # 既存のスナップショットからID表記（例: 0埋めの有無等）を保持して互換性を維持
+    if os.path.exists("scripts/official_geo.json"):
+        try:
+            with open("scripts/official_geo.json", encoding="utf-8") as handle:
+                previous = {int(item["id"].removeprefix("geo_off_")): item["id"] for item in json.load(handle)}
+            for item in all_stores:
+                item_num = int(item["id"].removeprefix("geo_off_"))
+                if item_num in previous:
+                    item["id"] = previous[item_num]
+        except Exception as e:
+            print(f"[WARN] Failed to align legacy GEO IDs: {e}")
+
+    print(f"Fetched {len(all_stores)} official GEO stores.")
+    return all_stores
 
 
 # ============================================================================

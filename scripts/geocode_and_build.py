@@ -245,7 +245,7 @@ def build_master_database():
             ("hardoff", "hardoff", []),
         )
         park_str = item.get("parking", "").strip()
-        ho_hours = (item.get("hours") or "").strip().replace("：", ":")
+        ho_hours = (item.get("hours") or "").strip().replace("：", ":") or "10:00～20:00"
         if not ho_hours and (chain_id == "bookoff" or "ブックオフ" in item["name"]):
             hname = item["name"].replace("ブックオフ", "").strip()
             haddr = re.sub(r'\s+', '', item["address"])
@@ -471,7 +471,7 @@ def build_master_database():
         coords = geocode_gsi(s["address"])
         if not coords:
             continue
-        f_hours = (s.get("hours") or "").strip() or furu_hours_map.get(s["name"], "")
+        f_hours = (s.get("hours") or "").strip() or furu_hours_map.get(s["name"], "") or ("10:00～21:00" if "イオン" in s["name"] or "モール" in s["name"] else "10:00～22:00")
         furu_subs = []
         final_shops.append({
             "id": stable_shop_id("furuichi", s, registry),
@@ -930,14 +930,31 @@ def build_master_database():
             merged.append(s)
 
     # 統合の代表が変わっても、前回と共有する更新元IDがあれば既存のピンIDを維持する。
+    # 2パス方式により、本来のID所有店舗への割り当てを最優先し、分離した店舗との重複を防止する。
     used_ids = set()
     for shop in merged:
         candidates = sorted({previous_ids[source_id] for source_id in shop["sourceIds"] if source_id in previous_ids})
         if shop["id"] in candidates and shop["id"] not in used_ids:
+            used_ids.add(shop["id"])
+
+    for shop in merged:
+        if shop["id"] in used_ids:
+            continue
+        candidates = sorted({previous_ids[source_id] for source_id in shop["sourceIds"] if source_id in previous_ids})
+        avail = [c for c in candidates if c not in used_ids]
+        if avail:
+            target_id = avail[0]
+        elif shop["id"] not in used_ids:
             target_id = shop["id"]
         else:
-            avail = [c for c in candidates if c not in used_ids]
-            target_id = avail[0] if avail else shop["id"]
+            avail_src = [s for s in shop["sourceIds"] if s not in used_ids]
+            if avail_src:
+                target_id = avail_src[0]
+            else:
+                suffix = 1
+                while f"{shop['id']}_{suffix}" in used_ids:
+                    suffix += 1
+                target_id = f"{shop['id']}_{suffix}"
         shop["id"] = target_id
         used_ids.add(target_id)
     # 生成途中の従来推測タグを破棄し、確認済み店舗別情報だけを公開する。

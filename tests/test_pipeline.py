@@ -108,5 +108,18 @@ class PipelineTests(unittest.TestCase):
             self.assertTrue(re.search(r"\d{1,2}:\d{2}", shop["hours"]), f"不正な営業時間表記: {shop['id']} {shop['name']} {shop['hours']}")
 
 
+    def test_geo_stores_have_hours(self):
+        """ゲオ全店舗で営業時間が空文字にならず保持されていることを検証する。"""
+        import re
+        with open(ROOT / "data/shops.json", encoding="utf-8") as handle:
+            shops = json.load(handle)
+        geo_shops = [s for s in shops if "geo" in s.get("chains", []) or s.get("chain") == "geo"]
+        self.assertGreater(len(geo_shops), 700)
+        missing_hours = [s for s in geo_shops if not s.get("hours")]
+        self.assertEqual(missing_hours, [], f"営業時間が未取得のゲオ店舗が存在します: {missing_hours}")
+        for shop in geo_shops:
+            self.assertTrue(re.search(r"\d{1,2}:\d{2}|24時間", shop["hours"]), f"不正な営業時間表記: {shop['id']} {shop['name']} {shop['hours']}")
+
+
 if __name__ == "__main__":
     unittest.main()
