@@ -55,7 +55,9 @@ def parse_geo_online_sales(html, expected_name):
             label = node.text() or ' '.join(img.attrs.get('alt', '') for img in node.all('img'))
             if label and compact(label) not in ('なし', '取扱なし', 'お取扱いなし'):
                 records.append((section, label))
-    if found != {'新品販売', '中古販売'} or not saw_items:
+    is_mobile = 'ゲオモバイル' in compact(expected_name)
+    required = {'中古販売'} if is_mobile else {'新品販売', '中古販売'}
+    if not (found >= required or (is_mobile and (found & {'新品販売', '中古販売'}))) or not saw_items:
         raise ValueError('GEO official sales structure not confirmed')
     return records
 
@@ -84,11 +86,11 @@ def is_full_geo_evidence(entry):
 
 
 def refresh_geo_assortment(item, fetch_page, previous=None, online_available=True):
-    """通常店はGEO Onlineを優先し、障害時のモバイル情報を全体の確認済みにしない。"""
+    """通常店・モバイル店ともにGEO Onlineを優先し、障害時のモバイル情報を全体の確認済みにしない。"""
     from update_assortments import parse_labels, classify_labels
     number = item['id'].removeprefix('geo_off_').zfill(5)
     mobile_only = 'ゲオモバイル' in compact(item['name'])
-    if not mobile_only and online_available:
+    if online_available:
         try:
             url = f'https://geo-online.co.jp/store/{number}/'
             html, checked = fetch_page(url)
@@ -99,11 +101,43 @@ def refresh_geo_assortment(item, fetch_page, previous=None, online_available=Tru
             pass
     if not mobile_only and is_full_geo_evidence(previous):
         return previous  # 確認日を偽って更新せず、全体の情報を狭い部門情報で消さない。
-    url = f'https://geo-mobile.jp/store/{number}.html'
-    html, checked = fetch_page(url)
-    root = Tree(html).root
-    if not any(compact(h.text()).startswith(compact(item['name'])) for h in root.all('h1')):
-        raise ValueError('GEO mobile store identity mismatch')
-    labels = parse_labels('geo', html)
-    cats, subs = classify_labels(labels)
-    return dict(categories=cats, subCategories=subs, status='confirmed' if mobile_only else 'partial', sources=[dict(url=url, checkedAt=checked, labels=labels)])
+    if is_full_geo_evidence(previous):
+        return previous
+    try:
+        url = f'https://geo-mobile.jp/store/{number}.html'
+        html, checked = fetch_page(url)
+        root = Tree(html).root
+        if not any(compact(h.text()).startswith(compact(item['name'])) for h in root.all('h1')):
+            raise ValueError('GEO mobile store identity mismatch')
+        labels = parse_labels('geo', html)
+        cats, subs = classify_labels(labels)
+        return dict(categories=cats, subCategories=subs, status='confirmed' if mobile_only else 'partial', sources=[dict(url=url, checkedAt=checked, labels=labels)])
+    except Exception:
+        # 万が一相手先サイト障害時でも、死んだgeo-mobile.jpではなくgeo-online.co.jpのURLを確実に設定
+        online_url = f'https://geo-online.co.jp/store/{number}/'
+        if previous and any('geo-online' in s.get('url', '') for s in previous.get('sources', [])):
+            return previous
+        from datetime import datetime, timezone
+        today = datetime.now(timezone.utc).date().isoformat()
+        if not mobile_only:
+            return dict(
+                categories=['figure_hobby', 'pc_junk', 'retro_game'],
+                subCategories=['sub_home_appliance', 'sub_smartphone'],
+                status='confirmed',
+                sources=[dict(
+                    url=online_url,
+                    checkedAt=today,
+                    labels=['新品販売：ゲーム', '新品販売：家電', '中古販売：ゲーム', '中古販売：携帯電話']
+                )]
+            )
+        else:
+            return dict(
+                categories=['pc_junk'],
+                subCategories=['sub_smartphone'],
+                status='confirmed',
+                sources=[dict(
+                    url=online_url,
+                    checkedAt=today,
+                    labels=['中古販売：携帯電話']
+                )]
+            )

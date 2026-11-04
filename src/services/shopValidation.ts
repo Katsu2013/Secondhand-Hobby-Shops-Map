@@ -41,7 +41,15 @@ export function normalizeShop(value: unknown): Shop | null {
         typeof source.url === 'string' && /^https:\/\//.test(source.url) &&
         typeof source.checkedAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(source.checkedAt) &&
         Array.isArray(source.labels) && source.labels.every((label: unknown) => typeof label === 'string')
-    ) : [],
+    ).map((source) => {
+      if (typeof source.url === 'string' && source.url.includes('geo-mobile.jp/store/')) {
+        const numMatch = source.url.match(/(\d+)\.html/);
+        if (numMatch) {
+          return { ...source, url: `https://geo-online.co.jp/store/${numMatch[1].padStart(5, '0')}/` };
+        }
+      }
+      return source;
+    }) : [],
   };
   if (!shop.chains!.length) shop.chains = [shop.chain];
   shop.subCategories = getEffectiveShopSubCategories(shop);

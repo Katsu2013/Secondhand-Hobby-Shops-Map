@@ -12,10 +12,13 @@ from urllib.parse import urljoin
 from urllib.error import HTTPError, URLError
 
 from html_tools import Tree
+import http.cookiejar
 from pipeline_support import atomic_json_write, stable_shop_id
 
 CACHE = Path('scripts/research-cache')
 EVIDENCE = Path('scripts/assortment_evidence.json')
+_CJ = http.cookiejar.CookieJar()
+_OPENER = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(_CJ))
 HEADERS = {
     'User-Agent': (
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
@@ -40,7 +43,7 @@ def fetch(url):
     path = CACHE / (hashlib.sha256(url.encode()).hexdigest() + '.html')
     if path.exists() and time.time() - path.stat().st_mtime < 7 * 86400:
         return path.read_text(encoding='utf-8'), datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).date().isoformat()
-    with urllib.request.urlopen(urllib.request.Request(url, headers=HEADERS), timeout=30) as response:
+    with _OPENER.open(urllib.request.Request(url, headers=HEADERS), timeout=30) as response:
         raw = response.read()
         encoding = response.headers.get_content_charset() or 'utf-8'
         html = raw.decode(encoding, errors='replace')
@@ -186,7 +189,7 @@ def update_assortments():
                 if item.get('store_category') not in ('BOOKOFF', 'BOOKOFF PLUS', 'BOOKOFF SUPER BAZAAR') or '閉店' in item.get('title', ''): continue
                 sid = 'bookoff_off_' + str(item['id']); url = urljoin('https://www.bookoff.co.jp/shop/', item['url'])
             else:
-                sid = item['id']; url = 'https://geo-mobile.jp/store/' + sid.removeprefix('geo_off_').zfill(5) + '.html'
+                sid = item['id']; url = 'https://geo-online.co.jp/store/' + sid.removeprefix('geo_off_').zfill(5) + '/'
             jobs.append((sid, kind, url))
     for kind, base, pattern in (
         ('furuichi', 'https://www.furu1.net/shop/', r'/shop/shop\d+\.html'),
