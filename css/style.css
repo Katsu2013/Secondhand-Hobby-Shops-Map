@@ -2389,6 +2389,12 @@ html, body {
 .brand-plate.plate-official.plate-popondetta .plate-main { color: #1c1f8a; font-size: 13px; font-weight: 900; letter-spacing: 0.04em; }
 .brand-plate.plate-official.plate-otakara_market { background: #dc2626; border-color: #991b1b; }
 .brand-plate.plate-official.plate-otakara_market .plate-main { color: #fef08a; font-size: 9.5px; font-weight: 900; }
+.brand-plate.plate-official.plate-volks { background: #003366; border-color: #002244; }
+.brand-plate.plate-official.plate-volks .plate-main { color: #ffffff; font-size: 13px; font-weight: 900; letter-spacing: 0.04em; }
+.brand-plate.plate-official.plate-cardlabo { background: #e60012; border-color: #b3000d; }
+.brand-plate.plate-official.plate-cardlabo .plate-main { color: #ffffff; font-size: 11px; font-weight: 900; letter-spacing: 0.02em; }
+.brand-plate.plate-official.plate-jungle { background: #1a4d2e; border-color: #0f301b; }
+.brand-plate.plate-official.plate-jungle .plate-main { color: #ffeb3b; font-size: 11.5px; font-weight: 900; letter-spacing: 0.03em; }
 
 /* 一覧と地図は同じ業態ロゴ・同じ74:25の表示枠を使用する。 */
 .shop-brand-plates { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }

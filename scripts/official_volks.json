@@ -1,0 +1,338 @@
+[
+  {
+    "name": "ボークス秋葉原ホビー天国2",
+    "chain": "volks",
+    "chains": [
+      "volks"
+    ],
+    "brands": [
+      "volks"
+    ],
+    "url": "https://hobby.volks.co.jp/shop/hobbytengoku2/",
+    "address": "東京都千代田区外神田4丁目2-10",
+    "clean_address": "東京都千代田区外神田4丁目2-10",
+    "tel": "03-3254-1059",
+    "hours": "平日 11:00~20:00 / 土日祝 10:00~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_plamo",
+      "sub_figure",
+      "sub_tool_diy",
+      "sub_anime_goods"
+    ]
+  },
+  {
+    "name": "ボークス ホビースクエア秋葉原",
+    "chain": "volks",
+    "chains": [
+      "volks"
+    ],
+    "brands": [
+      "volks"
+    ],
+    "url": "https://hobby.volks.co.jp/shop/hs_akihabara.html",
+    "address": "東京都千代田区外神田1-15-16 ラジオ会館 8F",
+    "clean_address": "東京都千代田区外神田1-15-16 ラジオ会館 8F",
+    "tel": "03-5256-1990",
+    "hours": "平日 11:00~20:00 土日祝 10:00~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_plamo",
+      "sub_figure",
+      "sub_tool_diy",
+      "sub_anime_goods"
+    ]
+  },
+  {
+    "name": "ボークス 札幌ショールーム",
+    "chain": "volks",
+    "chains": [
+      "volks"
+    ],
+    "brands": [
+      "volks"
+    ],
+    "url": "https://hobby.volks.co.jp/shop/sr_sapporo.html",
+    "address": "北海道札幌市中央区南1条西2丁目 PIVOT CROSS 6F",
+    "clean_address": "北海道札幌市中央区南1条西2丁目 PIVOT CROSS 6F",
+    "tel": "011-252-7626",
+    "hours": "10:00~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_plamo",
+      "sub_figure",
+      "sub_tool_diy",
+      "sub_anime_goods"
+    ]
+  },
+  {
+    "name": "ボークス 仙台ショールーム",
+    "chain": "volks",
+    "chains": [
+      "volks"
+    ],
+    "brands": [
+      "volks"
+    ],
+    "url": "https://hobby.volks.co.jp/shop/sr_sendai.html",
+    "address": "宮城県仙台市青葉区中央4丁目1-1 イービーンズ 5F",
+    "clean_address": "宮城県仙台市青葉区中央4丁目1-1 イービーンズ 5F",
+    "tel": "022-726-3070",
+    "hours": "10:00~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_plamo",
+      "sub_figure",
+      "sub_tool_diy",
+      "sub_anime_goods"
+    ]
+  },
+  {
+    "name": "ボークス 宇都宮ショールーム",
+    "chain": "volks",
+    "chains": [
+      "volks"
+    ],
+    "brands": [
+      "volks"
+    ],
+    "url": "https://hobby.volks.co.jp/shop/sr_utsunomiya.html",
+    "address": "栃木県宇都宮市曲師町2-18 宇都宮フェスタ 6F",
+    "clean_address": "栃木県宇都宮市曲師町2-18 宇都宮フェスタ 6F",
+    "tel": "028-636-9393",
+    "hours": "11:00~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_plamo",
+      "sub_figure",
+      "sub_tool_diy",
+      "sub_anime_goods"
+    ]
+  },
+  {
+    "name": "ボークス 横浜ショールーム",
+    "chain": "volks",
+    "chains": [
+      "volks"
+    ],
+    "brands": [
+      "volks"
+    ],
+    "url": "https://hobby.volks.co.jp/shop/sr_yokohama.html",
+    "address": "神奈川県横浜市西区南幸2-15-13 横浜ビブレ 9F",
+    "clean_address": "神奈川県横浜市西区南幸2-15-13 横浜ビブレ 9F",
+    "tel": "045-321-7871",
+    "hours": "平日 11:00~21:00 土日祝 10:00~21:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_plamo",
+      "sub_figure",
+      "sub_tool_diy",
+      "sub_anime_goods"
+    ]
+  },
+  {
+    "name": "ボークス 名古屋ショールーム",
+    "chain": "volks",
+    "chains": [
+      "volks"
+    ],
+    "brands": [
+      "volks"
+    ],
+    "url": "https://hobby.volks.co.jp/shop/sr_nagoya.html",
+    "address": "愛知県名古屋市中区大須4-1-71 矢場町中駒ビル 2F",
+    "clean_address": "愛知県名古屋市中区大須4-1-71 矢場町中駒ビル 2F",
+    "tel": "052-238-0771",
+    "hours": "平日 11:00~20:00 土日祝 10:00~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_plamo",
+      "sub_figure",
+      "sub_tool_diy",
+      "sub_anime_goods"
+    ]
+  },
+  {
+    "name": "ボークス ホビースクエア京都",
+    "chain": "volks",
+    "chains": [
+      "volks"
+    ],
+    "brands": [
+      "volks"
+    ],
+    "url": "https://hobby.volks.co.jp/shop/hs_kyoto.html",
+    "address": "京都府京都市下京区七条御所ノ内中町60 1階",
+    "clean_address": "京都府京都市下京区七条御所ノ内中町60 1階",
+    "tel": "075-325-1175",
+    "hours": "11:00~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_plamo",
+      "sub_figure",
+      "sub_tool_diy",
+      "sub_anime_goods"
+    ]
+  },
+  {
+    "name": "ボークス 大阪ショールーム",
+    "chain": "volks",
+    "chains": [
+      "volks"
+    ],
+    "brands": [
+      "volks"
+    ],
+    "url": "https://hobby.volks.co.jp/shop/sr_osaka.html",
+    "address": "大阪府大阪市浪速区日本橋4-9-18",
+    "clean_address": "大阪府大阪市浪速区日本橋4-9-18",
+    "tel": "06-6634-8155",
+    "hours": "11:00~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_plamo",
+      "sub_figure",
+      "sub_tool_diy",
+      "sub_anime_goods"
+    ]
+  },
+  {
+    "name": "ボークス 神戸ショールーム",
+    "chain": "volks",
+    "chains": [
+      "volks"
+    ],
+    "brands": [
+      "volks"
+    ],
+    "url": "https://hobby.volks.co.jp/shop/sr_kobe.html",
+    "address": "兵庫県神戸市中央区三宮町1-9-1 センタープラザ 3F-311",
+    "clean_address": "兵庫県神戸市中央区三宮町1-9-1 センタープラザ 3F-311",
+    "tel": "078-334-7717",
+    "hours": "平日 11:00~20:00 土日祝 10:00~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_plamo",
+      "sub_figure",
+      "sub_tool_diy",
+      "sub_anime_goods"
+    ]
+  },
+  {
+    "name": "ボークス 広島ショールーム",
+    "chain": "volks",
+    "chains": [
+      "volks"
+    ],
+    "brands": [
+      "volks"
+    ],
+    "url": "https://hobby.volks.co.jp/shop/sr_hiroshima.html",
+    "address": "広島県広島市中区紙屋町2-2-18 サンモール 4F",
+    "clean_address": "広島県広島市中区紙屋町2-2-18 サンモール 4F",
+    "tel": "082-247-4489",
+    "hours": "10:30~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_plamo",
+      "sub_figure",
+      "sub_tool_diy",
+      "sub_anime_goods"
+    ]
+  },
+  {
+    "name": "ボークス 福岡ショールーム",
+    "chain": "volks",
+    "chains": [
+      "volks"
+    ],
+    "brands": [
+      "volks"
+    ],
+    "url": "https://hobby.volks.co.jp/shop/sr_fukuoka.html",
+    "address": "福岡県福岡市中央区天神4-4-11 天神ショッパーズ福岡 4F",
+    "clean_address": "福岡県福岡市中央区天神4-4-11 天神ショッパーズ福岡 4F",
+    "tel": "092-715-5239",
+    "hours": "10:00~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_plamo",
+      "sub_figure",
+      "sub_tool_diy",
+      "sub_anime_goods"
+    ]
+  },
+  {
+    "name": "天使の窓 原宿・表参道",
+    "chain": "volks",
+    "chains": [
+      "volks"
+    ],
+    "brands": [
+      "volks"
+    ],
+    "url": "https://dollfie.volks.co.jp/shop/tenshinomado/",
+    "address": "東京都渋谷区神宮前1-12-1",
+    "clean_address": "東京都渋谷区神宮前1-12-1",
+    "tel": "03-3401-3113",
+    "hours": "11:00~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_plamo",
+      "sub_figure",
+      "sub_tool_diy",
+      "sub_anime_goods"
+    ]
+  },
+  {
+    "name": "天使の里 霞中庵",
+    "chain": "volks",
+    "chains": [
+      "volks"
+    ],
+    "brands": [
+      "volks"
+    ],
+    "url": "https://dollfie.volks.co.jp/shop/tenshinosato/",
+    "address": "京都府京都市右京区嵯峨天龍寺若宮町12",
+    "clean_address": "京都府京都市右京区嵯峨天龍寺若宮町12",
+    "tel": "075-872-3100",
+    "hours": "11:00~17:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_plamo",
+      "sub_figure",
+      "sub_tool_diy",
+      "sub_anime_goods"
+    ]
+  }
+]

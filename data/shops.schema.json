@@ -57,7 +57,10 @@
           "inverse",
           "craft_chain",
           "yellowsubmarine",
-          "popondetta"
+          "popondetta",
+          "volks",
+          "cardlabo",
+          "jungle"
         ]
       },
       "chains": {
@@ -88,7 +91,10 @@
             "inverse",
             "craft_chain",
             "yellowsubmarine",
-            "popondetta"
+            "popondetta",
+            "volks",
+            "cardlabo",
+            "jungle"
           ]
         },
         "minItems": 1
@@ -138,7 +144,10 @@
             "pandorahouse",
             "yellowsubmarine",
             "popondetta",
-            "otakara_market"
+            "otakara_market",
+            "volks",
+            "cardlabo",
+            "jungle"
           ]
         }
       },

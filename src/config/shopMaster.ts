@@ -328,6 +328,45 @@ export const CHAIN_GROUPS: readonly ChainGroup[] = [
     keywords: ['ポポンデッタ', 'Popondetta', 'popondetta'],
     genre: '🎲 ホビー・模型・カード専門店系',
   },
+  {
+    id: 'volks',
+    name: 'ボークス (模型・プラモ・フィギュア・ドール)',
+    shortName: 'ボークス',
+    color: '#003366',
+    bgLight: '#e0f2fe',
+    icon: '🤖',
+    badgeText: 'ボ',
+    subBrands: ['ボークス', 'ホビースクエア', 'ホビー天国', '天使の窓', '天使の里'],
+    defaultCategories: ['figure_hobby'],
+    keywords: ['ボークス', 'VOLKS', 'ホビースクエア', 'ホビー天国', '天使の窓', '天使の里'],
+    genre: '🎲 ホビー・模型・カード専門店系',
+  },
+  {
+    id: 'cardlabo',
+    name: 'カードラボ (TCG・シングルカード・デュエルスペース)',
+    shortName: 'カードラボ',
+    color: '#e60012',
+    bgLight: '#fee2e2',
+    icon: '🃏',
+    badgeText: 'ラボ',
+    subBrands: ['カードラボ'],
+    defaultCategories: ['tcg'],
+    keywords: ['カードラボ', 'cardlabo', 'c-labo'],
+    genre: '🎲 ホビー・模型・カード専門店系',
+  },
+  {
+    id: 'jungle',
+    name: 'ジャングル (特撮・超合金・ロボット・中古フィギュア)',
+    shortName: 'ジャングル',
+    color: '#1a4d2e',
+    bgLight: '#f0fdf4',
+    icon: '🦖',
+    badgeText: '密林',
+    subBrands: ['ジャングル', '空想的機械館メカストア'],
+    defaultCategories: ['figure_hobby'],
+    keywords: ['ジャングル', 'JUNGLE', 'メカストア'],
+    genre: '🎲 ホビー・模型・カード専門店系',
+  },
 
   // 6. 手芸・ハンドメイド・クラフト系
   {
@@ -408,6 +447,9 @@ export const BRAND_PLATES: Readonly<Record<BrandPlateId, BrandPlateSpec>> = {
   yellowsubmarine: { chainId: 'yellowsubmarine', cls: 'plate-official plate-yellowsubmarine', html: `<span class="plate-main yellowsub-plate">Yellow Submarine</span>` },
   popondetta: { chainId: 'popondetta', cls: 'plate-official plate-popondetta', html: `<img class="brand-official-logo" src="brands/popondetta-display.svg" alt="ポポンデッタ" loading="eager" decoding="async" />` },
   otakara_market: { chainId: 'otakara_market', cls: 'plate-official plate-otakara_market', html: `<span class="plate-main otakara-plate">お宝あっとマーケット</span>` },
+  volks: { chainId: 'volks', cls: 'plate-official plate-volks', html: `<span class="plate-main volks-plate">VOLKS</span>` },
+  cardlabo: { chainId: 'cardlabo', cls: 'plate-official plate-cardlabo', html: `<span class="plate-main cardlabo-plate">カードラボ</span>` },
+  jungle: { chainId: 'jungle', cls: 'plate-official plate-jungle', html: `<span class="plate-main jungle-plate">ジャングル</span>` },
 };
 
 /**
@@ -1598,6 +1640,34 @@ export function classifyShopByName(name: string): ShopClassification {
     subBrand = /クイーンオフ/i.test(normalizedName) ? 'クイーンオフ' : 'お宝あっとマーケット';
   }
 
+  // ボークスの判定
+  if (/ボークス|volks|ホビースクエア|ホビー天国|天使の窓|天使の里/i.test(normalizedName)) {
+    matchedChains.push('volks');
+    brands.push('volks');
+    subBrand = 'ボークス';
+    (['sub_plamo', 'sub_figure', 'sub_tool_diy', 'sub_anime_goods'] as const).forEach((s) =>
+      subCategories.add(s)
+    );
+  }
+
+  // カードラボの判定
+  if (/カードラボ|card\s*labo|c-labo/i.test(normalizedName)) {
+    matchedChains.push('cardlabo');
+    brands.push('cardlabo');
+    subBrand = 'カードラボ';
+    (['sub_tcg_card', 'sub_anime_goods'] as const).forEach((s) => subCategories.add(s));
+  }
+
+  // ジャングルの判定
+  if (/ジャングル|jungle|メカストア/i.test(normalizedName)) {
+    matchedChains.push('jungle');
+    brands.push('jungle');
+    subBrand = /メカストア/i.test(normalizedName) ? '空想的機械館メカストア' : 'ジャングル';
+    (['sub_retro_toy', 'sub_figure', 'sub_plamo'] as const).forEach((s) =>
+      subCategories.add(s)
+    );
+  }
+
   // どのキーワードにも一致しなかった場合のフォールバック（デフォルトでハードオフ扱い）
   if (matchedChains.length === 0) {
     matchedChains.push('hardoff');
@@ -1618,6 +1688,9 @@ export function classifyShopByName(name: string): ShopClassification {
     'craft_chain',
     'yellowsubmarine',
     'popondetta',
+    'volks',
+    'cardlabo',
+    'jungle',
     'otakara_market',
     'kanteidan',
     'animate',

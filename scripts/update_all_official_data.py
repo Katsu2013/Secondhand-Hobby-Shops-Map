@@ -591,6 +591,30 @@ def main() -> None:
     except Exception as e:
         print(f"[WARN] Popondetta fetch error: {e}")
 
+    # 10. ボークス (VOLKS) 全店
+    try:
+        from scrape_volks import fetch_all_volks
+        volks_stores = fetch_all_volks()
+        save_json_safely("scripts/official_volks.json", volks_stores, 10, "ボークス")
+    except Exception as e:
+        print(f"[WARN] Volks fetch error: {e}")
+
+    # 11. カードラボ (Card Labo) 全店
+    try:
+        from scrape_cardlabo import fetch_all_cardlabo
+        cardlabo_stores = fetch_all_cardlabo()
+        save_json_safely("scripts/official_cardlabo.json", cardlabo_stores, 30, "カードラボ")
+    except Exception as e:
+        print(f"[WARN] Card Labo fetch error: {e}")
+
+    # 12. ジャングル (JUNGLE) 全店
+    try:
+        from scrape_jungle import fetch_all_jungle
+        jungle_stores = fetch_all_jungle()
+        save_json_safely("scripts/official_jungle.json", jungle_stores, 5, "ジャングル")
+    except Exception as e:
+        print(f"[WARN] Jungle fetch error: {e}")
+
     # 中古PC・スマホ専門店。店舗ごとの販売情報も同時に検証して保存する。
     from update_pc_shops import update_pc_shops
     update_pc_shops()

@@ -15,7 +15,7 @@ import unicodedata
 
 def clean_address_for_geocode(addr):
     a = unicodedata.normalize("NFKC", str(addr or "")).strip()
-    a = re.sub(r'〒\s*\d{3}-?\d{4}\s*', '', a)
+    a = re.sub(r'〒?\s*\d{3}-?\d{4}\s*', '', a)
     a = a.translate(str.maketrans("０１２３４５６７８９－ー−‐　", "0123456789---- "))
     a = re.sub(r'\s+', ' ', a)
     return a.strip()
@@ -137,7 +137,8 @@ BRAND_ORDER = [
     "surugaya", "kanteidan", "lashinbang", "mandarake", "melonbooks", "animate",
     "geo", "furuichi", "otakarasouko", "mandai", "mangasouko",
     "yuzawaya", "tokai", "okadaya", "pandorahouse",
-    "yellowsubmarine", "popondetta", "otakara_market"
+    "yellowsubmarine", "popondetta", "otakara_market",
+    "volks", "cardlabo", "jungle"
 ]
 
 def build_master_database():
@@ -197,6 +198,21 @@ def build_master_database():
     if os.path.exists('scripts/official_otakara.json'):
         with open('scripts/official_otakara.json', encoding='utf-8') as handle:
             otakara_official = json.load(handle)
+
+    volks_official = []
+    if os.path.exists('scripts/official_volks.json'):
+        with open('scripts/official_volks.json', encoding='utf-8') as handle:
+            volks_official = json.load(handle)
+
+    cardlabo_official = []
+    if os.path.exists('scripts/official_cardlabo.json'):
+        with open('scripts/official_cardlabo.json', encoding='utf-8') as handle:
+            cardlabo_official = json.load(handle)
+
+    jungle_official = []
+    if os.path.exists('scripts/official_jungle.json'):
+        with open('scripts/official_jungle.json', encoding='utf-8') as handle:
+            jungle_official = json.load(handle)
 
     # Extract official Furuichi hours from scripts/furuichi.html
     furu_hours_map = {}
@@ -284,7 +300,7 @@ def build_master_database():
                 g["hours"] = ho_hours
 
     all_addresses = set()
-    for s in su_real + su_friendly + furu_official + ota_official + lash_official + geo_official + kanteidan_official + pc_official + craft_official + ys_official + popon_official + otakara_official:
+    for s in su_real + su_friendly + furu_official + ota_official + lash_official + geo_official + kanteidan_official + pc_official + craft_official + ys_official + popon_official + otakara_official + volks_official + cardlabo_official + jungle_official:
         all_addresses.add(s["address"])
     for b in bo_official:
         sc = b.get("store_category", "")
@@ -307,7 +323,7 @@ def build_master_database():
     final_shops = []
     priority_chains = [
         "hardoff", "hobbyoff", "offhouse", "bookoff", "surugaya",
-        "craft_chain", "yellowsubmarine", "popondetta", "otakara_market", "kanteidan",
+        "craft_chain", "yellowsubmarine", "popondetta", "volks", "cardlabo", "jungle", "otakara_market", "kanteidan",
         "animate", "lashinbang", "melonbooks", "mandarake",
         "furuichi", "otakarasouko", "mandai", "mangasouko", "geo"
     ]
@@ -865,6 +881,126 @@ def build_master_database():
         otakara_added += 1
     print(f"Added {otakara_added} official Otakara Market stores.")
 
+    # ボークス (VOLKS) (14店舗)
+    volks_added = 0
+    volks_evidence_entries = {}
+    for item in volks_official:
+        coords = geocode_gsi(item["address"])
+        if not coords:
+            continue
+        sid = stable_shop_id("volks", item, registry)
+        cats = item.get("categories", ["figure_hobby"])
+        subs = item.get("subCategories", ["sub_plamo", "sub_figure", "sub_tool_diy", "sub_anime_goods"])
+        final_shops.append(dict(
+            id=sid,
+            sourceIds=[sid],
+            name=item["name"],
+            chain="volks",
+            chains=["volks"],
+            brands=["volks"],
+            subBrand="ボークス",
+            categories=list(cats),
+            subCategories=list(subs),
+            lat=coords["lat"],
+            lng=coords["lng"],
+            address=clean_address_for_geocode(item["address"]),
+            hours=item.get("hours", "")
+        ))
+        volks_evidence_entries[sid] = {
+            "status": "confirmed",
+            "categories": list(cats),
+            "subCategories": list(subs),
+            "sources": [
+                {
+                    "url": item.get("url") or "https://hobby.volks.co.jp/shop/",
+                    "checkedAt": "2026-11-10",
+                    "labels": ["プラモデル", "模型", "フィギュア", "ドール", "ホビー工具"],
+                }
+            ]
+        }
+        volks_added += 1
+    print(f"Added {volks_added} official Volks stores.")
+
+    # カードラボ (Card Labo) (42店舗)
+    cardlabo_added = 0
+    cardlabo_evidence_entries = {}
+    for item in cardlabo_official:
+        coords = geocode_gsi(item["address"])
+        if not coords:
+            continue
+        sid = stable_shop_id("cardlabo", item, registry)
+        cats = item.get("categories", ["tcg"])
+        subs = item.get("subCategories", ["sub_tcg_card", "sub_anime_goods"])
+        final_shops.append(dict(
+            id=sid,
+            sourceIds=[sid],
+            name=item["name"],
+            chain="cardlabo",
+            chains=["cardlabo"],
+            brands=["cardlabo"],
+            subBrand="カードラボ",
+            categories=list(cats),
+            subCategories=list(subs),
+            lat=coords["lat"],
+            lng=coords["lng"],
+            address=clean_address_for_geocode(item["address"]),
+            hours=item.get("hours", "")
+        ))
+        cardlabo_evidence_entries[sid] = {
+            "status": "confirmed",
+            "categories": list(cats),
+            "subCategories": list(subs),
+            "sources": [
+                {
+                    "url": item.get("url") or "https://www.c-labo.jp/shop/",
+                    "checkedAt": "2026-11-10",
+                    "labels": ["トレカ", "TCGシングルカード", "カードサプライ", "デュエルスペース"],
+                }
+            ]
+        }
+        cardlabo_added += 1
+    print(f"Added {cardlabo_added} official Card Labo stores.")
+
+    # ジャングル (JUNGLE) (7店舗)
+    jungle_added = 0
+    jungle_evidence_entries = {}
+    for item in jungle_official:
+        coords = geocode_gsi(item["address"])
+        if not coords:
+            continue
+        sid = stable_shop_id("jungle", item, registry)
+        cats = item.get("categories", ["figure_hobby"])
+        subs = item.get("subCategories", ["sub_retro_toy", "sub_figure", "sub_plamo"])
+        final_shops.append(dict(
+            id=sid,
+            sourceIds=[sid],
+            name=item["name"],
+            chain="jungle",
+            chains=["jungle"],
+            brands=["jungle"],
+            subBrand="ジャングル",
+            categories=list(cats),
+            subCategories=list(subs),
+            lat=coords["lat"],
+            lng=coords["lng"],
+            address=clean_address_for_geocode(item["address"]),
+            hours=item.get("hours", "")
+        ))
+        jungle_evidence_entries[sid] = {
+            "status": "confirmed",
+            "categories": list(cats),
+            "subCategories": list(subs),
+            "sources": [
+                {
+                    "url": item.get("url") or "https://jungle-scs.co.jp/?page_id=21",
+                    "checkedAt": "2026-11-10",
+                    "labels": ["特撮トイ", "超合金", "ロボット玩具", "中古フィギュア", "プラモ"],
+                }
+            ]
+        }
+        jungle_added += 1
+    print(f"Added {jungle_added} official Jungle stores.")
+
     # 看板は店名から判別できるが、販売商品は系列名から断定しない。
     for shop in final_shops:
         correct_brand(shop)
@@ -883,7 +1019,7 @@ def build_master_database():
         found = False
         for m in merged:
             # 秋葉原などでは別住所の専門店が近接する。新規専門店・手芸店・アニメ専門店は距離だけで複合店にしない。
-            if any(chain in ('iosys', 'janpara', 'pc_koubou', 'inverse', 'craft_chain', 'yellowsubmarine', 'popondetta', 'otakara_market', 'animate', 'lashinbang', 'melonbooks', 'mandarake') for chain in s['chains'] + m['chains']):
+            if any(chain in ('iosys', 'janpara', 'pc_koubou', 'inverse', 'craft_chain', 'yellowsubmarine', 'popondetta', 'otakara_market', 'animate', 'lashinbang', 'melonbooks', 'mandarake', 'volks', 'cardlabo', 'jungle') for chain in s['chains'] + m['chains']):
                 continue
             if abs(s["lat"] - m["lat"]) < 0.0006 and abs(s["lng"] - m["lng"]) < 0.0006:
                 m["sourceIds"] = sorted(set(m["sourceIds"] + s["sourceIds"]))
@@ -960,7 +1096,7 @@ def build_master_database():
     # 生成途中の従来推測タグを破棄し、確認済み店舗別情報だけを公開する。
     with open("scripts/assortment_evidence.json", encoding="utf-8") as handle:
         evidence = json.load(handle)
-    for entries in (craft_evidence_entries, ys_evidence_entries, popon_evidence_entries, otakara_evidence_entries, kantei_evidence_entries, osm_evidence_entries):
+    for entries in (craft_evidence_entries, ys_evidence_entries, popon_evidence_entries, otakara_evidence_entries, kantei_evidence_entries, osm_evidence_entries, volks_evidence_entries, cardlabo_evidence_entries, jungle_evidence_entries):
         for sid, entry in entries.items():
             if sid not in evidence:
                 evidence[sid] = entry

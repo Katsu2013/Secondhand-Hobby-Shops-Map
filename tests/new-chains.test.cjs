@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createLoader } = require('./load-ts.cjs');
 
-test('新チェーン（イエローサブマリン・ポポンデッタ・お宝あっとマーケット）の看板・チェーン分類を検証する', () => {
+test('新チェーン（イエローサブマリン・ポポンデッタ・お宝あっとマーケット・ボークス・カードラボ・ジャングル）の看板・チェーン分類を検証する', () => {
   const master = createLoader()('src/config/shopMaster.ts');
 
   // 1. 各チェーンの分類と看板の検証
@@ -13,6 +13,12 @@ test('新チェーン（イエローサブマリン・ポポンデッタ・お�
     { name: 'ポポンデッタ イオンモール幕張新都心店', chain: 'popondetta', brand: 'popondetta' },
     { name: 'お宝あっとマーケット 町田店', chain: 'otakara_market', brand: 'otakara_market' },
     { name: 'クイーンオフ 野田七光台店', chain: 'otakara_market', brand: 'otakara_market' },
+    { name: 'ボークス 秋葉原ホビー天国2', chain: 'volks', brand: 'volks' },
+    { name: 'ボークス ホビースクエア秋葉原', chain: 'volks', brand: 'volks' },
+    { name: 'カードラボ 秋葉原ラジオ会館本店', chain: 'cardlabo', brand: 'cardlabo' },
+    { name: 'カードラボ 名古屋大須店', chain: 'cardlabo', brand: 'cardlabo' },
+    { name: 'ジャングル 大阪日本橋本店', chain: 'jungle', brand: 'jungle' },
+    { name: 'ジャングル 秋葉原1号店', chain: 'jungle', brand: 'jungle' },
   ];
 
   for (const tc of testCases) {
@@ -34,9 +40,12 @@ test('新チェーン（イエローサブマリン・ポポンデッタ・お�
   assert.ok(chainIds.includes('yellowsubmarine'), 'yellowsubmarine must be in CHAIN_GROUPS');
   assert.ok(chainIds.includes('popondetta'), 'popondetta must be in CHAIN_GROUPS');
   assert.ok(chainIds.includes('otakara_market'), 'otakara_market must be in CHAIN_GROUPS');
+  assert.ok(chainIds.includes('volks'), 'volks must be in CHAIN_GROUPS');
+  assert.ok(chainIds.includes('cardlabo'), 'cardlabo must be in CHAIN_GROUPS');
+  assert.ok(chainIds.includes('jungle'), 'jungle must be in CHAIN_GROUPS');
 
   // 3. BRAND_PLATES 定義の検証
-  for (const bid of ['yellowsubmarine', 'popondetta', 'otakara_market']) {
+  for (const bid of ['yellowsubmarine', 'popondetta', 'otakara_market', 'volks', 'cardlabo', 'jungle']) {
     const spec = master.BRAND_PLATES[bid];
     assert.ok(spec, `BRAND_PLATES must have ${bid}`);
     assert.equal(spec.chainId, bid);
@@ -86,8 +95,8 @@ test('アニメ系および総合ゲーム・リユース系が系列ごとに�
   assert.ok(genres.has('🎲 ホビー・模型・カード専門店系'));
   assert.ok(genres.has('🧵 手芸・ハンドメイド・クラフト系'));
 
-  // 全23チェーンにジャンルが設定されていること
-  assert.equal(master.CHAIN_GROUPS.length, 23);
+  // 全26チェーンにジャンルが設定されていること
+  assert.equal(master.CHAIN_GROUPS.length, 26);
   for (const c of master.CHAIN_GROUPS) {
     assert.ok(c.genre, `Chain ${c.id} must have a genre defined`);
   }

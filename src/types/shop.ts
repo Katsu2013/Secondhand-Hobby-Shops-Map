@@ -35,7 +35,10 @@ export type ChainId =
   | 'inverse'
   | 'craft_chain'
   | 'yellowsubmarine'
-  | 'popondetta';
+  | 'popondetta'
+  | 'volks'
+  | 'cardlabo'
+  | 'jungle';
 
 /**
  * バルーンマーカー内に表示する個別ブランド看板プレートの識別子型。
@@ -82,7 +85,10 @@ export type BrandPlateId =
   | 'pandorahouse'
   | 'yellowsubmarine'
   | 'popondetta'
-  | 'otakara_market';
+  | 'otakara_market'
+  | 'volks'
+  | 'cardlabo'
+  | 'jungle';
 
 /**
  * 店舗が取り扱っている商品カテゴリ（親カテゴリ大分類）の識別子型。

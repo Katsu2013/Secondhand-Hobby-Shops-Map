@@ -1,0 +1,163 @@
+[
+  {
+    "name": "ジャングル大阪日本橋店",
+    "chain": "jungle",
+    "chains": [
+      "jungle"
+    ],
+    "brands": [
+      "jungle"
+    ],
+    "url": "https://jungle-scs.co.jp/?page_id=21",
+    "address": "大阪府大阪市浪速区日本橋3-7-5",
+    "clean_address": "大阪府大阪市浪速区日本橋3-7-5",
+    "tel": "06-6636-7444",
+    "hours": "平日:12:00~20:00 / 土日祝:11:00~20:00 / :12:00~19:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_retro_toy",
+      "sub_figure",
+      "sub_plamo"
+    ]
+  },
+  {
+    "name": "ジャングル空想的機械館メカストア",
+    "chain": "jungle",
+    "chains": [
+      "jungle"
+    ],
+    "brands": [
+      "jungle"
+    ],
+    "url": "https://jungle-scs.co.jp/?page_id=21",
+    "address": "大阪府大阪市浪速区日本橋3-4-16",
+    "clean_address": "大阪府大阪市浪速区日本橋3-4-16",
+    "tel": "06-6556-7464",
+    "hours": "平日:12:00~20:00 / 土日祝:11:00~20:00 / :12:00~19:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_retro_toy",
+      "sub_figure",
+      "sub_plamo"
+    ]
+  },
+  {
+    "name": "ジャングル 秋葉原1号店",
+    "chain": "jungle",
+    "chains": [
+      "jungle"
+    ],
+    "brands": [
+      "jungle"
+    ],
+    "url": "https://jungle-scs.co.jp/?page_id=21",
+    "address": "東京都千代田区外神田3-9-2 末広ビル 1",
+    "clean_address": "東京都千代田区外神田3-9-2 末広ビル 1",
+    "tel": "03-5577-5270",
+    "hours": "平日:12:00~20:00 / 土日祝:11:00~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_retro_toy",
+      "sub_figure",
+      "sub_plamo"
+    ]
+  },
+  {
+    "name": "ジャングル 秋葉原2号店 (JUNGLE AKIBA)",
+    "chain": "jungle",
+    "chains": [
+      "jungle"
+    ],
+    "brands": [
+      "jungle"
+    ],
+    "url": "https://jungle-scs.co.jp/?page_id=21",
+    "address": "東京都千代田区外神田1丁目15-16 秋葉原ラジオ会館7",
+    "clean_address": "東京都千代田区外神田1丁目15-16 秋葉原ラジオ会館7",
+    "tel": "03-3526-2581",
+    "hours": "平日:12:00~20:00 / 土日祝:11:00~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_retro_toy",
+      "sub_figure",
+      "sub_plamo"
+    ]
+  },
+  {
+    "name": "ジャングル名古屋店",
+    "chain": "jungle",
+    "chains": [
+      "jungle"
+    ],
+    "brands": [
+      "jungle"
+    ],
+    "url": "https://jungle-scs.co.jp/?page_id=21",
+    "address": "愛知県名古屋市中区大須3-19-1 @jungle_nagoya M",
+    "clean_address": "愛知県名古屋市中区大須3-19-1",
+    "tel": "052-684-7544",
+    "hours": "平日:12:00~20:00 / 土日祝:11:00~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_retro_toy",
+      "sub_figure",
+      "sub_plamo"
+    ]
+  },
+  {
+    "name": "ジャングル小倉店",
+    "chain": "jungle",
+    "chains": [
+      "jungle"
+    ],
+    "brands": [
+      "jungle"
+    ],
+    "url": "https://jungle-scs.co.jp/?page_id=21",
+    "address": "福岡県北九州市小倉北区浅野2-14-5 あるあるcity2",
+    "clean_address": "福岡県北九州市小倉北区浅野2-14-5 あるあるcity2",
+    "tel": "093-967-7446",
+    "hours": " 11:00~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_retro_toy",
+      "sub_figure",
+      "sub_plamo"
+    ]
+  },
+  {
+    "name": "ジャングル札幌店",
+    "chain": "jungle",
+    "chains": [
+      "jungle"
+    ],
+    "brands": [
+      "jungle"
+    ],
+    "url": "https://jungle-scs.co.jp/?page_id=21",
+    "address": "北海道札幌市中央区南2条西1丁目7-1 二番館ビル1",
+    "clean_address": "北海道札幌市中央区南2条西1丁目7-1 二番館ビル1",
+    "tel": "011-213-1062",
+    "hours": "平日:12:00~20:00 / 土日祝:11:00~20:00",
+    "categories": [
+      "figure_hobby"
+    ],
+    "subCategories": [
+      "sub_retro_toy",
+      "sub_figure",
+      "sub_plamo"
+    ]
+  }
+]
